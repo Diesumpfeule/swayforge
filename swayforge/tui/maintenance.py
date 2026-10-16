@@ -11,7 +11,7 @@ from textual.containers import Horizontal, Vertical
 from textual.screen import ModalScreen
 from textual.widgets import Button, Checkbox, DataTable, Input, Label, Select, Static
 
-from .. import apps, catalog, cleanup, mounts, render
+from .. import apps, catalog, cleanup, mounts, render, update
 from ..system import have
 from .panels import Panel
 
@@ -462,3 +462,49 @@ class MountsPanel(Panel):
             import subprocess
             subprocess.Popen(["xdg-open", name[8:]], start_new_session=True,
                              stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+
+# ── About + updates ──────────────────────────────────────────────────
+class AboutPanel(Panel):
+    TITLE = "About & updates"
+
+    def body(self) -> ComposeResult:
+        yield Static("", id="ab_versions")
+        yield Horizontal(Button("Update from GitHub", id="ab_update", variant="primary"),
+                         Button("Check again", id="ab_check"),
+                         Button("swayforge on GitHub", id="ab_gh_sf"),
+                         Button("wolfforge on GitHub", id="ab_gh_wf"), classes="btnrow")
+        yield Static("Update pulls the newest swayforge and wolfforge from GitHub, installs them and applies "
+                     "your settings again – your settings, themes and tweaks stay. It runs in a terminal; "
+                     "afterwards restart this app (Super+I) to see the new version.", classes="hint")
+        yield Static("About", classes="section")
+        yield Static("swayforge – Fedora Sway installer and settings. wolfforge – LibreWolf overhaul. "
+                     "Proof of concept, written by Claude (Anthropic). Provided as is, without any warranty; "
+                     "use at your own risk. Not accepting outside code. MIT licence.", classes="hint")
+
+    def on_show(self) -> None:
+        self.refresh_data()
+
+    @work(thread=True, exclusive=True, group="about")
+    def refresh_data(self) -> None:
+        self.app.call_from_thread(self.query_one("#ab_versions", Static).update,
+                                  "\n".join(update.describe(n, update.local(n), "", "unknown")
+                                            .split("  [")[0] + "  [dim]checking GitHub …[/]"
+                                            for n in update.APPS))
+        lines = [update.describe(n, *update.status(n)) for n in update.APPS]
+        self.app.call_from_thread(self.query_one("#ab_versions", Static).update, "\n".join(lines))
+
+    @on(Button.Pressed, "#ab_update, #ab_check, #ab_gh_sf, #ab_gh_wf")
+    def buttons(self, ev: Button.Pressed) -> None:
+        ev.stop()
+        bid = ev.button.id
+        if bid == "ab_check":
+            self.refresh_data()
+        elif bid == "ab_update":
+            hold = "echo; read -n1 -rsp 'Done – press any key to close'"
+            self.app.spawn_term(f"{update.script()}; {hold}")          # type: ignore[attr-defined]
+            self.app.notify("Updating in a terminal – restart the settings app afterwards")
+        else:
+            import subprocess
+            subprocess.Popen(["xdg-open", update.url("swayforge" if bid == "ab_gh_sf" else "wolfforge")],
+                             start_new_session=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)

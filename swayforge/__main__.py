@@ -11,6 +11,7 @@
   swayforge import-sway FILE   take over an existing Sway config into custom.conf
   swayforge mount [add|remove]  mount drives permanently at /mnt/NAME (fstab)
   swayforge wipe DEVICE        wipe + format a USB stick / SD card / external SSD (asks first)
+  swayforge version / update    installed version · get the newest from GitHub
   swayforge export FILE        back up settings + your tweaks
   swayforge restore FILE       … and bring them back after a reset
 """
@@ -63,6 +64,8 @@ def main(argv: list[str] | None = None) -> int:
     sub.add_parser("power", help="power menu (Rofi)")
     sub.add_parser("start", help="start menu (Rofi)")
     sub.add_parser("keys", help="shortcut overview (Rofi)")
+    sub.add_parser("version", help="installed versions + whether GitHub has newer ones")
+    sub.add_parser("update", help="get the newest swayforge + wolfforge from GitHub and apply them")
     sub.add_parser("max", help="maximise the focused window, bar stays (Super+F)")
     sub.add_parser("hello", help="animated ASCII greeting, then fastfetch (terminal start)")
     sub.add_parser("clip", help="clipboard history (Rofi)")
@@ -177,6 +180,15 @@ def main(argv: list[str] | None = None) -> int:
         print("Can be added:")
         for c in mounts.candidates():
             print("  " + mounts.describe(c))
+        return 0
+
+    if a.cmd in ("version", "update"):
+        from . import update
+        if a.cmd == "update":
+            return subprocess.call(["bash", "-c", update.script()])
+        for n in update.APPS:
+            print(update.describe(n, *update.status(n)).replace("[green]", "").replace("[yellow]", "")
+                  .replace("[dim]", "").replace("[/]", ""))
         return 0
 
     if a.cmd == "max":

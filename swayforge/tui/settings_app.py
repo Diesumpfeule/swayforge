@@ -21,7 +21,7 @@ from .. import boot, layouts, paths, render, settings, themes
 from ..system import detect, have, run
 from .common import (BASE_CSS, AnimatedArt, Field, art_styles, coerce, field_row, hero_text, path_from_wid, section, swatch,
                      two_tone, use_layout, use_theme)
-from .maintenance import AppsPanel, CleanupPanel, MountsPanel
+from .maintenance import AboutPanel, AppsPanel, CleanupPanel, MountsPanel
 from .panels import AudioPanel, BluetoothPanel, NetworkPanel
 
 ON_OFF = [("always", "always"), ("only via SSH/root", "needed"), ("never", "false")]
@@ -45,6 +45,7 @@ PAGES: list[tuple[str, str]] = [
     ("cleanup", "\U000f00e2  Cleanup & drives"),
     ("mounts", "\U000f02ca  Mount drives"),
     ("system", "\U000f0493  System & files"),
+    ("about", "\U000f02fd  About & updates"),
 ]
 
 FIELDS: dict[str, list[Field | str]] = {
@@ -305,6 +306,7 @@ class SettingsApp(App):
                 yield CleanupPanel(id="page-cleanup", classes="page")
                 yield MountsPanel(id="page-mounts", classes="page")
                 yield self.page_system()
+                yield AboutPanel(id="page-about", classes="page")
         yield Static("", id="statusbar")
         yield Footer()
 
@@ -639,6 +641,7 @@ class SettingsApp(App):
             "system",
             section("System"),
             Horizontal(Button("Update system", id="sys_update", variant="primary"),
+                       Button("Update swayforge + wolfforge", id="sys_selfupdate"),
                        Button("Install/remove apps", id="sys_installer"),
                        Button("Check firmware", id="sys_fw"), classes="btnrow"),
             section("All config files"),
@@ -655,9 +658,6 @@ class SettingsApp(App):
                    "After a reset: ./install.sh --restore FILE", classes="hint"),
             Horizontal(Input(str(paths.HOME / "swayforge-backup.tar.gz"), id="export_path"),
                        Button("Export", id="sys_export", variant="success"), classes="btnrow"),
-            section("About"),
-            Static("swayforge – proof of concept, written by Claude (Anthropic). Provided as is, without "
-                   "any warranty; use at your own risk. Not accepting outside code.", classes="hint"),
             section("Automatic backups of old configs"),
             ListView(*[ListItem(Label(d.name), name=str(d)) for d in backups[:30]] or
                      [ListItem(Label("none yet"))], id="backuplist"),
@@ -994,6 +994,10 @@ class SettingsApp(App):
             self.notify("Drag your images into the folder, then press ↻")
         elif bid == "wp_refresh":
             self.refresh_wallpapers(quiet=False)
+        elif bid == "sys_selfupdate":
+            from .. import update
+            self.spawn_term(f"{update.script()}; {hold}")
+            self.notify("Updating swayforge + wolfforge in a terminal – restart this app afterwards")
         elif bid == "wp_theme":
             self.theme_from_wallpaper()
         elif bid == "keys_reset":

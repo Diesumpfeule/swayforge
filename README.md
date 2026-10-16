@@ -63,6 +63,11 @@ The installer asks for your sudo password once and walks you through
 
 ### The fast way from the second time on
 
+**Updating:** *Settings → About & updates* shows the installed version of swayforge and wolfforge
+and whether GitHub has a newer one. *Update from GitHub* pulls both, installs them and applies
+your settings again. Your settings, themes and tweaks stay. On the command line:
+`swayforge version` / `swayforge update`.
+
 `Super+I → System & files → Export` saves settings, app selection, your themes, ASCII art,
 tweaks and the CS2 translator into one file. After the next reset:
 
@@ -301,6 +306,7 @@ swayforge layout NAME         switch layout  (--list, --next)
 swayforge boot / login        install boot screen / login screen
 swayforge gamemode            toggle gaming mode
 swayforge hello               animated ASCII greeting, then fastfetch
+swayforge version / update    installed versions · update both from GitHub
 swayforge scan [TARGET]       malware scan: downloads | home | drives | PATH
 swayforge audit rootkit|system  rkhunter + chkrootkit / Lynis
 swayforge wipe [DEVICE]       wipe + format a USB stick / SD card / external SSD (no DEVICE = list)
