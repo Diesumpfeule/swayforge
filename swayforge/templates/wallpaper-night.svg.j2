@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="3840" height="2160" viewBox="0 0 3840 2160">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="{{ c.crust }}"/>
+      <stop offset="0.45" stop-color="{{ c.surface }}"/>
+      <stop offset="0.8" stop-color="{{ c.surface2 }}"/>
+      <stop offset="1" stop-color="{{ mix(c.accent, c.base, 0.35) }}"/>
+    </linearGradient>
+    <radialGradient id="cloud" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="{{ c.accent }}" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="{{ c.accent }}" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0.35" stop-color="{{ c.text }}" stop-opacity="0.35"/>
+      <stop offset="1" stop-color="{{ c.text }}" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="moon" cx="0.42" cy="0.4" r="0.6">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="0.7" stop-color="{{ c.text }}"/>
+      <stop offset="1" stop-color="{{ mix(c.text, c.accent, 0.4) }}"/>
+    </radialGradient>
+    <linearGradient id="trail" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="{{ c.text }}" stop-opacity="0"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0.95"/>
+    </linearGradient>
+  </defs>
+  <rect width="3840" height="2160" fill="url(#sky)"/>
+  <ellipse cx="1300" cy="1980" rx="1500" ry="260" fill="url(#cloud)"/>
+  <ellipse cx="3000" cy="2060" rx="1300" ry="240" fill="url(#cloud)"/>
+  <ellipse cx="2400" cy="1500" rx="900" ry="200" fill="url(#cloud)" opacity="0.5"/>
+  <g fill="#ffffff">
+{% for x, y, r, o in extras.stars %}
+    <circle cx="{{ x }}" cy="{{ y }}" r="{{ r }}" opacity="{{ '%.2f' % o }}"/>
+{% endfor %}
+  </g>
+  <circle cx="3020" cy="660" r="520" fill="url(#glow)"/>
+  <circle cx="3020" cy="660" r="330" fill="url(#moon)"/>
+  <g fill="{{ mix(c.text, c.accent, 0.5) }}" opacity="0.35">
+    <circle cx="2940" cy="580" r="60"/><circle cx="3110" cy="720" r="42"/><circle cx="3000" cy="800" r="28"/>
+  </g>
+  <path d="M1700 1050 L2600 1350" stroke="url(#trail)" stroke-width="10" stroke-linecap="round"/>
+  <circle cx="2600" cy="1350" r="14" fill="#ffffff"/>
+  <g fill="none" stroke="{{ c.crust }}" stroke-linecap="round">
+{% for d, w in extras.trees %}
+    <path d="{{ d }}" stroke-width="{{ '%.1f' % w }}"/>
+{% endfor %}
+  </g>
+</svg>

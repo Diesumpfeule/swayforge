@@ -1,0 +1,161 @@
+/* {{ mark }} – don't edit. Your own tweaks go into ~/.config/rofi/config.rasi
+   Layout: {{ layout }} */
+
+configuration {
+    modi:                "drun,run,window";
+    show-icons:          {{ "false" if layout == "wired" else "true" }};
+    icon-theme:          "{{ icons }}";
+    drun-display-format: "{name}";
+    display-drun:        "{{ "> run" if layout == "wired" else "Apps" }}";
+    display-run:         "{{ "> exec" if layout == "wired" else "Command" }}";
+    display-window:      "{{ "> win" if layout == "wired" else "Windows" }}";
+    terminal:            "{{ s.general.terminal }}";
+}
+
+* {
+    bg:        {{ rgba(c.base, 0.96) }};
+    bg-alt:    {{ c.surface }};
+    fg:        {{ c.text }};
+    fg-dim:    {{ c.subtext }};
+    accent:    {{ c.accent }};
+    on-accent: {{ c.crust }};
+    urgent:    {{ c.red }};
+    hi:        {{ bv.hi }};
+    lo:        {{ bv.lo }};
+    face:      {{ bv.face }};
+
+    background-color: transparent;
+    text-color:       @fg;
+    font:             "{{ font }} {{ s.theme.font_size + 1 }}";
+}
+
+{% if layout == "win98" %}
+/* ── Classic 98 start menu: bevelled box with a coloured side stripe ── */
+window {
+    location: south west;
+    anchor: south west;
+    x-offset: 3px;
+    y-offset: -{{ s.bar.height + 2 }}px;
+    width: 420px;
+    background-color: @face;
+    border: 2px 0 0 2px;
+    border-color: @hi;
+    children: [ frame ];
+}
+frame {
+    border: 0 2px 2px 0;
+    border-color: @lo;
+    orientation: horizontal;
+    children: [ textbox-stripe, mainbox ];
+}
+textbox-stripe {
+    expand: false;
+    width: 34px;
+    background-color: {{ bv.title }};
+    text-color: {{ c.crust }};
+    content: "";
+}
+mainbox { padding: 6px; spacing: 6px; children: [ inputbar, listview ]; }
+inputbar {
+    background-color: {{ c.base }};
+    border: 2px 0 0 2px; border-color: @lo;
+    padding: 6px 8px; spacing: 8px;
+    children: [ prompt, entry ];
+}
+prompt { text-color: @accent; }
+entry  { placeholder: "Type to search …"; placeholder-color: @fg-dim; }
+listview { lines: 12; columns: 1; spacing: 0; fixed-height: false; scrollbar: false; }
+element { padding: 5px 8px; spacing: 10px; }
+element selected.normal { background-color: {{ bv.title }}; text-color: {{ c.crust }}; }
+
+{% elif layout == "win7" %}
+/* ── Glass 7 start menu ──────────────────────────────────────────── */
+window {
+    location: south west;
+    anchor: south west;
+    x-offset: 6px;
+    y-offset: -{{ s.bar.height + 12 }}px;
+    width: 460px;
+    border: 1px;
+    border-color: {{ rgba(c.text, 0.35) }};
+    border-radius: 8px;
+    background-color: transparent;
+    background-image: linear-gradient(to bottom, {{ rgba(bv.hi, 0.85) }}, {{ rgba(c.base, 0.95) }} 30%, {{ rgba(c.crust, 0.97) }});
+    padding: 12px;
+}
+mainbox { spacing: 10px; children: [ inputbar, listview ]; }
+inputbar {
+    background-color: {{ rgba(c.text, 0.10) }};
+    border: 1px; border-color: {{ rgba(c.text, 0.25) }}; border-radius: 4px;
+    padding: 7px 10px; spacing: 8px;
+    children: [ prompt, entry ];
+}
+prompt { text-color: @accent; }
+entry  { placeholder: "Search programs and files"; placeholder-color: @fg-dim; }
+listview { lines: 12; columns: 1; spacing: 2px; fixed-height: false; scrollbar: false; }
+element { padding: 6px 10px; spacing: 12px; border-radius: 4px; }
+element selected.normal {
+    background-image: linear-gradient(to bottom, {{ rgba(c.accent, 0.55) }}, {{ rgba(c.accent, 0.25) }});
+    border: 1px; border-color: {{ rgba(c.accent, 0.8) }};
+    text-color: @fg;
+}
+
+{% elif layout == "wired" %}
+/* ── Wired: a terminal prompt ────────────────────────────────────── */
+window {
+    width: 52%;
+    background-color: {{ c.crust }};
+    border: 1px;
+    border-color: @accent;
+    padding: 14px;
+}
+mainbox { spacing: 10px; children: [ inputbar, message, listview ]; }
+inputbar { spacing: 10px; children: [ prompt, entry ]; }
+prompt { text-color: @accent; }
+entry  { placeholder: "_"; placeholder-color: @accent; cursor: text; }
+message { border: 1px 0 0 0; border-color: {{ c.surface2 }}; padding: 6px 0; }
+listview { lines: 12; columns: 1; spacing: 0; fixed-height: false; scrollbar: false; }
+element { padding: 2px 6px; }
+element normal.normal, element alternate.normal { text-color: {{ c.subtext }}; }
+element selected.normal { background-color: transparent; text-color: @accent; border: 0 0 0 2px; border-color: @accent; }
+
+{% else %}
+/* ── Modern / solid / minimal / sidebar ─────────────────────────── */
+window {
+{% if layout == "sidebar" %}
+    location: west;
+    anchor: west;
+    x-offset: {{ s.bar.height + 18 }}px;
+{% endif %}
+    width: 640px;
+    background-color: @bg;
+    border: 2px;
+    border-color: @accent;
+    border-radius: {{ s.look.radius }}px;
+    padding: 16px;
+}
+mainbox { spacing: 12px; children: [ inputbar, message, listview ]; }
+inputbar {
+    background-color: @bg-alt;
+    border-radius: {{ s.look.radius }}px;
+    padding: 10px 14px;
+    spacing: 10px;
+    children: [ prompt, entry ];
+}
+prompt { text-color: @accent; }
+entry  { placeholder: "Search …"; placeholder-color: @fg-dim; cursor: text; }
+message { background-color: @bg-alt; border-radius: {{ s.look.radius }}px; padding: 10px; }
+listview { lines: 8; columns: 1; fixed-height: false; scrollbar: false; spacing: 4px; }
+element { padding: 8px 12px; border-radius: {{ [s.look.radius - 2, 0] | max }}px; spacing: 12px; }
+element selected.normal { background-color: @accent; text-color: @on-accent; }
+{% endif %}
+
+/* ── Shared ─────────────────────────────────────────────────────── */
+textbox { text-color: @fg; }
+element normal.normal, element alternate.normal { background-color: transparent; }
+element normal.urgent, element alternate.urgent { text-color: @urgent; }
+element selected.urgent  { background-color: @urgent; text-color: @on-accent; }
+element normal.active, element alternate.active { text-color: @accent; }
+element selected.active  { background-color: @accent; text-color: @on-accent; }
+element-icon { size: 1.3em; vertical-align: 0.5; }
+element-text { text-color: inherit; vertical-align: 0.5; }

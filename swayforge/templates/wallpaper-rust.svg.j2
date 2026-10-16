@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="3840" height="2160" viewBox="0 0 3840 2160">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="{{ c.crust }}"/>
+      <stop offset="0.6" stop-color="{{ c.base }}"/>
+      <stop offset="1" stop-color="{{ c.surface }}"/>
+    </linearGradient>
+    <radialGradient id="ember" cx="0.82" cy="0.88" r="0.6">
+      <stop offset="0" stop-color="{{ c.accent }}" stop-opacity="0.22"/>
+      <stop offset="1" stop-color="{{ c.accent }}" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="3840" height="2160" fill="url(#bg)"/>
+  <rect width="3840" height="2160" fill="url(#ember)"/>
+  <g fill="{{ c.accent2 }}">
+{% for x, y, r, o in extras.noise %}
+    <rect x="{{ x }}" y="{{ y }}" width="{{ r }}" height="{{ r }}" opacity="{{ '%.2f' % (o * 0.6) }}"/>
+{% endfor %}
+  </g>
+{% for x, y, rot, sc, o in extras.leaves %}
+  <path d="{{ extras.leaf }}" transform="translate({{ x }} {{ y }}) rotate({{ rot }}) scale({{ '%.2f' % sc }})"
+        fill="{{ c.accent if loop.index % 3 else c.accent2 }}" fill-opacity="{{ '%.2f' % o }}"
+        stroke="{{ c.crust }}" stroke-width="3" stroke-opacity="{{ '%.2f' % o }}"/>
+{% endfor %}
+  <g font-family="{{ font }}, monospace" font-size="30" fill="{{ c.accent2 }}" fill-opacity="0.35">
+{% for line in art %}
+    <text x="200" y="{{ 1500 + loop.index0 * 38 }}" xml:space="preserve">{{ line | e }}</text>
+{% endfor %}
+  </g>
+</svg>

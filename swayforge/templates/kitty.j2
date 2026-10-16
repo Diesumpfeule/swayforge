@@ -1,0 +1,32 @@
+# {{ mark }} – don't edit.
+# Your own settings go into ~/.config/kitty/kitty.conf (below the include line).
+font_family      {{ font }}
+font_size        {{ s.theme.font_size + 1 }}
+background_opacity {{ s.look.terminal_opacity }}
+window_padding_width {{ s.look.terminal_padding }}
+confirm_os_window_close 0
+enable_audio_bell no
+cursor_shape beam
+cursor_trail 1
+scrollback_lines 10000
+copy_on_select clipboard
+tab_bar_style powerline
+tab_powerline_style round
+
+foreground {{ c.text }}
+background {{ c.base }}
+selection_foreground {{ c.crust }}
+selection_background {{ c.accent }}
+cursor {{ c.accent }}
+cursor_text_color {{ c.crust }}
+url_color {{ c.blue }}
+active_border_color {{ c.accent }}
+inactive_border_color {{ c.surface2 }}
+active_tab_foreground {{ c.crust }}
+active_tab_background {{ c.accent }}
+inactive_tab_foreground {{ c.subtext }}
+inactive_tab_background {{ c.surface }}
+tab_bar_background {{ c.mantle }}
+{% for col in ansi %}
+color{{ loop.index0 }} {{ col }}
+{% endfor %}

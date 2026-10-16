@@ -1,0 +1,34 @@
+# {{ mark }} – changes will be overwritten.
+font={{ font }} {{ s.theme.font_size }}
+background-color={{ (bv.face if layout == 'win98' else c.crust if layout == 'wired' else c.base) }}ee
+{% if layout == 'wired' %}
+format=<b>// %s</b>\n%b
+{% endif %}
+text-color={{ c.text }}
+border-color={{ bv.hi if layout == 'win98' else c.accent }}
+progress-color=over {{ c.surface2 }}
+border-size={{ 1 if layout in ('wired', 'win7') else 2 }}
+border-radius={{ 6 if layout == 'win7' else s.look.radius }}
+padding=12,16
+margin={{ s.look.gaps_inner + s.look.gaps_outer }}
+width=380
+max-visible=5
+default-timeout=6000
+icons=1
+max-icon-size=48
+layer=overlay
+anchor={{ "bottom-right" if layout in ('win98', 'win7') else "top-right" }}
+
+[category=osd]
+default-timeout=1400
+format=<b>%s</b>
+
+[urgency=low]
+border-color={{ c.surface2 }}
+
+[urgency=high]
+border-color={{ c.red }}
+default-timeout=0
+
+[mode=do-not-disturb]
+invisible=1

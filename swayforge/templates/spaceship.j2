@@ -1,0 +1,40 @@
+# {{ mark }} – change these in swayforge → "Terminal & prompt", or override in ~/.spaceshiprc.zsh
+SPACESHIP_PROMPT_ORDER=({{ sections | join(" ") }})
+SPACESHIP_PROMPT_ADD_NEWLINE={{ "true" if p.add_newline else "false" }}
+SPACESHIP_PROMPT_SEPARATE_LINE={{ "true" if p.separate_line else "false" }}
+SPACESHIP_PROMPT_ASYNC={{ "true" if p.async else "false" }}
+
+SPACESHIP_CHAR_SYMBOL="{{ p.char }} "
+SPACESHIP_CHAR_COLOR_SUCCESS="{{ c.green }}"
+SPACESHIP_CHAR_COLOR_FAILURE="{{ c.red }}"
+SPACESHIP_CHAR_COLOR_SECONDARY="{{ c.yellow }}"
+
+SPACESHIP_USER_SHOW={{ p.user }}
+SPACESHIP_USER_COLOR="{{ c.yellow }}"
+SPACESHIP_USER_COLOR_ROOT="{{ c.red }}"
+SPACESHIP_HOST_SHOW={{ p.host }}
+SPACESHIP_HOST_COLOR="{{ c.accent2 }}"
+SPACESHIP_HOST_COLOR_SSH="{{ c.orange }}"
+
+SPACESHIP_DIR_COLOR="{{ c.accent }}"
+SPACESHIP_DIR_TRUNC={{ p.dir_trunc }}
+SPACESHIP_DIR_LOCK_COLOR="{{ c.red }}"
+
+SPACESHIP_GIT_BRANCH_COLOR="{{ c.magenta }}"
+SPACESHIP_GIT_STATUS_COLOR="{{ c.red }}"
+
+SPACESHIP_TIME_SHOW={{ "true" if p.show_time else "false" }}
+SPACESHIP_TIME_COLOR="{{ c.subtext }}"
+SPACESHIP_EXEC_TIME_SHOW={{ "true" if p.show_exec_time else "false" }}
+SPACESHIP_EXEC_TIME_COLOR="{{ c.yellow }}"
+SPACESHIP_EXIT_CODE_SHOW={{ "true" if p.exit_code else "false" }}
+SPACESHIP_EXIT_CODE_COLOR="{{ c.red }}"
+SPACESHIP_JOBS_COLOR="{{ c.blue }}"
+SPACESHIP_SUDO_COLOR="{{ c.orange }}"
+
+SPACESHIP_PYTHON_COLOR="{{ c.yellow }}"
+SPACESHIP_VENV_COLOR="{{ c.cyan }}"
+SPACESHIP_NODE_COLOR="{{ c.green }}"
+SPACESHIP_RUST_COLOR="{{ c.orange }}"
+SPACESHIP_GOLANG_COLOR="{{ c.cyan }}"
+SPACESHIP_DOCKER_COLOR="{{ c.blue }}"

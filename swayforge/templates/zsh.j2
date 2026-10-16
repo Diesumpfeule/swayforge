@@ -1,0 +1,81 @@
+# {{ mark }} – don't edit.
+# Your own stuff goes into ~/.zshrc (below the source line).
+
+typeset -U path
+path=("$HOME/.local/bin" $path)
+export EDITOR="{{ s.general.editor }}"
+export VISUAL="$EDITOR"
+
+# ── History ──────────────────────────────────────────────────────
+HISTFILE="$HOME/.zsh_history"
+HISTSIZE=50000
+SAVEHIST=50000
+setopt EXTENDED_HISTORY HIST_IGNORE_ALL_DUPS HIST_IGNORE_SPACE HIST_REDUCE_BLANKS SHARE_HISTORY INC_APPEND_HISTORY
+
+# ── Comfort ──────────────────────────────────────────────────────
+setopt AUTO_CD AUTO_PUSHD PUSHD_IGNORE_DUPS INTERACTIVE_COMMENTS NO_BEEP
+autoload -Uz compinit && compinit -d "${XDG_CACHE_HOME:-$HOME/.cache}/zcompdump"
+zstyle ':completion:*' menu select
+zstyle ':completion:*' matcher-list 'm:{a-zA-Z}={A-Za-z}'
+zstyle ':completion:*' list-colors "${(s.:.)LS_COLORS}"
+
+bindkey -e
+bindkey '^[[1;5C' forward-word      # Ctrl+Right
+bindkey '^[[1;5D' backward-word     # Ctrl+Left
+bindkey '^[[H' beginning-of-line
+bindkey '^[[F' end-of-line
+bindkey '^[[3~' delete-char
+autoload -Uz up-line-or-beginning-search down-line-or-beginning-search
+zle -N up-line-or-beginning-search
+zle -N down-line-or-beginning-search
+bindkey '^[[A' up-line-or-beginning-search
+bindkey '^[[B' down-line-or-beginning-search
+
+# ── Tools (only if installed) ─────────────────────────────
+[[ -f /usr/share/fzf/shell/key-bindings.zsh ]] && source /usr/share/fzf/shell/key-bindings.zsh
+export FZF_DEFAULT_OPTS="--color=bg+:{{ c.surface }},bg:-1,spinner:{{ c.accent }},hl:{{ c.red }},fg:{{ c.text }},header:{{ c.red }},info:{{ c.accent2 }},pointer:{{ c.accent }},marker:{{ c.accent }},fg+:{{ c.text }},prompt:{{ c.accent }},hl+:{{ c.red }},border:{{ c.surface2 }} --border=rounded --height=50%"
+(( $+commands[zoxide] )) && eval "$(zoxide init zsh)"
+{% if s.shell.aliases %}
+
+# ── Aliases ───────────────────────────────────────────────────────
+if (( $+commands[eza] )); then
+  alias ls='eza --icons --group-directories-first'
+  alias ll='eza -l --icons --git --group-directories-first'
+  alias la='eza -la --icons --git --group-directories-first'
+  alias tree='eza --tree --icons'
+else
+  alias ls='ls --color=auto --group-directories-first'
+  alias ll='ls -lh'
+  alias la='ls -lAh'
+fi
+(( $+commands[bat] )) && alias cat='bat --paging=never --style=plain'
+alias grep='grep --color=auto'
+alias ..='cd ..'
+alias ...='cd ../..'
+alias update='sudo dnf upgrade --refresh -y && flatpak update -y'
+alias install='sudo dnf install'
+alias search='dnf search'
+alias sf='swayforge'
+{% endif %}
+{% if s.shell.autosuggestions %}
+
+ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE="fg={{ c.overlay }}"
+[[ -f /usr/share/zsh-autosuggestions/zsh-autosuggestions.zsh ]] && source /usr/share/zsh-autosuggestions/zsh-autosuggestions.zsh
+{% endif %}
+{% if s.shell.spaceship %}
+
+# ── Prompt: Spaceship ────────────────────────────────────────────
+[[ -f "{{ gen_dir }}/spaceship.zsh" ]] && source "{{ gen_dir }}/spaceship.zsh"
+[[ -f "{{ spaceship_dir }}/spaceship.zsh" ]] && source "{{ spaceship_dir }}/spaceship.zsh"
+{% else %}
+PROMPT='%F{{ "{" }}{{ c.accent }}{{ "}" }}%~%f %F{{ "{" }}{{ c.green }}{{ "}" }}{{ s.prompt.char }}%f '
+{% endif %}
+{% if s.shell.syntax_highlighting %}
+
+# must be the last plugin loaded
+[[ -f /usr/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh ]] && source /usr/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
+{% endif %}
+{% if s.shell.fastfetch_on_start %}
+
+[[ -o interactive ]] && (( $+commands[fastfetch] )) && fastfetch
+{% endif %}

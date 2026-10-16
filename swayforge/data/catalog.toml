@@ -1,0 +1,538 @@
+# swayforge app catalogue
+#
+# Source priority: 1. Fedora repos  2. RPM Fusion / COPR / vendor RPM repo  3. Flatpak.
+# Flatpak only where there is no maintained RPM – the installer marks those [Flatpak].
+#
+# Fields per item:
+#   id        unique name (stored in your profile)
+#   label     display name
+#   desc      short description
+#   default   ticked by default?
+#   locked    always installed, can't be unticked (base desktop)
+#   dnf       Fedora packages
+#   flatpak   Flathub IDs
+#   copr      COPR repo enabled first
+#   needs     other items pulled in automatically (e.g. rpmfusion)
+#   pre/post  commands before/after ({user}, {fedora}, {app} are replaced)
+#   when      "amd" | "laptop" | "bluetooth" – only suggested when detected
+#
+# Your own items: create ~/.config/swayforge/catalog.toml with the same structure;
+# groups with the same id are merged.
+
+[[group]]
+id = "system"
+label = "System & drivers"
+
+  [[group.items]]
+  id = "dnf-defaultyes"
+  label = "Enter = yes in dnf"
+  desc = "[y/N] becomes [Y/n]: Enter confirms (also when removing – read before you press it)"
+  default = true
+  pre = ["sudo dnf config-manager setopt defaultyes=True"]
+
+  [[group.items]]
+  id = "dnf-speed"
+  label = "Faster downloads (dnf)"
+  desc = "10 parallel downloads instead of 3"
+  default = true
+  pre = ["sudo dnf config-manager setopt max_parallel_downloads=10"]
+
+  [[group.items]]
+  id = "rpmfusion"
+  label = "RPM Fusion (free + nonfree)"
+  desc = "Needed for Steam, Discord, codecs and AMD video acceleration"
+  default = true
+  pre = [
+    "curl -fsSL -o /tmp/rpmfusion-free.rpm https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-{fedora}.noarch.rpm",
+    "curl -fsSL -o /tmp/rpmfusion-nonfree.rpm https://mirrors.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-{fedora}.noarch.rpm",
+    "sudo dnf install -y /tmp/rpmfusion-free.rpm /tmp/rpmfusion-nonfree.rpm",
+    "sudo dnf config-manager setopt rpmfusion-free-updates-testing.enabled=0 rpmfusion-nonfree-updates-testing.enabled=0 || true",
+  ]
+
+  [[group.items]]
+  id = "flathub"
+  label = "Flathub"
+  desc = "Only for apps without an RPM – pulled in automatically when you pick one"
+  default = false
+  dnf = ["flatpak"]
+  post = ["sudo flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo"]
+
+  [[group.items]]
+  id = "codecs"
+  label = "Multimedia codecs"
+  desc = "Full ffmpeg instead of ffmpeg-free (videos, streams, OBS)"
+  default = true
+  needs = ["rpmfusion"]
+  post = ["sudo dnf swap -y --allowerasing ffmpeg-free ffmpeg"]
+
+  [[group.items]]
+  id = "amd-video"
+  label = "AMD video acceleration"
+  desc = "Mesa freeworld: hardware decoding of H.264/H.265 on AMD"
+  default = true
+  when = "amd"
+  needs = ["rpmfusion"]
+  dnf = ["vulkan-tools", "libva-utils"]
+  post = [
+    "sudo dnf swap -y --allowerasing mesa-va-drivers mesa-va-drivers-freeworld",
+    "sudo dnf swap -y --allowerasing mesa-va-drivers.i686 mesa-va-drivers-freeworld.i686 || true",
+  ]
+
+  [[group.items]]
+  id = "firmware"
+  label = "Firmware updates (fwupd)"
+  desc = "BIOS/SSD/peripheral updates via fwupdmgr"
+  default = true
+  dnf = ["fwupd"]
+
+  [[group.items]]
+  id = "bluetooth"
+  label = "Bluetooth"
+  desc = "Enable the service + Blueman as a fallback GUI"
+  default = true
+  when = "bluetooth"
+  dnf = ["blueman", "bluez"]
+  post = ["sudo systemctl enable --now bluetooth"]
+
+[[group]]
+id = "desktop"
+label = "Sway desktop"
+
+  [[group.items]]
+  id = "core"
+  label = "Sway base"
+  desc = "Sway, Waybar, Rofi, Mako, lock screen, screenshots, clipboard, audio/Wi-Fi/BT tools"
+  locked = true
+  default = true
+  dnf = [
+    "sway", "swaybg", "swayidle", "swaylock", "waybar", "rofi", "mako", "libnotify",
+    "grim", "slurp", "swappy", "wl-clipboard", "cliphist", "brightnessctl", "playerctl",
+    "pavucontrol", "pulseaudio-utils", "NetworkManager-tui", "network-manager-applet", "gammastep",
+    "xdg-desktop-portal-wlr", "xdg-desktop-portal-gtk", "lxqt-policykit", "wlr-randr",
+    "papirus-icon-theme", "adw-gtk3-theme", "librsvg2", "librsvg2-tools",
+    "google-noto-emoji-fonts", "jetbrains-mono-fonts-all", "fontconfig",
+    "zsh", "zsh-autosuggestions", "zsh-syntax-highlighting", "fzf", "zoxide",
+    "git", "curl", "unzip", "tar", "xz", "btop", "fastfetch",
+    "python3-textual", "python3-jinja2",
+  ]
+
+  [[group.items]]
+  id = "files"
+  label = "Thunar file manager"
+  desc = "With archive plugin, thumbnails and network drives"
+  default = true
+  dnf = ["Thunar", "thunar-archive-plugin", "thunar-volman", "file-roller", "tumbler", "gvfs", "gvfs-smb", "gvfs-mtp"]
+
+  [[group.items]]
+  id = "viewers"
+  label = "Image & video viewers"
+  desc = "imv (images), mpv (videos), zathura (PDF)"
+  default = true
+  dnf = ["imv", "mpv", "zathura", "zathura-pdf-mupdf"]
+
+  [[group.items]]
+  id = "cli-basics"
+  label = "Terminal tools"
+  desc = "neovim, ripgrep, fd, bat, tldr"
+  default = true
+  dnf = ["neovim", "ripgrep", "fd-find", "bat", "tealdeer"]
+
+  [[group.items]]
+  id = "cava"
+  label = "cava"
+  desc = "Audio visualiser in the terminal – themed"
+  default = true
+  dnf = ["cava"]
+
+  [[group.items]]
+  id = "swayfx"
+  label = "SwayFX (effects)"
+  desc = "Replaces Sway: blur, shadows, rounded windows. Experimental (COPR)"
+  default = false
+  copr = "swayfx/swayfx"
+  post = ["sudo dnf swap -y --allowerasing sway swayfx"]
+
+[[group]]
+id = "gaming"
+label = "Gaming"
+
+  [[group.items]]
+  id = "steam"
+  label = "Steam"
+  desc = "RPM from RPM Fusion (not Flatpak) – incl. Proton and controller rules"
+  default = true
+  needs = ["rpmfusion"]
+  dnf = ["steam", "steam-devices"]
+
+  [[group.items]]
+  id = "gamemode"
+  label = "GameMode + MangoHud"
+  desc = "Performance mode + FPS overlay (Steam launch option: gamemoderun mangohud %command%)"
+  default = true
+  dnf = ["gamemode", "mangohud", "mangohud.i686", "goverlay"]
+  post = ["sudo usermod -aG gamemode {user} || true"]
+
+  [[group.items]]
+  id = "protonplus"
+  label = "ProtonPlus"
+  desc = "Proton-GE & co. in one click (COPR wehagy/protonplus)"
+  default = true
+  copr = "wehagy/protonplus"
+  dnf = ["protonplus"]
+
+  [[group.items]]
+  id = "prism"
+  label = "Prism Launcher"
+  desc = "Minecraft with modpacks (official COPR g3tchoo/prismlauncher)"
+  default = true
+  copr = "g3tchoo/prismlauncher"
+  dnf = ["prismlauncher"]
+
+  [[group.items]]
+  id = "heroic"
+  label = "Heroic Games Launcher"
+  desc = "Epic, GOG, Amazon – official RPM from GitHub (notifies about updates itself)"
+  default = true
+  post = ["url=$(curl -fsSL https://api.github.com/repos/Heroic-Games-Launcher/HeroicGamesLauncher/releases/latest | grep -o 'https://[^\"]*x86_64\\.rpm' | head -1) && [ -n \"$url\" ] && sudo dnf install -y \"$url\""]
+
+  [[group.items]]
+  id = "discord"
+  label = "Discord"
+  desc = "RPM from RPM Fusion nonfree"
+  default = true
+  needs = ["rpmfusion"]
+  dnf = ["discord"]
+
+  [[group.items]]
+  id = "lutris"
+  label = "Lutris"
+  desc = "Battle.net, emulators, old Windows games"
+  default = false
+  dnf = ["lutris"]
+
+  [[group.items]]
+  id = "bottles"
+  label = "Bottles"
+  desc = "Windows programs in separate Wine prefixes"
+  default = false
+  dnf = ["bottles"]
+
+  [[group.items]]
+  id = "gamescope"
+  label = "Gamescope"
+  desc = "Micro-compositor for games (upscaling, HDR, fixed resolution)"
+  default = false
+  dnf = ["gamescope"]
+
+  [[group.items]]
+  id = "corectrl"
+  label = "CoreCtrl"
+  desc = "AMD GPU fan curves, clocks, power profiles"
+  default = false
+  when = "amd"
+  dnf = ["corectrl"]
+
+  [[group.items]]
+  id = "retroarch"
+  label = "RetroArch"
+  desc = "Emulator frontend for retro consoles"
+  default = false
+  dnf = ["retroarch"]
+
+  [[group.items]]
+  id = "protonup"
+  label = "ProtonUp-Qt"
+  desc = "Alternative to ProtonPlus"
+  default = false
+  needs = ["flathub"]
+  flatpak = ["net.davidotek.pupgui2"]
+
+[[group]]
+id = "browser"
+label = "Browser"
+
+  [[group.items]]
+  id = "firefox"
+  label = "Firefox"
+  desc = "Fedora default"
+  default = true
+  dnf = ["firefox"]
+
+  [[group.items]]
+  id = "brave"
+  label = "Brave"
+  desc = "Official Brave repo, with ad blocker"
+  default = false
+  pre = ["sudo dnf config-manager addrepo --overwrite --from-repofile=https://brave-browser-rpm-release.s3.brave.com/brave-browser.repo"]
+  dnf = ["brave-browser"]
+
+  [[group.items]]
+  id = "librewolf"
+  label = "LibreWolf"
+  desc = "Privacy-focused Firefox (official repo)"
+  default = false
+  pre = ["curl -fsSL https://repo.librewolf.net/librewolf.repo | sudo tee /etc/yum.repos.d/librewolf.repo >/dev/null"]
+  dnf = ["librewolf"]
+
+  [[group.items]]
+  id = "chromium"
+  label = "Chromium"
+  desc = "For sites that only work in Chrome"
+  default = false
+  dnf = ["chromium"]
+
+  [[group.items]]
+  id = "zen"
+  label = "Zen Browser"
+  desc = "Firefox-based, vertical tabs (no maintained RPM)"
+  default = false
+  needs = ["flathub"]
+  flatpak = ["app.zen_browser.zen"]
+
+[[group]]
+id = "dev"
+label = "Programming"
+
+  [[group.items]]
+  id = "vscode"
+  label = "Visual Studio Code"
+  desc = "Official Microsoft repo"
+  default = true
+  pre = [
+    "sudo rpm --import https://packages.microsoft.com/keys/microsoft.asc",
+    "printf '[code]\\nname=Visual Studio Code\\nbaseurl=https://packages.microsoft.com/yumrepos/vscode\\nenabled=1\\ngpgcheck=1\\ngpgkey=https://packages.microsoft.com/keys/microsoft.asc\\n' | sudo tee /etc/yum.repos.d/vscode.repo >/dev/null",
+  ]
+  dnf = ["code"]
+
+  [[group.items]]
+  id = "vscodium"
+  label = "VSCodium"
+  desc = "VS Code without Microsoft telemetry (official repo)"
+  default = false
+  pre = ["printf '[vscodium]\\nname=VSCodium\\nbaseurl=https://paulcarroty.gitlab.io/vscodium-deb-rpm-repo/rpms/\\nenabled=1\\ngpgcheck=1\\nrepo_gpgcheck=1\\ngpgkey=https://gitlab.com/paulcarroty/vscodium-deb-rpm-repo/raw/master/pub.gpg\\nmetadata_expire=1h\\n' | sudo tee /etc/yum.repos.d/vscodium.repo >/dev/null"]
+  dnf = ["codium"]
+
+  [[group.items]]
+  id = "python-dev"
+  label = "Python"
+  desc = "pip, dev headers, ipython, Tkinter"
+  default = true
+  dnf = ["python3-pip", "python3-devel", "python3-ipython", "python3-tkinter"]
+
+  [[group.items]]
+  id = "build-tools"
+  label = "Compilers & build tools"
+  desc = "gcc, make, cmake"
+  default = true
+  dnf = ["gcc", "gcc-c++", "make", "cmake"]
+
+  [[group.items]]
+  id = "containers"
+  label = "Podman"
+  desc = "Rootless containers (Docker compatible)"
+  default = true
+  dnf = ["podman", "podman-compose"]
+
+  [[group.items]]
+  id = "github-cli"
+  label = "GitHub CLI + tig"
+  desc = "gh, tig (Git in the terminal)"
+  default = true
+  dnf = ["gh", "tig"]
+
+  [[group.items]]
+  id = "node"
+  label = "Node.js"
+  desc = "nodejs + npm"
+  default = false
+  dnf = ["nodejs", "npm"]
+
+  [[group.items]]
+  id = "rust"
+  label = "Rust"
+  desc = "cargo + rustc"
+  default = false
+  dnf = ["cargo", "rust", "rustfmt"]
+
+  [[group.items]]
+  id = "tmux"
+  label = "tmux"
+  desc = "Terminal multiplexer"
+  default = true
+  dnf = ["tmux"]
+
+[[group]]
+id = "it"
+label = "IT & Security"
+
+  [[group.items]]
+  id = "net-tools"
+  label = "Network tools"
+  desc = "nmap, tcpdump, dig, whois, traceroute, mtr, iperf3, nc"
+  default = true
+  dnf = ["nmap", "nmap-ncat", "tcpdump", "bind-utils", "whois", "traceroute", "mtr", "iperf3", "ethtool", "openssl"]
+
+  [[group.items]]
+  id = "wireshark"
+  label = "Wireshark"
+  desc = "Packet analysis (you are added to the wireshark group)"
+  default = true
+  dnf = ["wireshark"]
+  post = ["sudo usermod -aG wireshark {user}"]
+
+  [[group.items]]
+  id = "virt"
+  label = "Virtual machines (KVM)"
+  desc = "virt-manager + QEMU/KVM – perfect for a practice lab"
+  default = true
+  dnf = ["virt-manager", "qemu-kvm", "libvirt-daemon-kvm", "libvirt-daemon-config-network"]
+  post = [
+    "sudo usermod -aG libvirt {user}",
+    "sudo systemctl enable --now virtqemud.socket virtnetworkd.socket || sudo systemctl enable --now libvirtd",
+  ]
+
+  [[group.items]]
+  id = "tailscale"
+  label = "Tailscale"
+  desc = "Private VPN to your devices / home server"
+  default = false
+  pre = ["sudo dnf config-manager addrepo --overwrite --from-repofile=https://pkgs.tailscale.com/stable/fedora/tailscale.repo"]
+  dnf = ["tailscale"]
+  post = ["sudo systemctl enable --now tailscaled"]
+
+  [[group.items]]
+  id = "remote"
+  label = "Remmina"
+  desc = "RDP/VNC/SSH client"
+  default = false
+  dnf = ["remmina", "remmina-plugins-rdp", "remmina-plugins-vnc"]
+
+  [[group.items]]
+  id = "password-crack"
+  label = "Password audit tools"
+  desc = "john, hashcat (for your own systems / CTFs only)"
+  default = false
+  dnf = ["john", "hashcat"]
+
+  [[group.items]]
+  id = "keepassxc"
+  label = "KeePassXC"
+  desc = "Local password manager"
+  default = true
+  dnf = ["keepassxc"]
+
+[[group]]
+id = "media"
+label = "Medien & Office"
+
+  [[group.items]]
+  id = "obs"
+  label = "OBS Studio"
+  desc = "Recording and streaming (RPM, with full codecs)"
+  default = false
+  needs = ["codecs"]
+  dnf = ["obs-studio"]
+
+  [[group.items]]
+  id = "libreoffice"
+  label = "LibreOffice"
+  desc = "Writer, Calc, Impress"
+  default = false
+  dnf = ["libreoffice-writer", "libreoffice-calc", "libreoffice-impress", "libreoffice-gtk3"]
+
+  [[group.items]]
+  id = "gimp"
+  label = "GIMP"
+  desc = "Image editing"
+  default = false
+  dnf = ["gimp"]
+
+  [[group.items]]
+  id = "freecad"
+  label = "FreeCAD"
+  desc = "3D CAD (Inventor alternative)"
+  default = false
+  dnf = ["freecad"]
+
+  [[group.items]]
+  id = "spotify"
+  label = "Spotify"
+  desc = "No official RPM"
+  default = false
+  needs = ["flathub"]
+  flatpak = ["com.spotify.Client"]
+
+  [[group.items]]
+  id = "obsidian"
+  label = "Obsidian"
+  desc = "Markdown notes (no RPM)"
+  default = false
+  needs = ["flathub"]
+  flatpak = ["md.obsidian.Obsidian"]
+
+[[group]]
+id = "bootlogin"
+label = "Boot & login"
+
+  [[group.items]]
+  id = "bootscreen"
+  label = "Themed boot screen (Plymouth)"
+  desc = "BIOS, ASCII, Wired, Classic or Minimal style in your theme colours (rebuilds initramfs once)"
+  default = true
+  dnf = ["plymouth-plugin-script", "librsvg2-tools"]
+
+  [[group.items]]
+  id = "tuigreet"
+  label = "tuigreet login (replaces SDDM)"
+  desc = "Keyboard-only text login with ASCII art in your theme colours"
+  default = true
+  dnf = ["greetd", "greetd-selinux", "tuigreet"]
+
+[[group]]
+id = "extras"
+label = "Own tools"
+
+  [[group.items]]
+  id = "cs2-translator"
+  label = "CS2 chat translator"
+  desc = "Live chat translation overlay in your theme – starts and stops with CS2 (launch option -condebug)"
+  default = true
+  dnf = ["python3-tkinter"]
+  post = ["bash {app}/extras/cs2/install.sh"]
+
+# Packages offered for clean-up – only shown when installed.
+# default = true means pre-selected.
+[[remove]]
+pkg = "dunst"
+desc = "Second notification daemon, clashes with mako"
+default = true
+
+[[remove]]
+pkg = "wofi"
+desc = "Launcher – replaced by Rofi"
+default = true
+
+[[remove]]
+pkg = "azote"
+desc = "Wallpaper tool – swayforge does this"
+default = true
+
+[[remove]]
+pkg = "nwg-look"
+desc = "GTK theme tool – swayforge does this"
+default = true
+
+[[remove]]
+pkg = "kanshi"
+desc = "Monitor profiles – can override swayforge display settings"
+default = true
+
+[[remove]]
+pkg = "foot"
+desc = "Terminal – only remove once kitty/Alacritty works"
+default = false
+
+[[remove]]
+pkg = "abrt-desktop"
+desc = "Crash reporter with pop-ups"
+default = false

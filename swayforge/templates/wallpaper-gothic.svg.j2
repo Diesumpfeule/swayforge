@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="3840" height="2160" viewBox="0 0 3840 2160">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="{{ c.crust }}"/>
+      <stop offset="0.7" stop-color="{{ c.base }}"/>
+      <stop offset="1" stop-color="{{ c.surface }}"/>
+    </linearGradient>
+    <radialGradient id="mist" cx="0.5" cy="1" r="0.8">
+      <stop offset="0" stop-color="{{ c.accent }}" stop-opacity="0.32"/>
+      <stop offset="0.6" stop-color="{{ c.accent2 }}" stop-opacity="0.10"/>
+      <stop offset="1" stop-color="{{ c.accent2 }}" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="shaft" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="{{ c.accent }}" stop-opacity="0"/>
+      <stop offset="0.5" stop-color="{{ c.accent }}" stop-opacity="0.10"/>
+      <stop offset="1" stop-color="{{ c.accent }}" stop-opacity="0"/>
+    </linearGradient>
+    <pattern id="grain" width="11" height="11" patternUnits="userSpaceOnUse">
+      <circle cx="3" cy="4" r="0.9" fill="{{ c.text }}" fill-opacity="0.05"/>
+      <circle cx="9" cy="9" r="0.7" fill="#000" fill-opacity="0.25"/>
+    </pattern>
+  </defs>
+  <rect width="3840" height="2160" fill="url(#sky)"/>
+  <rect width="3840" height="2160" fill="url(#mist)"/>
+  <g fill="url(#shaft)">
+    <rect x="620" y="0" width="90" height="2160"/>
+    <rect x="1240" y="0" width="40" height="2160"/>
+    <rect x="2530" y="0" width="140" height="2160"/>
+    <rect x="3150" y="0" width="55" height="2160"/>
+  </g>
+  <!-- pointed arch window -->
+  <g fill="none" stroke="{{ c.accent }}" stroke-width="5" stroke-opacity="0.35">
+    <path d="M1670 1500 V820 Q1670 560 1920 400 Q2170 560 2170 820 V1500 Z"/>
+    <path d="M1920 400 V1500 M1670 980 H2170" stroke-opacity="0.18"/>
+  </g>
+  <g fill="none" stroke="{{ c.accent2 }}" stroke-width="3" stroke-opacity="0.25">
+    <path d="M1600 1540 V800 Q1600 500 1920 320 Q2240 500 2240 800 V1540"/>
+  </g>
+  <rect width="3840" height="2160" fill="url(#grain)"/>
+</svg>

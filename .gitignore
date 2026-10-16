@@ -1,0 +1,5 @@
+__pycache__/
+*.pyc
+# personal exports – never commit by accident
+swayforge-backup*.tar.gz
+*.log

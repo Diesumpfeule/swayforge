@@ -1,0 +1,33 @@
+# {{ mark }} – delete this line to take the file over yourself
+{% if wallpaper_kind == "solid" %}
+color={{ hx(c.base) }}
+{% else %}
+image={{ wallpaper_path }}
+scaling=fill
+color={{ hx(c.base) }}
+{% endif %}
+font={{ font }}
+font-size=24
+indicator-radius=90
+indicator-thickness=8
+show-failed-attempts
+ignore-empty-password
+inside-color={{ hx(c.base) }}cc
+inside-clear-color={{ hx(c.base) }}cc
+inside-ver-color={{ hx(c.base) }}cc
+inside-wrong-color={{ hx(c.base) }}cc
+ring-color={{ hx(c.surface2) }}
+ring-clear-color={{ hx(c.yellow) }}
+ring-ver-color={{ hx(c.accent) }}
+ring-wrong-color={{ hx(c.red) }}
+key-hl-color={{ hx(c.accent) }}
+bs-hl-color={{ hx(c.red) }}
+line-color=00000000
+line-clear-color=00000000
+line-ver-color=00000000
+line-wrong-color=00000000
+separator-color=00000000
+text-color={{ hx(c.text) }}
+text-clear-color={{ hx(c.yellow) }}
+text-ver-color={{ hx(c.accent) }}
+text-wrong-color={{ hx(c.red) }}

@@ -1,0 +1,162 @@
+"""swayforge – command line.
+
+  swayforge                    settings app (TUI)
+  swayforge install            installer (TUI)
+  swayforge install --yes      install the saved profile without questions
+  swayforge apply              regenerate configs from settings.toml + reload
+  swayforge theme NAME         switch theme (--list, --next)
+  swayforge layout NAME        switch bar/UI layout (--list, --next)
+  swayforge boot               install the boot screen (Plymouth)
+  swayforge login              install the tuigreet login screen
+  swayforge import-sway FILE   take over an existing Sway config into custom.conf
+  swayforge export FILE        back up settings + your tweaks
+  swayforge restore FILE       … and bring them back after a reset
+"""
+from __future__ import annotations
+
+import argparse
+import subprocess
+import sys
+from pathlib import Path
+
+
+def main(argv: list[str] | None = None) -> int:
+    ap = argparse.ArgumentParser(prog="swayforge", description="Set up and theme Fedora Sway")
+    sub = ap.add_subparsers(dest="cmd")
+
+    p = sub.add_parser("install", help="install apps & desktop")
+    p.add_argument("--yes", "-y", action="store_true", help="install the saved profile without questions")
+    p.add_argument("--profile", type=Path, help="use another profile file")
+    p.add_argument("--dry-run", action="store_true", help="only show what would happen")
+
+    p = sub.add_parser("apply", help="regenerate configs and reload")
+    p.add_argument("--no-reload", action="store_true")
+    p.add_argument("--dry-run", action="store_true")
+
+    p = sub.add_parser("theme", help="switch colour theme")
+    p.add_argument("name", nargs="?")
+    p.add_argument("--list", action="store_true")
+    p.add_argument("--next", action="store_true")
+
+    p = sub.add_parser("layout", help="switch bar/UI layout")
+    p.add_argument("name", nargs="?")
+    p.add_argument("--list", action="store_true")
+    p.add_argument("--next", action="store_true")
+
+    sub.add_parser("boot", help="install the boot screen (needs sudo, rebuilds initramfs)")
+    sub.add_parser("login", help="install the tuigreet login screen (needs sudo)")
+
+    p = sub.add_parser("import-sway", help="take over an existing Sway config")
+    p.add_argument("file", type=Path)
+    p = sub.add_parser("export", help="back up your settings")
+    p.add_argument("file", nargs="?", default="~/swayforge-backup.tar.gz")
+    p = sub.add_parser("restore", help="restore a backup")
+    p.add_argument("file")
+
+    p = sub.add_parser("settings", help="settings app (default)")
+    p.add_argument("--page", default="", help="open a page directly (audio, network, layout, boot …)")
+    sub.add_parser("power", help="power menu (Rofi)")
+    sub.add_parser("start", help="start menu (Rofi)")
+    sub.add_parser("keys", help="shortcut overview (Rofi)")
+    sub.add_parser("clip", help="clipboard history (Rofi)")
+    sub.add_parser("session", help="at Sway start: GTK settings, swayidle")
+    p = sub.add_parser("osd", help="volume/brightness with on-screen display")
+    p.add_argument("kind", choices=["volume", "mic", "brightness"])
+    p.add_argument("arg", nargs="?", default="mute")
+    p = sub.add_parser("gamemode", help="toggle gaming mode")
+    p.add_argument("action", nargs="?", default="toggle", choices=["toggle", "status"])
+    p.add_argument("--text", action="store_true", help="text label instead of icon")
+    p = sub.add_parser("shot", help="screenshot")
+    p.add_argument("mode", choices=["area", "output", "edit"], nargs="?", default="area")
+
+    a = ap.parse_args(argv)
+
+    if a.cmd in (None, "settings"):
+        from .tui.settings_app import main as run
+        run(getattr(a, "page", ""))
+        return 0
+
+    if a.cmd == "install":
+        from . import plan, settings
+        if a.yes or a.dry_run:
+            prof = plan.Profile.load(a.profile)
+            if not prof:
+                print("No profile found. Run the installer once without --yes first.")
+                return 1
+            steps = plan.build(prof, settings.load())
+            return plan.run_cli(steps, dry=a.dry_run)
+        from .tui.installer import main as run
+        run()
+        return 0
+
+    if a.cmd == "apply":
+        from . import render
+        if a.dry_run:
+            res = render.render_all(dry=True)
+        elif a.no_reload:
+            res = render.render_all()
+        else:
+            res = render.apply()
+        for f in res.written:
+            print("written:", f)
+        if res.backup_dir:
+            print("backup:", res.backup_dir)
+        for n in res.notes:
+            print(n)
+        for e in res.errors:
+            print("ERROR:", e, file=sys.stderr)
+        return 1 if res.errors else 0
+
+    if a.cmd in ("boot", "login"):
+        from . import boot, render
+        render.render_all()
+        script = boot.BOOT_DIR / ("apply-boot.sh" if a.cmd == "boot" else "apply-login.sh")
+        return subprocess.call(["bash", str(script)])
+
+    if a.cmd == "theme":
+        from . import tools
+        return tools.theme_cmd(a.name, a.next, a.list)
+    if a.cmd == "layout":
+        from . import tools
+        return tools.layout_cmd(a.name, a.next, a.list)
+
+    if a.cmd == "import-sway":
+        from . import render
+        from .importer import import_sway_config
+        try:
+            print(import_sway_config(a.file.expanduser()))
+        except ValueError as e:
+            print(e, file=sys.stderr)
+            return 1
+        render.apply()
+        return 0
+
+    if a.cmd == "export":
+        from . import tools
+        return tools.export(a.file)
+    if a.cmd == "restore":
+        from . import tools
+        return tools.import_(a.file)
+
+    from . import render, tools
+    if a.cmd == "power":
+        tools.power()
+    elif a.cmd == "start":
+        tools.start()
+    elif a.cmd == "keys":
+        tools.keys()
+    elif a.cmd == "clip":
+        tools.clip()
+    elif a.cmd == "shot":
+        tools.shot(a.mode)
+    elif a.cmd == "osd":
+        tools.osd(a.kind, a.arg)
+    elif a.cmd == "gamemode":
+        tools.gamemode(a.action, a.text)
+    elif a.cmd == "session":
+        render.session()
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

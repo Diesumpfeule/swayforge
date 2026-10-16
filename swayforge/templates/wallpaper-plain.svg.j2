@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="3840" height="2160" viewBox="0 0 3840 2160">
+  <defs>
+    <pattern id="dots" width="48" height="48" patternUnits="userSpaceOnUse">
+      <circle cx="24" cy="24" r="1.6" fill="{{ c.text }}" fill-opacity="0.05"/>
+    </pattern>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="{{ c.base }}"/>
+      <stop offset="1" stop-color="{{ c.mantle }}"/>
+    </linearGradient>
+  </defs>
+  <rect width="3840" height="2160" fill="url(#bg)"/>
+  <rect width="3840" height="2160" fill="url(#dots)"/>
+  <rect x="0" y="2148" width="3840" height="12" fill="{{ c.accent }}" fill-opacity="0.6"/>
+</svg>

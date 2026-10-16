@@ -1,0 +1,122 @@
+"""Shared TUI pieces: colours from the active theme, form fields, swatches."""
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+from typing import Any
+
+from rich.text import Text
+from textual.containers import Horizontal, Vertical
+from textual.widgets import Button, Input, Label, Select, Static, Switch
+
+from .. import settings, themes
+
+
+def textual_theme(theme_id: str, accent: str = ""):
+    """Textual theme from the system palette – the app looks like your desktop."""
+    from textual.theme import Theme as TTheme
+    t = themes.get(theme_id)
+    c = t.with_accent(accent)
+    return TTheme(
+        name=f"sf-{t.id}-{(accent or 'def').lstrip('#')}", dark=t.dark,
+        primary=c["accent"], secondary=c["accent2"], accent=c["accent"],
+        background=c["base"], surface=c["mantle"], panel=c["surface"],
+        foreground=c["text"], warning=c["yellow"], error=c["red"], success=c["green"],
+    )
+
+
+def use_theme(app, theme_id: str, accent: str = "") -> None:
+    th = textual_theme(theme_id, accent)
+    app.register_theme(th)
+    app.theme = th.name
+
+
+def swatch(t: themes.Theme, width: int = 3) -> Text:
+    txt = Text()
+    for k in ("base", "surface", "accent", "accent2", "red", "green", "yellow", "blue", "magenta", "cyan"):
+        txt.append(" " * width, style=f"on {t.colors[k]}")
+    return txt
+
+
+@dataclass
+class Field:
+    path: str
+    label: str
+    kind: str = "str"                 # str | int | float | bool | choice
+    options: list[tuple[str, Any]] = field(default_factory=list)
+    help: str = ""
+
+    @property
+    def wid(self) -> str:
+        return "f__" + self.path.replace(".", "__")
+
+
+def path_from_wid(wid: str) -> str:
+    return wid[3:].replace("__", ".")
+
+
+def field_row(f: Field, s: dict) -> Horizontal:
+    value = settings.get(s, f.path)
+    if f.kind == "bool":
+        widget = Switch(value=bool(value), id=f.wid)
+    elif f.kind == "choice":
+        opts = [(label, v) for label, v in f.options]
+        if value not in [v for _, v in opts]:
+            opts.append((str(value), value))
+        widget = Select(opts, value=value, allow_blank=False, id=f.wid)
+    else:
+        typ = {"int": "integer", "float": "number"}.get(f.kind, "text")
+        widget = Input(value="" if value is None else str(value), type=typ, id=f.wid)
+    lab = Vertical(Label(f.label, classes="flabel"),
+                   *([Label(f.help, classes="fhelp")] if f.help else []), classes="flabelbox")
+    edit = Button("✎", name=f"edit:{f.path}", classes="editbtn", tooltip="Open the responsible config file")
+    return Horizontal(lab, widget, edit, classes="frow")
+
+
+def coerce(f: Field, raw: Any) -> Any:
+    if f.kind == "int":
+        try:
+            return int(raw)
+        except (TypeError, ValueError):
+            return None
+    if f.kind == "float":
+        try:
+            return float(raw)
+        except (TypeError, ValueError):
+            return None
+    return raw
+
+
+def section(title: str) -> Static:
+    return Static(title, classes="section")
+
+
+BASE_CSS = """
+Screen { layout: vertical; }
+#body { height: 1fr; }
+#sidebar { width: 30; border-right: tall $panel; padding: 1 0; }
+#sidebar > ListItem { padding: 0 2; height: 3; content-align: left middle; }
+#sidebar > ListItem Label { padding: 1 0 0 0; }
+#pages { width: 1fr; }
+.page { padding: 1 3; }
+.pagetitle { text-style: bold; color: $accent; padding-bottom: 1; }
+.section { text-style: bold; color: $secondary; margin-top: 1; padding-bottom: 1;
+           border-bottom: solid $panel; }
+.frow { height: auto; margin-bottom: 1; }
+.flabelbox { width: 1fr; height: auto; }
+.flabel { padding-top: 1; }
+.fhelp { color: $text-muted; }
+.frow Input { width: 36; }
+.frow Select { width: 36; }
+.frow Switch { margin-right: 26; }
+.editbtn { min-width: 5; width: 5; margin-left: 1; background: $panel; border: none; height: 3; }
+.editbtn:hover { background: $accent; color: $background; }
+.small { min-width: 5; width: 5; }
+.volval { width: 7; padding: 1 1; }
+ProgressBar { padding: 1 1; width: 30; }
+.hint { color: $text-muted; padding-bottom: 1; }
+.warn { color: $warning; padding-bottom: 1; }
+.btnrow { height: auto; margin: 1 0; }
+.btnrow Button { margin-right: 2; }
+ThemeItem { height: 3; padding: 0 1; }
+#statusbar { height: 1; background: $panel; padding: 0 2; color: $text-muted; }
+"""

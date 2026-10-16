@@ -1,0 +1,50 @@
+# {{ mark }} – don't edit.
+# Your own settings go into ~/.config/alacritty/alacritty.toml.
+
+[font]
+size = {{ s.theme.font_size + 1 }}
+normal = { family = "{{ font }}" }
+
+[window]
+opacity = {{ s.look.terminal_opacity }}
+padding = { x = {{ s.look.terminal_padding }}, y = {{ s.look.terminal_padding }} }
+decorations = "None"
+dynamic_padding = true
+
+[cursor]
+style = { shape = "Beam", blinking = "On" }
+
+[selection]
+save_to_clipboard = true
+
+[colors.primary]
+background = "{{ c.base }}"
+foreground = "{{ c.text }}"
+
+[colors.cursor]
+cursor = "{{ c.accent }}"
+text = "{{ c.crust }}"
+
+[colors.selection]
+background = "{{ c.accent }}"
+text = "{{ c.crust }}"
+
+[colors.normal]
+black = "{{ ansi[0] }}"
+red = "{{ ansi[1] }}"
+green = "{{ ansi[2] }}"
+yellow = "{{ ansi[3] }}"
+blue = "{{ ansi[4] }}"
+magenta = "{{ ansi[5] }}"
+cyan = "{{ ansi[6] }}"
+white = "{{ ansi[7] }}"
+
+[colors.bright]
+black = "{{ ansi[8] }}"
+red = "{{ ansi[9] }}"
+green = "{{ ansi[10] }}"
+yellow = "{{ ansi[11] }}"
+blue = "{{ ansi[12] }}"
+magenta = "{{ ansi[13] }}"
+cyan = "{{ ansi[14] }}"
+white = "{{ ansi[15] }}"

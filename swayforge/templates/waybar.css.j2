@@ -1,0 +1,212 @@
+/* {{ mark }} – don't edit. Your own rules go into ~/.config/waybar/style.css
+   (below the @import line). Layout: {{ layout }} */
+
+* {
+    font-family: "{{ font }}", "Symbols Nerd Font", monospace;
+    font-size: {{ s.theme.font_size + 2 }}px;
+    min-height: 0;
+    border: none;
+    border-radius: 0;
+}
+
+tooltip {
+    background: {{ c.mantle }};
+    border: 1px solid {{ c.accent }};
+    border-radius: {{ s.look.radius }}px;
+}
+tooltip label { color: {{ c.text }}; }
+
+{% set mods = "#workspaces, #mode, #window, #clock, #cpu, #memory, #temperature, #custom-gpu, #network, #pulseaudio, #bluetooth, #battery, #backlight, #idle_inhibitor, #mpris, #tray, #custom-power, #custom-taskmanager, #custom-gamemode" %}
+{% set raised = bv.hi ~ " " ~ bv.lo ~ " " ~ bv.lo ~ " " ~ bv.hi %}
+{% set sunken = bv.lo ~ " " ~ bv.hi ~ " " ~ bv.hi ~ " " ~ bv.lo %}
+
+{% if layout in ("modern", "minimal") %}
+/* ── Modern islands ─────────────────────────────────────────────── */
+window#waybar { background: transparent; color: {{ c.text }}; }
+{{ mods }} {
+    background: {{ rgba(c.base, 0.88) }};
+    border: 1px solid {{ rgba(c.surface2, 0.6) }};
+    border-radius: {{ s.look.radius }}px;
+    margin: 5px 3px;
+    padding: 0 12px;
+}
+.modules-left > widget:first-child > * { margin-left: {{ s.look.gaps_outer + s.look.gaps_inner }}px; }
+.modules-right > widget:last-child > * { margin-right: {{ s.look.gaps_outer + s.look.gaps_inner }}px; }
+
+{% elif layout == "solid" %}
+/* ── Solid bar ──────────────────────────────────────────────────── */
+window#waybar {
+    background: {{ rgba(c.base, 0.95) }};
+    border-bottom: 2px solid {{ c.surface }};
+    color: {{ c.text }};
+}
+{{ mods }} { margin: 0 1px; padding: 0 12px; }
+#cpu, #memory, #temperature, #custom-gpu, #network, #pulseaudio, #bluetooth, #battery, #backlight {
+    border-left: 1px solid {{ c.surface2 }};
+}
+
+{% elif layout == "win98" %}
+/* ── Classic 98: bevelled 3D buttons, sunken tray ───────────────── */
+window#waybar {
+    background: {{ bv.face }};
+    border-top: 2px solid {{ bv.hi }};
+    color: {{ c.text }};
+}
+{{ mods }} { padding: 0 6px; margin: 0; background: transparent; }
+#custom-start {
+    font-weight: bold;
+    padding: 0 10px;
+    margin: 3px 4px 3px 3px;
+    background: {{ bv.face }};
+    border-style: solid;
+    border-width: 2px;
+    border-color: {{ raised }};
+    color: {{ c.text }};
+}
+#custom-start:hover { border-color: {{ sunken }}; background: {{ bv.pressed }}; }
+#workspaces { margin: 3px 4px; padding: 0; }
+#workspaces button {
+    padding: 0 7px;
+    margin: 0 1px;
+    color: {{ c.text }};
+    background: {{ bv.face }};
+    border-style: solid; border-width: 2px; border-color: {{ raised }};
+}
+#workspaces button.focused { border-color: {{ sunken }}; background: {{ bv.pressed }}; color: {{ c.accent }}; }
+#workspaces button.urgent { color: {{ c.red }}; }
+#taskbar { margin: 3px 2px; }
+#taskbar button {
+    min-width: 160px;
+    padding: 0 8px;
+    margin: 0 2px;
+    background: {{ bv.face }};
+    color: {{ c.text }};
+    border-style: solid; border-width: 2px; border-color: {{ raised }};
+}
+#taskbar button.active {
+    border-color: {{ sunken }};
+    background: {{ bv.pressed }};
+    font-weight: bold;
+}
+#status {
+    margin: 3px 3px 3px 6px;
+    padding: 0 4px;
+    border-style: solid; border-width: 1px; border-color: {{ sunken }};
+}
+#custom-power {
+    margin: 3px 3px 3px 0;
+    padding: 0 9px;
+    background: {{ bv.face }};
+    border-style: solid; border-width: 2px; border-color: {{ raised }};
+}
+#custom-power:hover { border-color: {{ sunken }}; }
+
+{% elif layout == "win7" %}
+/* ── Glass 7: translucent gradient, start orb, icon task buttons ──── */
+window#waybar {
+    background: linear-gradient(to bottom, {{ rgba(bv.hi, 0.55) }}, {{ rgba(c.base, 0.82) }} 45%, {{ rgba(c.crust, 0.94) }});
+    border-top: 1px solid {{ rgba(c.text, 0.35) }};
+    color: {{ c.text }};
+}
+{{ mods }} { padding: 0 6px; margin: 0; background: transparent; }
+#custom-start {
+    min-width: 34px;
+    margin: 3px 10px 3px 8px;
+    padding: 0 6px;
+    border-radius: 9999px;
+    font-size: {{ s.theme.font_size + 6 }}px;
+    color: {{ c.crust }};
+    background: radial-gradient(circle, {{ mix(c.accent, "#ffffff", 0.55) }}, {{ c.accent }} 55%, {{ c.accent2 }});
+    border: 1px solid {{ rgba(c.text, 0.5) }};
+    box-shadow: 0 0 8px {{ rgba(c.accent, 0.6) }};
+}
+#workspaces button { padding: 0 8px; margin: 4px 1px; border-radius: 4px; color: {{ c.subtext }}; }
+#workspaces button.focused { color: {{ c.text }}; background: {{ rgba(c.text, 0.12) }}; }
+#taskbar button {
+    padding: 0 12px;
+    margin: 3px 2px;
+    border-radius: 4px;
+    border: 1px solid {{ rgba(c.text, 0.22) }};
+    background: linear-gradient(to bottom, {{ rgba(c.text, 0.20) }}, {{ rgba(c.text, 0.05) }} 50%, {{ rgba(c.crust, 0.15) }});
+}
+#taskbar button.active {
+    background: linear-gradient(to bottom, {{ rgba(c.accent, 0.55) }}, {{ rgba(c.accent, 0.20) }} 50%, {{ rgba(c.accent2, 0.30) }});
+    box-shadow: inset 0 0 6px {{ rgba(c.accent, 0.8) }};
+}
+#status { padding: 0 6px; }
+#custom-power { padding: 0 12px; }
+
+{% elif layout == "wired" %}
+/* ── Wired: text only, no frills ────────────────────────────────── */
+window#waybar {
+    background: {{ c.crust }};
+    border-bottom: 1px solid {{ c.accent }};
+    color: {{ c.text }};
+}
+{{ mods }} { padding: 0 4px; margin: 0; background: transparent; }
+#workspaces button { padding: 0 2px; color: {{ c.overlay }}; }
+#workspaces button.focused { color: {{ c.accent }}; background: transparent; }
+#window { color: {{ c.subtext }}; padding-left: 10px; }
+#clock { color: {{ c.accent }}; font-weight: normal; }
+
+{% elif layout == "sidebar" %}
+/* ── Sidebar ────────────────────────────────────────────────────── */
+window#waybar {
+    background: {{ rgba(c.base, 0.95) }};
+    border-right: 2px solid {{ c.surface }};
+    color: {{ c.text }};
+}
+{{ mods }} { padding: 6px 0; margin: 2px 4px; border-radius: {{ s.look.radius }}px; }
+#workspaces button { padding: 4px 0; }
+#clock { font-weight: bold; padding: 8px 0; }
+{% endif %}
+
+/* ── Shared ─────────────────────────────────────────────────────── */
+{% if layout != "win98" %}
+#workspaces button {
+    color: {{ c.subtext }};
+    background: transparent;
+}
+#workspaces button:hover { background: {{ c.surface }}; color: {{ c.text }}; }
+{% if layout not in ("wired", "win7") %}
+#workspaces button { padding: 0 8px; margin: 4px 1px; border-radius: {{ [s.look.radius - 2, 0] | max }}px; }
+{% if s.look.radius == 0 %}
+#workspaces button.focused { background: {{ c.surface }}; color: {{ c.accent }}; box-shadow: inset 0 -3px {{ c.accent }}; }
+{% else %}
+#workspaces button.focused { background: {{ c.accent }}; color: {{ c.crust }}; }
+{% endif %}
+{% endif %}
+#workspaces button.urgent { background: {{ c.red }}; color: {{ c.crust }}; }
+{% endif %}
+
+#mode { background: {{ c.yellow }}; color: {{ c.crust }}; }
+#window { color: {{ c.subtext }}; }
+window#waybar.empty #window { background: transparent; border-color: transparent; }
+{% if layout not in ("win98", "win7", "wired") %}
+#clock { color: {{ c.accent }}; font-weight: bold; }
+#cpu { color: {{ c.blue }}; }
+#memory { color: {{ c.magenta }}; }
+#custom-gpu { color: {{ c.red }}; }
+#temperature { color: {{ c.orange }}; }
+#network { color: {{ c.cyan }}; }
+#pulseaudio { color: {{ c.yellow }}; }
+#bluetooth { color: {{ c.blue }}; }
+#backlight { color: {{ c.yellow }}; }
+#battery { color: {{ c.green }}; }
+#mpris { color: {{ c.green }}; }
+#custom-taskmanager { color: {{ c.cyan }}; }
+#custom-taskmanager:hover { background: {{ c.cyan }}; color: {{ c.crust }}; }
+#custom-power { color: {{ c.red }}; }
+#custom-power:hover { background: {{ c.red }}; color: {{ c.crust }}; }
+{% endif %}
+#temperature.critical { background: {{ c.red }}; color: {{ c.crust }}; }
+#network.disconnected { color: {{ c.red }}; }
+#pulseaudio.muted, #pulseaudio.source-muted { color: {{ c.overlay }}; }
+#bluetooth.off, #bluetooth.disabled { color: {{ c.overlay }}; }
+#battery.warning { color: {{ c.yellow }}; }
+#battery.critical:not(.charging) { background: {{ c.red }}; color: {{ c.crust }}; }
+#idle_inhibitor { color: {{ c.overlay }}; }
+#idle_inhibitor.activated { color: {{ c.accent }}; }
+#custom-gamemode { color: {{ c.overlay }}; }
+#custom-gamemode.on { background: {{ c.accent }}; color: {{ c.crust }}; }
+#tray > .needs-attention { background: {{ c.red }}; }

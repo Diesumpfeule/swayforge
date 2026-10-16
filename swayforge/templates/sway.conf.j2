@@ -1,0 +1,194 @@
+# ╭──────────────────────────────────────────────────────────────╮
+# │  swayforge generated – changes here will be overwritten.     │
+# │  Your own tweaks go into: ~/.config/sway/custom.conf         │
+# │  (loaded last, so it overrides everything here)              │
+# ╰──────────────────────────────────────────────────────────────╯
+
+set $mod {{ s.general.mod }}
+set $term {{ term_cmd }}
+
+# ── Look ─────────────────────────────────────────────────────────
+font pango:{{ s.theme.font }} {{ s.theme.font_size }}
+{% if s.look.title_bars %}
+default_border normal {{ s.look.border }}
+titlebar_padding 8 4
+title_align center
+{% else %}
+default_border pixel {{ s.look.border }}
+{% endif %}
+default_floating_border pixel {{ s.look.border }}
+gaps inner {{ s.look.gaps_inner }}
+gaps outer {{ s.look.gaps_outer }}
+smart_gaps {{ "on" if s.look.smart_gaps else "off" }}
+hide_edge_borders --i3 {{ "smart" if s.look.smart_gaps else "none" }}
+
+#                       border       background   text         indicator    child border
+client.focused          {{ c.accent }}   {{ c.accent }}   {{ c.crust }}    {{ c.accent2 }}   {{ c.accent }}
+client.focused_inactive {{ c.surface2 }} {{ c.surface }}  {{ c.text }}     {{ c.surface2 }}  {{ c.surface2 }}
+client.unfocused        {{ c.surface }}  {{ c.base }}     {{ c.subtext }}  {{ c.surface }}   {{ c.surface }}
+client.urgent           {{ c.red }}      {{ c.red }}      {{ c.crust }}    {{ c.red }}       {{ c.red }}
+client.background       {{ c.base }}
+{% if si.swayfx %}
+
+# ── SwayFX effects ───────────────────────────────────────────────
+corner_radius {{ s.look.radius }}
+smart_corner_radius enable
+shadows {{ "enable" if s.look.fx_shadows else "disable" }}
+shadow_blur_radius 20
+shadow_color {{ c.crust }}cc
+blur {{ "enable" if s.look.fx_blur else "disable" }}
+blur_passes 3
+blur_radius 5
+default_dim_inactive {{ s.look.fx_dim_inactive }}
+layer_effects "waybar" blur enable; shadows enable
+layer_effects "rofi" blur enable; shadows enable
+layer_effects "notifications" blur enable; shadows enable
+{% endif %}
+
+seat seat0 xcursor_theme {{ s.theme.cursor_theme }} {{ s.theme.cursor_size }}
+
+# ── Wallpaper & outputs ────────────────────────────────────
+{% if wallpaper_kind == "solid" %}
+output * bg {{ c.base }} solid_color
+{% else %}
+output * bg "{{ wallpaper_path }}" fill {{ c.base }}
+{% endif %}
+{% for name, o in outputs %}
+output "{{ name }}" {
+{% if o.get("enabled", True) %}
+{% if o.get("mode") %}    mode {{ o.mode }}
+{% endif %}{% if o.get("pos") %}    position {{ o.pos }}
+{% endif %}{% if o.get("scale") %}    scale {{ o.scale }}
+{% endif %}{% if o.get("transform") and o.transform != "normal" %}    transform {{ o.transform }}
+{% endif %}    adaptive_sync {{ "on" if o.get("adaptive_sync") else "off" }}
+    allow_tearing {{ "yes" if s.display.allow_tearing else "no" }}
+{% else %}
+    disable
+{% endif %}
+}
+{% endfor %}
+{% if not outputs and s.display.allow_tearing %}
+output * allow_tearing yes
+{% endif %}
+
+# ── Input ──────────────────────────────────────────────────────
+input type:keyboard {
+    xkb_layout {{ s.input.kb_layout }}
+{% if s.input.kb_variant %}    xkb_variant {{ s.input.kb_variant }}
+{% endif %}{% if s.input.kb_options %}    xkb_options {{ s.input.kb_options }}
+{% endif %}    xkb_numlock {{ "enabled" if s.input.numlock else "disabled" }}
+    repeat_rate {{ s.input.repeat_rate }}
+    repeat_delay {{ s.input.repeat_delay }}
+}
+input type:pointer {
+    accel_profile {{ s.input.mouse_accel_profile }}
+    pointer_accel {{ s.input.mouse_speed }}
+}
+input type:touchpad {
+    tap {{ "enabled" if s.input.touchpad_tap else "disabled" }}
+    natural_scroll {{ "enabled" if s.input.touchpad_natural else "disabled" }}
+    dwt {{ "enabled" if s.input.touchpad_dwt else "disabled" }}
+    middle_emulation enabled
+}
+
+# ── Behaviour ────────────────────────────────────────────────────
+focus_follows_mouse yes
+mouse_warping output
+floating_modifier $mod normal
+workspace_auto_back_and_forth yes
+focus_on_window_activation smart
+
+# ── Shortcuts ─────────────────────────────────────────────────
+{% for label, key, cmd in keys %}
+# {{ label }}
+bindsym {{ key }} {{ cmd }}
+{% endfor %}
+
+# Move focus and windows with the arrow keys
+bindsym $mod+Left  focus left
+bindsym $mod+Down  focus down
+bindsym $mod+Up    focus up
+bindsym $mod+Right focus right
+bindsym $mod+Shift+Left  move left
+bindsym $mod+Shift+Down  move down
+bindsym $mod+Shift+Up    move up
+bindsym $mod+Shift+Right move right
+
+# Workspaces
+{% for n in range(1, 11) %}
+bindsym $mod+{{ n % 10 }} workspace number {{ n }}
+bindsym $mod+Shift+{{ n % 10 }} move container to workspace number {{ n }}
+{% endfor %}
+
+# Media, volume and brightness keys with on-screen display (work while locked too)
+bindsym --locked XF86AudioRaiseVolume exec {{ sf }} osd volume +5
+bindsym --locked XF86AudioLowerVolume exec {{ sf }} osd volume -5
+bindsym --locked XF86AudioMute exec {{ sf }} osd volume mute
+bindsym --locked XF86AudioMicMute exec {{ sf }} osd mic mute
+bindsym --locked XF86AudioPlay exec playerctl play-pause
+bindsym --locked XF86AudioNext exec playerctl next
+bindsym --locked XF86AudioPrev exec playerctl previous
+bindsym --locked XF86MonBrightnessUp exec {{ sf }} osd brightness +5
+bindsym --locked XF86MonBrightnessDown exec {{ sf }} osd brightness -5
+
+mode "resize" {
+    bindsym Left  resize shrink width 30px
+    bindsym Down  resize grow height 30px
+    bindsym Up    resize shrink height 30px
+    bindsym Right resize grow width 30px
+    bindsym Return mode "default"
+    bindsym Escape mode "default"
+}
+
+# ── Window rules ────────────────────────────────────────────────
+for_window [window_role="pop-up"] floating enable
+for_window [window_role="dialog"] floating enable
+for_window [window_type="dialog"] floating enable
+for_window [app_id="swayforge-start"] floating enable
+for_window [app_id="swayforge-settings"] floating enable, resize set width 1180 px height 780 px, move position center
+for_window [app_id="swayforge-btop"] floating enable, resize set width 1300 px height 820 px, move position center
+for_window [app_id="swayforge-task"] floating enable, resize set width 1000 px height 600 px, move position center
+for_window [app_id="nmtui"] floating enable, resize set width 900 px height 650 px, move position center
+for_window [app_id="pavucontrol"] floating enable, resize set width 900 px height 600 px
+for_window [app_id="nm-connection-editor"] floating enable
+for_window [title="^CS2 Chat"] floating enable, sticky enable, border none
+for_window [app_id="blueman-manager"] floating enable
+for_window [app_id="org.keepassxc.KeePassXC" title="^(?!.*KeePassXC$)"] floating enable
+for_window [app_id="imv"] floating enable
+for_window [app_id="swappy"] floating enable
+for_window [title="(?:Open|Save) (?:File|Folder|As)"] floating enable
+for_window [title="Picture-in-Picture"] floating enable, sticky enable
+for_window [class="steam" title="^(?!Steam$).*"] floating enable
+for_window [class="steam_app_.*"] allow_tearing {{ "yes" if s.display.allow_tearing else "no" }}
+for_window [app_id="gamescope"] allow_tearing {{ "yes" if s.display.allow_tearing else "no" }}
+{% if s.power.inhibit_fullscreen %}
+for_window [all] inhibit_idle fullscreen
+{% endif %}
+
+# ── Autostart ────────────────────────────────────────────────────
+exec systemctl --user import-environment DISPLAY WAYLAND_DISPLAY SWAYSOCK XDG_CURRENT_DESKTOP
+exec dbus-update-activation-environment --systemd DISPLAY WAYLAND_DISPLAY SWAYSOCK XDG_CURRENT_DESKTOP=sway
+exec lxqt-policykit-agent
+exec mako
+exec nm-applet --indicator
+{% if si.bluetooth %}
+exec blueman-applet
+{% endif %}
+exec wl-paste --type text --watch cliphist store
+exec wl-paste --type image --watch cliphist store
+exec_always {{ sf }} session
+exec_always sh -c 'pkill -x waybar; exec waybar'
+{% if s.power.nightlight %}
+exec_always sh -c 'pkill -x gammastep; exec gammastep -l {{ s.power.location }} -t 6500:{{ s.power.nightlight_temp }}'
+{% else %}
+exec_always pkill -x gammastep
+{% endif %}
+{% if cs2_watcher %}
+exec_always {{ cs2_watcher }}
+{% endif %}
+{% for cmd in s.autostart.extra %}
+exec {{ cmd }}
+{% endfor %}
+
+# ── Your own tweaks ────────────────────────────────────
+include {{ custom_conf }}
