@@ -270,6 +270,50 @@ def osd(kind: str, arg: str) -> None:
 
 
 # ── Gaming mode ──────────────────────────────────────────────────────
+def maximize() -> int:
+    """Super+F: show only the focused window, bar stays visible. Again = back to the split.
+
+    Works by switching the workspace's top level to Sway's stacked-in-place ("tabbed") layout,
+    whose tab strip swayforge draws 1 px thin – so it looks like plain maximise. The split
+    direction is remembered and restored."""
+    tree = json.loads(run(["swaymsg", "-t", "get_tree", "-r"]).stdout or "{}")
+
+    def find(node, ws=None):
+        if node.get("type") == "workspace":
+            ws = node
+        if node.get("focused") and node.get("type") in ("con", "floating_con"):
+            return node, ws
+        for ch in node.get("nodes", []) + node.get("floating_nodes", []):
+            r = find(ch, ws)
+            if r:
+                return r
+        return None
+
+    hit = find(tree)
+    if not hit or not hit[1] or not hit[1].get("nodes"):
+        return 0
+    win, ws = hit
+    top = ws["nodes"][0]["id"]
+    state = paths.GEN_DIR / "maximized.json"
+    try:
+        saved = json.loads(state.read_text())
+    except (OSError, ValueError):
+        saved = {}
+    key = str(ws["id"])
+    if ws.get("layout") == "tabbed":
+        layout = saved.pop(key, "splith")
+        cmd = f"[con_id={top}] focus; layout {layout}; [con_id={win['id']}] focus"
+    else:
+        if len(ws["nodes"]) < 2 and not ws["nodes"][0].get("nodes"):
+            return 0                               # only one window – already as big as it gets
+        saved[key] = ws.get("layout") if ws.get("layout") in ("splith", "splitv") else "splith"
+        cmd = f"[con_id={top}] focus; layout tabbed; [con_id={win['id']}] focus"
+    paths.GEN_DIR.mkdir(parents=True, exist_ok=True)
+    state.write_text(json.dumps(saved))
+    run(["swaymsg", cmd])
+    return 0
+
+
 def gamemode(action: str = "toggle", text: bool = False) -> None:
     flag = paths.GEN_DIR / "gamemode"
     on = flag.exists()
