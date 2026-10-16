@@ -66,6 +66,12 @@ def main(argv: list[str] | None = None) -> int:
     p = sub.add_parser("gamemode", help="toggle gaming mode")
     p.add_argument("action", nargs="?", default="toggle", choices=["toggle", "status"])
     p.add_argument("--text", action="store_true", help="text label instead of icon")
+    p = sub.add_parser("scan", help="malware scan with ClamAV (downloads | home | drives | PATH)")
+    p.add_argument("target", nargs="?", default="downloads")
+    p.add_argument("--no-quarantine", action="store_true", help="only report, don't move files")
+    p.add_argument("--quiet", action="store_true", help="no output, just a notification (for the timer)")
+    p = sub.add_parser("audit", help="rootkit check (rkhunter, chkrootkit) or system audit (Lynis)")
+    p.add_argument("what", choices=["rootkit", "system"], nargs="?", default="rootkit")
     p = sub.add_parser("shot", help="screenshot")
     p.add_argument("mode", choices=["area", "output", "edit"], nargs="?", default="area")
 
@@ -130,6 +136,18 @@ def main(argv: list[str] | None = None) -> int:
             return 1
         render.apply()
         return 0
+
+    if a.cmd == "scan":
+        from . import security, settings
+        q = settings.load()["security"]["quarantine"] and not a.no_quarantine
+        return security.scan(a.target, quarantine=q, quiet=a.quiet)
+    if a.cmd == "audit":
+        from . import security
+        rep = security.report_path("rootkit" if a.what == "rootkit" else "audit")
+        cmd = security.rootkit_cmd(rep) if a.what == "rootkit" else security.audit_cmd(rep)
+        rc = subprocess.call(["bash", "-c", cmd])
+        print(f"\nReport: {rep}  ·  {security.describe(rep, security.summarize(rep))}")
+        return rc
 
     if a.cmd == "export":
         from . import tools

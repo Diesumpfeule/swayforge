@@ -123,6 +123,11 @@ DEFAULTS: dict[str, Any] = {
         "remember": True,
         "greeting": "",               # extra line under the art, empty = none
     },
+    "security": {
+        "quarantine": True,           # move infected files to a quarantine folder (never delete)
+        "weekly_scan": False,         # systemd user timer: weekly ClamAV scan
+        "weekly_target": "downloads", # downloads | home
+    },
     "keys": {},                       # overrides: action-id = "$mod+x"
     "autostart": {
         "extra": [],                  # your own commands at login

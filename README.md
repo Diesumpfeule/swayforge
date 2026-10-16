@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <b>Fedora Sway</b> · AMD · keyboard-first · 15 themes × 7 layouts · 89 apps · reset-friendly
+  <b>Fedora Sway</b> · AMD · keyboard-first · 15 themes × 7 layouts · 91 apps · reset-friendly
 </p>
 
 > ⚠ **Proof of concept, written by Claude (AI) – no warranty, use at your own risk.** See [Disclaimer](#disclaimer).
@@ -14,7 +14,7 @@ gaming, IT tools, keyboard-driven use and **frequent resets**.
 
 - **Installer** – pick apps, clean-up, theme and layout, run once, reboot.
 - **Settings** (`Super+I`) – theme, layout, appearance, bar, displays, audio, Bluetooth,
-  network, keyboard/mouse, terminal & prompt, shortcuts, power, boot & login, files.
+  network, keyboard/mouse, terminal & prompt, shortcuts, power, boot & login, security, files.
 - **15 colour themes × 7 layouts** – every theme recolours Sway, Waybar, Rofi, kitty/Alacritty,
   Spaceship, fastfetch, GTK apps, mako, swaylock, btop, cava, MangoHud, the boot screen and the
   login screen. One Nerd Font everywhere.
@@ -83,7 +83,7 @@ Everything is optional except the Sway base.
 | Gaming | **Steam**, **GameMode + MangoHud**, **Protontricks**, **ProtonPlus**, **Prism Launcher**, **Heroic Games Launcher**, **Discord**, Vesktop*, Lutris, Bottles, Gamescope, CoreCtrl, RetroArch, ProtonUp-Qt*, Dolphin, PCSX2*, Ruffle*, OpenRGB |
 | Browser | **Firefox**, Brave, **LibreWolf**, **[wolfforge](https://github.com/Diesumpfeule/wolfforge)** (LibreWolf overhaul), Chromium, Zen Browser* |
 | Dev | **Visual Studio Code**, VSCodium, **Python**, **uv**, Thonny, **Compilers & build tools**, **Podman**, **GitHub CLI + tig**, Node.js, Rust, **tmux**, **Distrobox** |
-| IT & Security | **Network tools**, **Wireshark**, **Virtual machines (KVM)**, Tailscale, Remmina, Password audit tools, **KeePassXC**, Pentest basics, Kali container, Ghidra*, WireGuard tools |
+| IT & Security | **Network tools**, **Wireshark**, **Virtual machines (KVM)**, Tailscale, Remmina, Password audit tools, **KeePassXC**, **Malware & rootkit scanners**, USBGuard, Pentest basics, Kali container, Ghidra*, WireGuard tools |
 | Media | OBS Studio, **VLC**, Kdenlive, Audacity, EasyEffects, LibreOffice, GIMP, Inkscape, Krita, Blender, Spotify*, Obsidian*, Thunderbird, qBittorrent, **yt-dlp**, Syncthing, **7-Zip + unrar** |
 | USB & SD | **balenaEtcher**, **Raspberry Pi Imager**, Fedora Media Writer, **GParted** |
 | Maker | FreeCAD, KiCad, PrusaSlicer |
@@ -154,6 +154,23 @@ for fastfetch, the login and the boot screen – faces in the accent colour, sha
 Motifs: `forge` · `crt` · `cyberdeck` · `gamepad` · `bat` · `lantern` · `rose` · `moon` ·
 `wired` · `skull` · `terminal` · `anvil` – or your own `~/.config/swayforge/ascii/NAME.txt`.
 
+## Security
+
+*Settings → Security* (or the command line) runs free scanners from the Fedora repos:
+
+| Tool | What it does |
+|---|---|
+| **ClamAV** | malware scan of Downloads, your home folder, a USB drive or any path – found files go to a quarantine folder (never deleted), signatures update automatically |
+| **rkhunter + chkrootkit** | look for rootkits and backdoors |
+| **Lynis** | security audit with a hardening score and tips |
+| **USBGuard** (optional) | blocks USB devices you haven't allowed – everything plugged in at install time is allowed |
+| Overviews | connected USB devices, drives, ports open to the network, autostart entries and cron jobs |
+
+Every run leaves a report (`~/.local/share/swayforge/security/`). Optional **weekly scan** in the
+background with a notification. Linux malware is rare – ClamAV mainly catches Windows malware in
+downloads and on USB sticks, so you don't pass it on. Rootkit checkers sometimes raise false alarms:
+read the report before acting.
+
 ## Keys
 
 | Key | Action |
@@ -195,6 +212,8 @@ swayforge theme NAME          switch theme   (--list, --next)
 swayforge layout NAME         switch layout  (--list, --next)
 swayforge boot / login        install boot screen / login screen
 swayforge gamemode            toggle gaming mode
+swayforge scan [TARGET]       malware scan: downloads | home | drives | PATH
+swayforge audit rootkit|system  rkhunter + chkrootkit / Lynis
 swayforge import-sway FILE    take over an existing Sway config
 swayforge export [FILE]       back up;  swayforge restore FILE
 ```

@@ -39,6 +39,7 @@ PAGES: list[tuple[str, str]] = [
     ("keys", "\U000f003b  Apps & shortcuts"),
     ("power", "\U000f06a5  Power & lock"),
     ("boot", "\U000f07b7  Boot & login"),
+    ("security", "\U000f0483  Security"),
     ("system", "\U000f0493  System & files"),
 ]
 
@@ -160,6 +161,15 @@ FIELDS: dict[str, list[Field | str]] = {
         Field("login.remember", "Remember the last user", "bool"),
         Field("login.greeting", "Extra line under the art", help="empty = none"),
     ],
+    "security": [
+        "Settings",
+        Field("security.quarantine", "Move infected files to quarantine", "bool",
+              help="off = only report · nothing is ever deleted"),
+        Field("security.weekly_scan", "Weekly malware scan", "bool",
+              help="in the background, you get a notification · Ctrl+S to switch"),
+        Field("security.weekly_target", "Weekly scan covers", "choice",
+              [("Downloads", "downloads"), ("Whole home folder", "home")]),
+    ],
 }
 
 # Fields a theme style can change → refresh the form after a theme switch
@@ -204,6 +214,10 @@ class SettingsApp(App):
     #autostart { height: 6; }
     #sections { height: 16; width: 50; }
     #backuplist { height: 8; border: round $panel; }
+    #reportlist { height: auto; max-height: 10; border: round $panel; }
+    #sec_out { border: round $panel; padding: 0 1; height: auto; max-height: 24; overflow-y: auto; }
+    #sec_path { width: 1fr; margin-right: 2; }
+    #sec_drive { width: 40; margin-right: 2; }
     #colors { grid-size: 2; grid-gutter: 0 2; height: auto; }
     .colrow { height: 3; }
     .colrow Label { width: 24; padding-top: 1; }
@@ -251,6 +265,7 @@ class SettingsApp(App):
                 yield self.page_keys()
                 yield self.page_power()
                 yield self.page_boot()
+                yield self.page_security()
                 yield self.page_system()
         yield Static("", id="statusbar")
         yield Footer()
@@ -484,6 +499,59 @@ class SettingsApp(App):
                    "(the Linux console only knows 16 colours, so they are approximated).", classes="hint"),
             Horizontal(Button("Install login screen", id="login_apply", variant="primary"),
                        Button("Back to SDDM", id="login_restore", variant="warning"), classes="btnrow"),
+        )
+
+    def page_security(self) -> VerticalScroll:
+        from .. import security
+        inst = security.installed()
+        age = security.signature_age_days()
+        ok, no, warn = "[green]✓[/]", "[dim]✗[/]", "[yellow]![/]"
+        status = [f"{ok if inst[t] else no} {label}" for t, label in security.TOOLS.items()]
+        if inst["clamscan"]:
+            status.append(f"{warn if age is None or age > 7 else ok} virus signatures: "
+                          + ("none yet – Update signatures" if age is None else
+                             f"{age:.0f} day(s) old" if age >= 1 else "up to date"))
+        drives = security.removable_drives()
+        drive_opts = [(f"{d['label']} ({d['size']}) – {d['mount']}", d["mount"]) for d in drives]
+        reps = security.reports()
+        missing = not inst["clamscan"]
+        return self.page(
+            "security",
+            Static("Free scanners from the Fedora repos. Linux malware is rare – ClamAV mostly finds "
+                   "Windows malware in downloads and on USB sticks, which is exactly what you don't want to "
+                   "pass on. Nothing is deleted automatically; every run leaves a report.", classes="hint"),
+            Static("\n".join(status), id="sec_status"),
+            *([Static("[yellow]Scanners not installed:[/] installer → IT & Security → Malware & rootkit "
+                      "scanners, or the button below.", classes="hint")] if missing else []),
+            section("Malware scan (ClamAV)"),
+            Horizontal(Button("Scan Downloads", id="sec_dl", variant="primary"),
+                       Button("Scan home folder", id="sec_home"),
+                       Button("Update signatures", id="sec_fresh"),
+                       *([Button("Install scanners", id="sec_install", variant="warning")] if missing else []),
+                       classes="btnrow"),
+            Horizontal(Select(drive_opts, prompt="no USB drive mounted" if not drives else "USB drive …",
+                              id="sec_drive", disabled=not drives),
+                       Button("Scan drive", id="sec_drive_scan", disabled=not drives),
+                       Button("↻", id="sec_refresh", classes="small"), classes="btnrow"),
+            Horizontal(Input(placeholder="any folder or file, e.g. ~/Games/setup.exe", id="sec_path"),
+                       Button("Scan path", id="sec_path_scan"), classes="btnrow"),
+            section("Rootkits & system audit (needs your password)"),
+            Static("rkhunter + chkrootkit look for rootkits and backdoors. Lynis checks how well the system "
+                   "is hardened and gives tips. Both report false alarms now and then – read before you act.",
+                   classes="hint"),
+            Horizontal(Button("Rootkit check", id="sec_rootkit", variant="primary"),
+                       Button("System audit (Lynis)", id="sec_audit"),
+                       Button("Open quarantine", id="sec_quar"), classes="btnrow"),
+            section("Devices & connections"),
+            Horizontal(Button("USB devices", id="sec_ov_usb"), Button("Drives", id="sec_ov_drives"),
+                       Button("Open ports", id="sec_ov_ports"), Button("Autostart", id="sec_ov_autostart"),
+                       classes="btnrow"),
+            Static("Pick an overview above.", id="sec_out", markup=False),
+            section("Reports"),
+            ListView(*[ListItem(Label(security.describe(r, s)), name=str(r)) for r, s in reps] or
+                     [ListItem(Label("none yet"))], id="reportlist"),
+            Horizontal(Button("Open report", id="sec_report"), classes="btnrow"),
+            *self.fields("security"),
         )
 
     def page_system(self) -> VerticalScroll:
@@ -814,6 +882,8 @@ class SettingsApp(App):
             self.open_file(paths.CONFIG_DIR / "cs2.args")
         elif bid == "cs2_log":
             self.spawn_term(f"less +F {shlex.quote(str(paths.HOME / '.cache/cs2translate.log'))}")
+        elif bid.startswith("sec_"):
+            self.security_button(bid, hold)
         elif bid == "sys_update":
             self.spawn_term(f"sudo dnf upgrade --refresh; flatpak update 2>/dev/null; {hold}")
         elif bid == "sys_fw":
@@ -837,6 +907,52 @@ class SettingsApp(App):
                                  stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
             else:
                 self.restore_backup(Path(item.name))
+
+    def security_button(self, bid: str, hold: str) -> None:
+        from .. import security
+        L = shlex.quote(render.LAUNCHER)
+        nq = "" if self.s["security"]["quarantine"] else " --no-quarantine"
+        if bid in ("sec_dl", "sec_home"):
+            self.spawn_term(f"{L} scan {'downloads' if bid == 'sec_dl' else 'home'}{nq}; {hold}")
+        elif bid == "sec_drive_scan":
+            v = self.query_one("#sec_drive", Select).value
+            if v is Select.BLANK:
+                self.notify("Pick a drive first", severity="warning")
+                return
+            self.spawn_term(f"{L} scan {shlex.quote(str(v))}{nq}; {hold}")
+        elif bid == "sec_path_scan":
+            v = self.query_one("#sec_path", Input).value.strip()
+            if not v or not Path(os.path.expanduser(v)).exists():
+                self.notify("That path doesn't exist", severity="error")
+                return
+            self.spawn_term(f"{L} scan {shlex.quote(os.path.expanduser(v))}{nq}; {hold}")
+        elif bid == "sec_fresh":
+            self.spawn_term(f"sudo freshclam; {hold}")
+        elif bid == "sec_install":
+            self.spawn_term("sudo dnf install -y clamav clamav-freshclam rkhunter chkrootkit lynis usbutils && "
+                            "sudo freshclam && sudo systemctl enable --now clamav-freshclam.service; "
+                            f"sudo rkhunter --propupd; {hold}")
+        elif bid == "sec_rootkit":
+            self.spawn_term(f"{L} audit rootkit; {hold}")
+        elif bid == "sec_audit":
+            self.spawn_term(f"{L} audit system; {hold}")
+        elif bid == "sec_quar":
+            security.QUARANTINE.mkdir(parents=True, exist_ok=True)
+            subprocess.Popen(["xdg-open", str(security.QUARANTINE)], start_new_session=True,
+                             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        elif bid.startswith("sec_ov_"):
+            self.query_one("#sec_out", Static).update(security.overview(bid[7:]))
+        elif bid == "sec_refresh":
+            drives = security.removable_drives()
+            sel = self.query_one("#sec_drive", Select)
+            sel.set_options([(f"{d['label']} ({d['size']}) – {d['mount']}", d["mount"]) for d in drives])
+            sel.disabled = not drives
+            self.query_one("#sec_drive_scan", Button).disabled = not drives
+            self.notify(f"{len(drives)} USB drive(s) found")
+        elif bid == "sec_report":
+            item = self.query_one("#reportlist", ListView).highlighted_child
+            if item and item.name:
+                self.spawn_term(f"less {shlex.quote(item.name)}")
 
     def open_file(self, p: Path) -> None:
         if not p.exists():

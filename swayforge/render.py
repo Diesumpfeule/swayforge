@@ -880,7 +880,25 @@ def apply(s: dict | None = None, live: bool = True) -> Result:
     if live and not res.errors:
         res.notes += [f"reloaded: {x}" for x in reload(s)]
         follow_browser(res)
+        sync_scan_timer(s, res)
     return res
+
+
+def sync_scan_timer(s: dict, res: Result) -> None:
+    """Weekly malware scan on/off (systemd user timer) – follows Settings → Security."""
+    from . import security
+    sec = s.get("security", {})
+    want = bool(sec.get("weekly_scan")) and security.have("clamscan")
+    timer = security.UNIT_DIR / "swayforge-scan.timer"
+    svc = security.UNIT_DIR / "swayforge-scan.service"
+    target = sec.get("weekly_target", "downloads")
+    current = svc.read_text() if svc.exists() else ""
+    if want and (not timer.exists() or f"scan {target} " not in current):
+        security.set_weekly(True, LAUNCHER, target)
+        res.notes.append(f"weekly malware scan on ({target})")
+    elif not want and timer.exists():
+        security.set_weekly(False, LAUNCHER)
+        res.notes.append("weekly malware scan off")
 
 
 def follow_browser(res: Result) -> None:

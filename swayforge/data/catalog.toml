@@ -504,6 +504,22 @@ label = "IT & Security"
   dnf = ["keepassxc"]
 
   [[group.items]]
+  id = "scanners"
+  label = "Malware & rootkit scanners"
+  desc = "ClamAV, rkhunter, chkrootkit, Lynis – run them from Settings → Security (signatures ~300 MB)"
+  default = true
+  dnf = ["clamav", "clamav-freshclam", "rkhunter", "chkrootkit", "lynis", "usbutils"]
+  post = ["sudo freshclam --quiet || true", "sudo systemctl enable --now clamav-freshclam.service || true", "sudo rkhunter --propupd --quiet || true"]
+
+  [[group.items]]
+  id = "usbguard"
+  label = "USBGuard"
+  desc = "Blocks USB devices you haven't allowed – everything plugged in during install is allowed. Careful with new keyboards!"
+  default = false
+  dnf = ["usbguard"]
+  post = ["sudo sh -c 'usbguard generate-policy > /etc/usbguard/rules.conf' && sudo chmod 600 /etc/usbguard/rules.conf && sudo systemctl enable --now usbguard"]
+
+  [[group.items]]
   id = "pentest"
   label = "Pentest basics"
   desc = "Hydra, Gobuster, Aircrack-ng – only on your own systems/labs"
