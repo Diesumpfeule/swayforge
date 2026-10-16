@@ -35,7 +35,7 @@ window {
     location: south west;
     anchor: south west;
     x-offset: 3px;
-    y-offset: -{{ s.bar.height + 2 }}px;
+    y-offset: 0;   /* rofi already sits above the bar's reserved space */
     width: 420px;
     background-color: @face;
     border: 2px 0 0 2px;
@@ -74,13 +74,13 @@ window {
     location: south west;
     anchor: south west;
     x-offset: 6px;
-    y-offset: -{{ s.bar.height + 12 }}px;
+    y-offset: -8px;
     width: 460px;
     border: 1px;
     border-color: {{ rgba(c.text, 0.35) }};
     border-radius: 8px;
-    background-color: transparent;
-    background-image: linear-gradient(to bottom, {{ rgba(bv.hi, 0.85) }}, {{ rgba(c.base, 0.95) }} 30%, {{ rgba(c.crust, 0.97) }});
+    background-color: {{ rgba(c.base, 0.96) }};
+    background-image: linear-gradient(to bottom, {{ rgba(bv.hi, 0.75) }}, {{ rgba(c.crust, 0.96) }});
     padding: 12px;
 }
 mainbox { spacing: 10px; children: [ inputbar, listview ]; }
@@ -125,7 +125,7 @@ window {
 {% if layout == "sidebar" %}
     location: west;
     anchor: west;
-    x-offset: {{ s.bar.height + 18 }}px;
+    x-offset: 10px;
 {% endif %}
     width: 640px;
     background-color: @bg;

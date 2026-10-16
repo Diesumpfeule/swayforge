@@ -460,6 +460,7 @@ class Run(Screen):
 
 
 class InstallerApp(App):
+    ENABLE_COMMAND_PALETTE = False      # Textual's Ctrl+P command search – not useful here
     TITLE = "swayforge"
     SUB_TITLE = "Installer"
     CSS = BASE_CSS + """

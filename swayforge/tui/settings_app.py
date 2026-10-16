@@ -203,6 +203,7 @@ class LayoutItem(ListItem):
 
 
 class SettingsApp(App):
+    ENABLE_COMMAND_PALETTE = False      # Textual's Ctrl+P command search – not useful here
     TITLE = "swayforge"
     SUB_TITLE = "Settings"
     CSS = BASE_CSS + """

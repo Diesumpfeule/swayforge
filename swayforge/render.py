@@ -758,6 +758,23 @@ def render_all(s: dict | None = None, dry: bool = False, si: SysInfo | None = No
            '[general]\nimport = ["~/.config/alacritty/swayforge.toml"]\n\n# Your own Alacritty settings below.\n',
            "swayforge.toml")
 
+    # Your terminal for other apps: Thunar "Open Terminal Here", text files that open in a
+    # terminal editor (GLib/gio asks xdg-terminal-exec), anything that uses exo-open
+    term = s["general"]["terminal"]
+    desktop_id = {"alacritty": "Alacritty.desktop"}.get(term, f"{term}.desktop")
+    w.owned(C / "xdg-terminals.list", f"# {MARK} – your terminal for apps that need one\n{desktop_id}\n")
+    run_flag = "-e " if term == "alacritty" else ""
+    w.owned(paths.XDG_DATA / "xfce4/helpers/swayforge-terminal.desktop",
+            f"# {MARK}\n[Desktop Entry]\nNoDisplay=true\nVersion=1.0\nType=X-XFCE-Helper\n"
+            f"X-XFCE-Category=TerminalEmulator\nName={term}\nIcon={term}\n"
+            f"X-XFCE-Commands={term}\nX-XFCE-CommandsWithParameter={term} {run_flag}%s\n")
+    helpers = C / "xfce4/helpers.rc"
+    old = helpers.read_text(errors="replace") if helpers.exists() else ""
+    if "TerminalEmulator=" not in old and not dry:   # don't override a choice you made in Thunar
+        helpers.parent.mkdir(parents=True, exist_ok=True)
+        helpers.write_text(old + ("" if not old or old.endswith("\n") else "\n")
+                           + "TerminalEmulator=swayforge-terminal\n")
+
     # Shell + prompt + fastfetch
     w.owned(paths.GEN_DIR / "zshrc.zsh", tpl("zsh.j2", d))
     w.owned(paths.GEN_DIR / "spaceship.zsh", tpl("spaceship.j2", d))

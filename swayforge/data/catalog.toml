@@ -135,7 +135,8 @@ label = "Desktop"
   label = "Thunar file manager"
   desc = "With archive plugin, thumbnails and network drives"
   default = true
-  dnf = ["Thunar", "thunar-archive-plugin", "thunar-volman", "file-roller", "tumbler", "gvfs", "gvfs-smb", "gvfs-mtp"]
+  dnf = ["Thunar", "thunar-archive-plugin", "thunar-volman", "file-roller", "tumbler", "gvfs", "gvfs-smb", "gvfs-mtp",
+         "exo", "xdg-terminal-exec"]
 
   [[group.items]]
   id = "viewers"
