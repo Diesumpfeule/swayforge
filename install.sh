@@ -59,6 +59,13 @@ EOF
 chmod +x "$BIN"
 export PATH="$HOME/.local/bin:$PATH"
 
+# keep the CS2 translator in step with swayforge (it lives in its own folder)
+if [ -d "$HOME/.local/share/cs2translate" ]; then
+  bold "Updating the CS2 translator …"
+  sudo dnf install -y --skip-unavailable gtk-layer-shell python3-gobject python3-cairo >/dev/null 2>&1 || true
+  bash "$APP/extras/cs2/install.sh" >/dev/null 2>&1 || true
+fi
+
 if [ "$UPDATE" = 1 ]; then
   bold "Applying the new version …"
   "$BIN" apply

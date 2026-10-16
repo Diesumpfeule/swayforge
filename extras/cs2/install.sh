@@ -69,6 +69,8 @@ if [ -n "${SWAYSOCK:-}" ] && command -v swaymsg >/dev/null; then
 fi
 
 python3 -c "import tkinter" 2>/dev/null || echo "  Note: python3-tkinter is missing:  sudo dnf install python3-tkinter"
+python3 -c "import gi; gi.require_version('GtkLayerShell', '0.1'); import cairo" 2>/dev/null || \
+  echo "  For a see-through overlay on Sway:  sudo dnf install gtk-layer-shell python3-gobject python3-cairo"
 
 cat <<EOT
 cs2translate installed.
