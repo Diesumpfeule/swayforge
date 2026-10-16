@@ -21,7 +21,7 @@ from .. import boot, layouts, paths, render, settings, themes
 from ..system import detect, have, run
 from .common import (BASE_CSS, Field, coerce, field_row, hero_text, path_from_wid, section, swatch,
                      two_tone, use_layout, use_theme)
-from .maintenance import AppsPanel, CleanupPanel
+from .maintenance import AppsPanel, CleanupPanel, MountsPanel
 from .panels import AudioPanel, BluetoothPanel, NetworkPanel
 
 ON_OFF = [("always", "always"), ("only via SSH/root", "needed"), ("never", "false")]
@@ -43,6 +43,7 @@ PAGES: list[tuple[str, str]] = [
     ("security", "\U000f0483  Security"),
     ("apps", "\U000f03d6  Installed apps"),
     ("cleanup", "\U000f00e2  Cleanup & drives"),
+    ("mounts", "\U000f02ca  Mount drives"),
     ("system", "\U000f0493  System & files"),
 ]
 
@@ -210,6 +211,9 @@ class SettingsApp(App):
     #ap_table { height: 24; margin-bottom: 1; }
     #wpt_mode { width: 40; }
     #wp_path { width: 1fr; }
+    #mt_drive { width: 1fr; }
+    #mt_name { width: 1fr; }
+    .mtrow { width: 1fr; }
     #ap_filter { width: 30; }
     #ap_group { width: 28; }
     #ap_sum { padding: 0; }
@@ -300,6 +304,7 @@ class SettingsApp(App):
                 yield self.page_security()
                 yield AppsPanel(id="page-apps", classes="page")
                 yield CleanupPanel(id="page-cleanup", classes="page")
+                yield MountsPanel(id="page-mounts", classes="page")
                 yield self.page_system()
         yield Static("", id="statusbar")
         yield Footer()

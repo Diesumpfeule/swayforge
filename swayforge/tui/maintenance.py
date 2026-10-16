@@ -1,6 +1,7 @@
 """Installed apps, cleanup and the drive wiper – pages of the settings app."""
 from __future__ import annotations
 
+import os
 import shlex
 
 from rich.text import Text
@@ -10,7 +11,7 @@ from textual.containers import Horizontal, Vertical
 from textual.screen import ModalScreen
 from textual.widgets import Button, Checkbox, DataTable, Input, Label, Select, Static
 
-from .. import apps, catalog, cleanup, render
+from .. import apps, catalog, cleanup, mounts, render
 from ..system import have
 from .panels import Panel
 
@@ -350,3 +351,114 @@ class CleanupPanel(Panel):
                                f"{hold}")
                 app.notify(f"Wiping {d['name']} in a terminal")
             app.push_screen(WipeConfirm(d, mode, fs, label), go)
+
+
+# ── Mount drives permanently ─────────────────────────────────────────
+class MountsPanel(Panel):
+    TITLE = "Mount drives"
+
+    def body(self) -> ComposeResult:
+        yield Static("Pick a drive, give it a name, Mount: it appears at /mnt/NAME and in Thunar's sidebar, "
+                     "now and after every reboot. Internal SSDs and external drives both work. A missing "
+                     "drive never blocks booting, and /etc/fstab is backed up and checked first – "
+                     "a broken line is undone automatically.", classes="hint")
+        yield Static("Add a drive", classes="section")
+        yield Horizontal(Label("Drive", classes="flabel flabelbox"),
+                         Select([], prompt="pick a drive …", id="mt_drive"),
+                         Button("↻", id="mt_refresh", classes="small"), classes="frow")
+        yield Horizontal(Label("Name", classes="flabel flabelbox"),
+                         Input(id="mt_name", max_length=32, placeholder="e.g. games, data, backup"),
+                         classes="frow")
+        yield Static("", id="mt_info", classes="hint")
+        yield Horizontal(Button("Mount permanently", id="mt_add", variant="primary", disabled=True),
+                         classes="btnrow")
+        yield Static("Mounted by swayforge", classes="section")
+        yield Vertical(id="mt_list")
+
+    def on_mount(self) -> None:
+        self.cands: list[dict] = []
+
+    def on_show(self) -> None:
+        self.refresh_data()
+
+    @work(thread=True, exclusive=True, group="mounts")
+    def refresh_data(self) -> None:
+        c, e = mounts.candidates(), mounts.entries()
+        self.app.call_from_thread(self._loaded, c, e)
+
+    def _loaded(self, cands: list[dict], ents: list[dict]) -> None:
+        self.cands = cands
+        sel = self.query_one("#mt_drive", Select)
+        with self.prevent(Select.Changed):
+            sel.set_options([(mounts.describe(c), c["name"]) for c in cands])
+        sel.disabled = not cands
+        self._info()
+        box = self.query_one("#mt_list", Vertical)
+        box.remove_children()
+        if not ents:
+            box.mount(Static("none yet", classes="hint"))
+        for e in ents:
+            state = "[green]● mounted[/]" if e["mounted"] else "[yellow]○ not mounted[/]"
+            box.mount(Horizontal(Static(f"{state}  [b]{e['target']}[/b]  {e['label']} · {e['fstype']}",
+                                        classes="mtrow"),
+                                 Button("Open", name=f"mt_open:{e['target']}"),
+                                 Button("Remove", name=f"mt_rm:{e['target']}"),
+                                 classes="btnrow"))
+
+    def _cand(self) -> dict | None:
+        v = self.query_one("#mt_drive", Select).value
+        return next((c for c in self.cands if c["name"] == v), None)
+
+    def _info(self) -> None:
+        c = self._cand()
+        name = mounts.clean_name(self.query_one("#mt_name", Input).value)
+        info = self.query_one("#mt_info", Static)
+        self.query_one("#mt_add", Button).disabled = not (c and name)
+        if not c:
+            info.update("Nothing new to mount – every drive with a file system is already set up."
+                        if not self.cands else "")
+            return
+        line = mounts.fstab_line(c, name or "NAME", os.getuid(), os.getgid())
+        extra = ""
+        if c["fstype"] == "ntfs":
+            extra = "\nWindows drive: works read/write; turn off Windows “Fast Startup” or it stays locked."
+        info.update(f"→ /mnt/{name or 'NAME'}\nfstab: {line}{extra}")
+
+    @on(Select.Changed, "#mt_drive")
+    def picked(self, ev: Select.Changed) -> None:
+        ev.stop()
+        c = self._cand()
+        inp = self.query_one("#mt_name", Input)
+        if c and not inp.value.strip():
+            inp.value = mounts.default_name(c)
+        self._info()
+
+    @on(Input.Changed, "#mt_name")
+    def named(self, ev: Input.Changed) -> None:
+        ev.stop()
+        self._info()
+
+    @on(Button.Pressed)
+    def buttons(self, ev: Button.Pressed) -> None:
+        bid, name = ev.button.id or "", ev.button.name or ""
+        if not (bid.startswith("mt_") or name.startswith("mt_")):
+            return
+        ev.stop()
+        app = self.app
+        L = shlex.quote(render.LAUNCHER)
+        hold = "echo; read -n1 -rsp 'Done – press any key to close'"
+        if bid == "mt_refresh":
+            self.refresh_data()
+        elif bid == "mt_add":
+            c = self._cand()
+            n = mounts.clean_name(self.query_one("#mt_name", Input).value)
+            if c and n:
+                app.spawn_term(f"{L} mount add {shlex.quote(c['name'])} {shlex.quote(n)}; {hold}")  # type: ignore[attr-defined]
+                app.notify("Mounting in a terminal – press ↻ afterwards")
+        elif name.startswith("mt_rm:"):
+            app.spawn_term(f"{L} mount remove {shlex.quote(name[6:])}; {hold}")                   # type: ignore[attr-defined]
+            app.notify("Removing in a terminal – the data on the drive stays")
+        elif name.startswith("mt_open:"):
+            import subprocess
+            subprocess.Popen(["xdg-open", name[8:]], start_new_session=True,
+                             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)

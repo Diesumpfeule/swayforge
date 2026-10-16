@@ -203,6 +203,25 @@ name is forged left to right. Any key skips it; `SWAYFORGE_NO_INTRO=1` turns it 
   right before it starts. `swayforge wipe` does the same from the command line. Note that flash
   wear levelling can keep stray old blocks – for secrets, use encryption from the start.
 
+## Mount drives
+
+*Settings → Mount drives* (or `swayforge mount`): pick a partition, internal or external. Give it
+a name, press *Mount permanently*, and it shows up at `/mnt/NAME` and in Thunar's sidebar, now and
+after every reboot. swayforge adds a line to `/etc/fstab` using the partition's UUID:
+
+- Every entry gets `nofail` and a 5-second timeout, so a missing drive never blocks booting.
+- NTFS, exFAT and FAT drives belong to you. A fresh empty Linux drive gets handed to you too.
+- `/etc/fstab` is backed up first and checked with `findmnt --verify`. If the check finds a new
+  error, the backup goes straight back.
+- *Remove* unmounts the drive and deletes only swayforge's line. The data on the drive stays.
+- System partitions (`/`, `/boot`, EFI, swap) never show up.
+
+```
+swayforge mount                     list: mounted by swayforge / can be added
+swayforge mount add nvme1n1p2 games
+swayforge mount remove games
+```
+
 ## Security
 
 *Settings → Security* (or the command line) runs free scanners from the Fedora repos:

@@ -9,6 +9,7 @@
   swayforge boot               install the boot screen (Plymouth)
   swayforge login              install the tuigreet login screen
   swayforge import-sway FILE   take over an existing Sway config into custom.conf
+  swayforge mount [add|remove]  mount drives permanently at /mnt/NAME (fstab)
   swayforge wipe DEVICE        wipe + format a USB stick / SD card / external SSD (asks first)
   swayforge export FILE        back up settings + your tweaks
   swayforge restore FILE       … and bring them back after a reset
@@ -76,6 +77,10 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--quiet", action="store_true", help="no output, just a notification (for the timer)")
     p = sub.add_parser("audit", help="rootkit check (rkhunter, chkrootkit) or system audit (Lynis)")
     p.add_argument("what", choices=["rootkit", "system"], nargs="?", default="rootkit")
+    p = sub.add_parser("mount", help="mount a drive permanently at /mnt/NAME (fstab)")
+    p.add_argument("action", nargs="?", default="list", choices=["list", "add", "remove"])
+    p.add_argument("device", nargs="?", help="add: partition, e.g. nvme1n1p1 · remove: NAME or /mnt/NAME")
+    p.add_argument("name", nargs="?", help="add: folder name under /mnt")
     p = sub.add_parser("wipe", help="wipe + format a removable drive (USB, SD, external SSD)")
     p.add_argument("device", nargs="?", help="e.g. sdb or mmcblk0 – without it: list the drives")
     p.add_argument("--mode", default="quick", choices=["quick", "zero", "discard"])
@@ -154,6 +159,24 @@ def main(argv: list[str] | None = None) -> int:
         from . import security, settings
         q = settings.load()["security"]["quarantine"] and not a.no_quarantine
         return security.scan(a.target, quarantine=q, quiet=a.quiet)
+    if a.cmd == "mount":
+        from . import mounts
+        if a.action == "add":
+            if not a.device:
+                print("usage: swayforge mount add DEVICE [NAME]")
+                return 2
+            c = next((x for x in mounts.candidates() if x["name"] == a.device.removeprefix("/dev/")), None)
+            return mounts.add_main(a.device, a.name or (mounts.default_name(c) if c else ""))
+        if a.action == "remove":
+            return mounts.remove_main(a.device or "")
+        print("Mounted by swayforge:")
+        for e in mounts.entries():
+            print(f"  {e['target']:<22} {e['label']}  {'(mounted)' if e['mounted'] else '(not mounted)'}")
+        print("Can be added:")
+        for c in mounts.candidates():
+            print("  " + mounts.describe(c))
+        return 0
+
     if a.cmd == "wipe":
         from . import cleanup
         if not a.device:
