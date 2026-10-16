@@ -225,13 +225,22 @@ def waybar_config(ctx: Ctx) -> dict:
             return icon
         return f"{icon}  {value}"
 
+    net_mode = b.get("network", "name")
+
+    def net_fmt(icon: str, value: str) -> str:
+        if net_mode == "icon":
+            return "[net]" if text_only else icon
+        if net_mode == "ip" and value != "offline":
+            value = "{ipaddr}"
+        return f(icon, value, "net")
+
     wanted = [
         ("media", "mpris", True), ("gamemode", "custom/gamemode", True),
         ("cpu", "cpu", True), ("gpu", "custom/gpu", bool(si.gpu_busy)),
         ("memory", "memory", True), ("temperature", "temperature", True),
-        ("taskmanager", "custom/taskmanager", True), ("network", "network", True),
+        ("taskmanager", "custom/taskmanager", True), ("network", "network", b.get("network") != "off"),
         ("bluetooth", "bluetooth", si.bluetooth), ("audio", "pulseaudio", True),
-        ("audio", "pulseaudio#mic", True), ("backlight", "backlight", si.laptop),
+        ("mic", "pulseaudio#mic", True), ("backlight", "backlight", si.laptop),
         ("battery", "battery", si.laptop), ("idle_inhibitor", "idle_inhibitor", True),
         ("tray", "tray", True),
     ]
@@ -296,8 +305,8 @@ def waybar_config(ctx: Ctx) -> dict:
                             "return-type": "json", "interval": "once", "signal": 8, "format": "{}",
                             "on-click": f"{LAUNCHER} gamemode"},
         "network": {
-            "format-wifi": f(I["wifi"], "{essid}", "net"), "format-ethernet": f(I["eth"], "{ipaddr}", "net"),
-            "format-disconnected": f(I["offline"], "offline", "net"), "interval": 5,
+            "format-wifi": net_fmt(I["wifi"], "{essid}"), "format-ethernet": net_fmt(I["eth"], "{ipaddr}"),
+            "format-disconnected": net_fmt(I["offline"], "offline"), "interval": 5,
             "tooltip-format": "{ifname}: {ipaddr}/{cidr}\n↓ {bandwidthDownBytes}  ↑ {bandwidthUpBytes}",
             "on-click": settings_cmd(s, "network"),
             "on-click-right": terminal_cmd(s, "nmtui", "nmtui"),
@@ -847,6 +856,24 @@ def session(s: dict | None = None) -> None:
             run(["gsettings", "set", iface, k, v])
         run(["gsettings", "set", "org.gnome.desktop.wm.preferences", "button-layout", button_layout(ctx)])
     restart_idle(s)
+    set_primary_output(s)
+
+
+def set_primary_output(s: dict) -> None:
+    """XWayland only knows one 'primary' monitor – games open there. Point it at the main screen."""
+    want = s["display"].get("primary")
+    if not want or not have("xrandr") or not os.environ.get("SWAYSOCK"):
+        return
+    r = run(["swaymsg", "-t", "get_outputs", "-r"])
+    try:
+        outs = json.loads(r.stdout or "[]")
+    except ValueError:
+        return
+    for o in outs:
+        ident = " ".join(x for x in (o.get("make"), o.get("model"), o.get("serial")) if x and x != "Unknown")
+        if want in (ident, o.get("name")):
+            run(["xrandr", "--output", o["name"], "--primary"])
+            return
 
 
 def idle_args(s: dict) -> list[str]:

@@ -67,6 +67,10 @@ output "{{ name }}" {
 {% endif %}
 }
 {% endfor %}
+{% if s.display.primary %}
+# Main screen: workspace 1 opens here (games get it as primary via xrandr in `swayforge session`)
+workspace 1 output "{{ s.display.primary }}"
+{% endif %}
 {% if not outputs and s.display.allow_tearing %}
 output * allow_tearing yes
 {% endif %}

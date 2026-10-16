@@ -8,7 +8,7 @@ from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.containers import Horizontal, Vertical, VerticalScroll
 from textual.screen import Screen
-from textual.widgets import (Button, Header, Input, Label, ListItem, ListView, ProgressBar,
+from textual.widgets import (Button, Checkbox, Header, Input, Label, ListItem, ListView, ProgressBar,
                              RichLog, Select, SelectionList, Static, Switch, TabbedContent, TabPane)
 from textual.widgets.selection_list import Selection
 
@@ -16,7 +16,7 @@ from .. import ascii as asc
 from .. import catalog as cat
 from .. import layouts, paths, plan, settings, themes
 from ..system import detect, installed_rpms
-from .common import BASE_CSS, hero_text, swatch, use_theme
+from .common import BASE_CSS, hero_text, swatch, use_layout, use_theme
 
 
 class Nav(Horizontal):
@@ -100,30 +100,56 @@ class Welcome(Step):
 
 
 # ── 2. Apps ──────────────────────────────────────────────────────────
+class AppCheck(Checkbox):
+    BUTTON_INNER = "✓"
+
+
 class Apps(Step):
+    BINDINGS = [Binding("pagedown", "group(1)", "Next group"), Binding("pageup", "group(-1)", "Prev group")]
+
     def compose(self) -> ComposeResult:
         yield Header()
         c, si = self.app.catalog, self.app.si
-        yield Static("Choose apps   [dim]Space = on/off, Tab = next tab · RPM first, Flatpak only when there "
-                     "is no RPM[/]", classes="steptitle")
-        with TabbedContent():
+        yield Static("Choose apps   [dim]Space/click = on/off · ↑↓ or Tab = move · PgUp/PgDn = group · "
+                     "RPM first, Flatpak only when there is no RPM[/]", classes="steptitle")
+        yield Static("", id="appcount", classes="hint")
+        with TabbedContent(id="appgroups"):
             for g in c.groups:
                 with TabPane(g.label, id=f"tab-{g.id}"):
-                    opts = []
-                    for i in g.items:
-                        mark = "" if i.applicable(si) else "  [dim](not detected)[/]"
-                        tag = "  [b $warning]\\[Flatpak][/]" if i.flatpak else ""
-                        label = f"[b]{i.label}[/b]{tag}{mark}  [dim]– {i.desc}[/]"
-                        opts.append(Selection(label, i.id, i.id in self.app.selected or i.locked,
-                                              disabled=i.locked))
-                    yield SelectionList[str](*opts, id=f"sel-{g.id}", classes="applist")
+                    with VerticalScroll(classes="applist"):
+                        for i in g.items:
+                            yield self.row(i, si)
         yield Nav()
 
+    def row(self, i, si) -> Horizontal:
+        badges = []
+        if i.locked:
+            badges.append("[b $accent]always[/]")
+        if i.flatpak:
+            badges.append("[b $warning]Flatpak[/]")
+        if not i.applicable(si):
+            badges.append("[dim]not detected[/]")
+        title = f"[b]{i.label}[/b]" + ("   " + "  ".join(badges) if badges else "")
+        box = AppCheck(title, value=i.id in self.app.selected or i.locked, id=f"app__{i.id}",
+                       disabled=i.locked, classes="appcheck")
+        return Horizontal(box, Static(f"[dim]{i.desc}[/]", classes="appdesc"), classes="approw")
+
+    def on_mount(self) -> None:
+        self.count()
+
+    @on(Checkbox.Changed, ".appcheck")
+    def count(self, _ev=None) -> None:
+        n = sum(1 for cb in self.query(".appcheck").results(Checkbox) if cb.value)
+        self.query_one("#appcount", Static).update(f"{n} selected")
+
+    def action_group(self, step: int) -> None:
+        tc = self.query_one("#appgroups", TabbedContent)
+        ids = [f"tab-{g.id}" for g in self.app.catalog.groups]
+        if tc.active in ids:
+            tc.active = ids[(ids.index(tc.active) + step) % len(ids)]
+
     def next(self) -> None:
-        chosen: set[str] = set()
-        for sl in self.query(SelectionList):
-            chosen |= set(sl.selected)
-        self.app.selected = chosen
+        self.app.selected = {cb.id[5:] for cb in self.query(".appcheck").results(Checkbox) if cb.value}
         self.app.push_screen(Cleanup())
 
 
@@ -199,7 +225,7 @@ class Look(Step):
             all_t = themes.all_themes()
             themes.apply_style(self.app.s, all_t[ev.item.name], all_t.get(self.app.s["theme"]["name"]))
             self.app.s["theme"]["name"] = ev.item.name
-            use_theme(self.app, ev.item.name)
+            use_theme(self.app, ev.item.name, "", self.app.s["bar"]["layout"])
             lay = layouts.get(self.app.s["bar"]["layout"])
             with self.prevent(Select.Changed):
                 self.query_one("#layout", Select).value = lay.id
@@ -209,6 +235,7 @@ class Look(Step):
     def layout_changed(self, ev: Select.Changed) -> None:
         if isinstance(ev.value, str):
             self.app.s["bar"]["layout"] = ev.value
+            use_layout(self.app, ev.value)
             self.query_one("#layout_preview", Static).update(layouts.get(ev.value).preview)
 
     def next(self) -> None:
@@ -341,8 +368,16 @@ class InstallerApp(App):
     #w_banner { width: auto; height: auto; margin: 1 0; }
     #w_art { color: $secondary; width: auto; margin-bottom: 1; }
     TabbedContent { height: 1fr; margin: 0 2; }
-    .applist { height: 1fr; border: none; }
-    .applist > .option-list--option { padding: 0 1; }
+    .applist { height: 1fr; border: none; padding: 0 1; }
+    .approw { height: auto; padding: 1 1 1 1; margin-bottom: 1; background: $surface;
+              border-left: thick $panel; }
+    .approw:focus-within { border-left: thick $accent; background: $boost; }
+    .appcheck { width: 46; height: auto; border: none; background: transparent; padding: 0; }
+    .appcheck:focus { background: transparent; }
+    .appcheck > .toggle--button { color: $panel; background: $panel; }
+    .appcheck.-on > .toggle--button { color: $background; background: $accent; text-style: bold; }
+    .appdesc { width: 1fr; padding: 0 1; }
+    #appcount { padding: 0 3; height: 1; }
     #removelist { height: auto; max-height: 20; }
     #themes { height: auto; max-height: 14; border: round $panel; margin-bottom: 1; }
     #themes ListItem { height: 1; padding: 0 1; }
@@ -356,7 +391,12 @@ class InstallerApp(App):
     #current { padding: 1 3; height: auto; }
     #log { height: 1fr; margin: 0 2; border: round $panel; }
     """
-    BINDINGS = [Binding("ctrl+q", "quit", "Quit", priority=True)]
+    BINDINGS = [Binding("ctrl+q", "quit", "Quit", priority=True),
+                Binding("ctrl+l", "redraw", "Redraw", priority=True)]
+
+    def action_redraw(self) -> None:
+        self.refresh(repaint=True, layout=True)
+        self.screen.refresh(repaint=True, layout=True)
 
     def __init__(self) -> None:
         super().__init__()
@@ -374,7 +414,7 @@ class InstallerApp(App):
         return plan.build(prof, self.s, self.si, self.catalog)
 
     def on_mount(self) -> None:
-        use_theme(self, self.s["theme"]["name"], self.s["theme"]["accent"])
+        use_theme(self, self.s["theme"]["name"], self.s["theme"]["accent"], self.s["bar"]["layout"])
         self.push_screen(Welcome())
 
 

@@ -24,10 +24,21 @@ def textual_theme(theme_id: str, accent: str = ""):
     )
 
 
-def use_theme(app, theme_id: str, accent: str = "") -> None:
+def use_theme(app, theme_id: str, accent: str = "", layout: str = "") -> None:
     th = textual_theme(theme_id, accent)
     app.register_theme(th)
     app.theme = th.name
+    if layout:
+        use_layout(app, layout)
+
+
+UI_STYLES = ("win98", "win7", "wired")
+
+
+def use_layout(app, layout: str) -> None:
+    """Button shapes follow the bar layout: bevels for Classic 98, glass for 7, text for Wired."""
+    for x in UI_STYLES:
+        app.set_class(layout == x, f"-ui-{x}")
 
 
 def two_tone(lines: list[str], face: str, shade: str) -> Text:
@@ -127,14 +138,36 @@ Screen { layout: vertical; }
 .frow Input { width: 36; }
 .frow Select { width: 36; }
 .frow Switch { margin-right: 26; }
-.editbtn { min-width: 5; width: 5; margin-left: 1; background: $panel; border: none; height: 3; }
+/* ── Buttons: compact by default, shaped by the layout (App.-ui-<layout>) ── */
+Button { height: 1; min-width: 6; border: none; padding: 0 2; background: $panel; color: $text;
+         text-style: bold; }
+Button:hover { background: $accent 35%; }
+Button:focus { background: $accent 55%; text-style: bold; }
+Button.-primary, Button.-success { background: $accent; color: $background; }
+Button.-primary:hover, Button.-success:hover { background: $accent 80%; }
+Button.-warning { background: $warning 75%; color: $background; }
+Button.-error { background: $error 80%; color: $background; }
+Button:disabled { background: $panel 50%; color: $text-muted; }
+App.-ui-win98 Button { height: 3; border: outer $panel-lighten-2; background: $panel; color: $text; }
+App.-ui-win98 Button.-active, App.-ui-win98 Button:focus { border: inner $panel-lighten-2; }
+App.-ui-win98 Button.-primary, App.-ui-win98 Button.-success { background: $accent; color: $background;
+         border: outer $accent-lighten-2; }
+App.-ui-win7 Button { height: 3; border: round $accent 50%; background: $panel; }
+App.-ui-win7 Button:hover { border: round $accent; }
+App.-ui-wired Button { background: transparent; color: $accent; padding: 0 1; }
+App.-ui-wired Button:hover, App.-ui-wired Button:focus { background: $accent; color: $background; }
+App.-ui-wired Button.-primary, App.-ui-wired Button.-success { background: transparent; color: $accent;
+         text-style: bold underline; }
+.editbtn { min-width: 5; width: 5; margin-left: 1; margin-top: 1; background: $panel; padding: 0 1; }
+App.-ui-win98 .editbtn, App.-ui-win7 .editbtn { height: 1; border: none; margin-top: 1; }
+App.-ui-win98 .small, App.-ui-win7 .small { height: 1; border: none; }
 .editbtn:hover { background: $accent; color: $background; }
 .small { min-width: 5; width: 5; }
 .volval { width: 7; padding: 1 1; }
 ProgressBar { padding: 1 1; width: 30; }
 .hint { color: $text-muted; padding-bottom: 1; }
 .warn { color: $warning; padding-bottom: 1; }
-.btnrow { height: auto; margin: 1 0; }
+.btnrow { height: auto; margin: 1 0; align: left middle; }
 .btnrow Button { margin-right: 2; }
 ThemeItem { height: 3; padding: 0 1; }
 #statusbar { height: 1; background: $panel; padding: 0 2; color: $text-muted; }

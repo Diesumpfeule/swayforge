@@ -52,8 +52,9 @@ DEFAULTS: dict[str, Any] = {
         "memory": True,
         "gpu": True,                  # AMD GPU load
         "temperature": True,
-        "network": True,
-        "audio": True,
+        "network": "name",            # name (Wi-Fi name / IP on cable) | ip | icon | off
+        "audio": True,                # volume
+        "mic": True,                  # microphone (click = mute)
         "bluetooth": True,
         "battery": True,              # only shown when a battery exists
         "backlight": True,            # laptops only
@@ -79,6 +80,7 @@ DEFAULTS: dict[str, Any] = {
     "display": {
         "allow_tearing": True,        # lower input lag in fullscreen games
         "outputs": {},                # "Make Model Serial" = { mode=…, pos=…, scale=…, adaptive_sync=…, enabled=… }
+        "primary": "",                # main screen ("Make Model Serial"): workspace 1 + games start there
     },
     "power": {
         "lock_after": 10,             # minutes, 0 = never
@@ -201,6 +203,8 @@ def _migrate(data: dict) -> dict:
     if "style" in bar and "layout" not in bar:
         bar["layout"] = {"floating": "modern", "solid": "solid"}.get(bar["style"], "modern")
     bar.pop("style", None)
+    if isinstance(bar.get("network"), bool):
+        bar["network"] = "name" if bar["network"] else "off"
     bar.pop("position", None)
     sb = data.get("theme", {}).get("style_backup", {})
     if "bar_style" in sb:

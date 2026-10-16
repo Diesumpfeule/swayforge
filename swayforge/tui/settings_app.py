@@ -20,7 +20,7 @@ from .. import ascii as asc
 from .. import boot, layouts, paths, render, settings, themes
 from ..system import detect, have, run
 from .common import (BASE_CSS, Field, coerce, field_row, hero_text, path_from_wid, section, swatch,
-                     two_tone, use_theme)
+                     two_tone, use_layout, use_theme)
 from .panels import AudioPanel, BluetoothPanel, NetworkPanel
 
 ON_OFF = [("always", "always"), ("only via SSH/root", "needed"), ("never", "false")]
@@ -82,9 +82,12 @@ FIELDS: dict[str, list[Field | str]] = {
         Field("bar.gpu", "GPU load (AMD)", "bool"),
         Field("bar.memory", "Memory", "bool"),
         Field("bar.temperature", "CPU temperature", "bool"),
-        Field("bar.network", "Network", "bool"),
+        Field("bar.network", "Network", "choice",
+              [("Wi-Fi name / IP (cable)", "name"), ("IP address", "ip"), ("Icon only", "icon"), ("Off", "off")],
+              help="click opens the network settings"),
         Field("bar.bluetooth", "Bluetooth", "bool"),
-        Field("bar.audio", "Volume + microphone", "bool"),
+        Field("bar.audio", "Volume", "bool", help="click = audio settings · scroll = volume"),
+        Field("bar.mic", "Microphone", "bool", help="click = mute on/off"),
         Field("bar.media", "Music (Spotify, browser …)", "bool"),
         Field("bar.battery", "Battery (laptops)", "bool"),
         Field("bar.backlight", "Brightness (laptops)", "bool"),
@@ -210,6 +213,7 @@ class SettingsApp(App):
     #layoutlist > LayoutItem { height: 1; padding: 0 1; }
     .preview { border: round $accent; padding: 1 2; margin-bottom: 1; height: auto; color: $text; }
     #keylist .frow Input { width: 30; }
+    #outputs { height: auto; }
     #outputs .outbox { border: round $panel; padding: 0 1; margin-bottom: 1; height: auto; }
     #autostart { height: 6; }
     #sections { height: 16; width: 50; }
@@ -230,9 +234,16 @@ class SettingsApp(App):
     """
     BINDINGS = [
         Binding("ctrl+s", "save", "Save & apply", priority=True),
+        Binding("ctrl+l", "redraw", "Redraw", priority=True),
         Binding("ctrl+q", "quit_app", "Quit", priority=True),
         Binding("escape", "quit_app", "Quit", show=False),
     ]
+
+    def action_redraw(self) -> None:
+        """Repaint everything – for when the terminal shows leftovers after resizing."""
+        self.refresh(repaint=True, layout=True)
+        self.screen.refresh(repaint=True, layout=True)
+        self.notify("Redrawn", timeout=1)
 
     def __init__(self, page: str = "") -> None:
         super().__init__()
@@ -364,6 +375,16 @@ class SettingsApp(App):
             children.append(Static("Displays can only be detected inside Sway. Open the settings "
                                    "in Sway with Super+I.", classes="warn"))
         else:
+            main_opts = [(f"{o['name']}  {o.get('make', '')} {o.get('model', '')}".strip(), self.output_key(o))
+                         for o in outs]
+            cur_main = self.s["display"].get("primary") or ""
+            if cur_main not in [v for _, v in main_opts]:
+                cur_main = main_opts[0][1]
+            children.append(Horizontal(
+                Vertical(Label("Main screen", classes="flabel"),
+                         Label("workspace 1 opens here, and games (XWayland) see it as the primary monitor",
+                               classes="fhelp"), classes="flabelbox"),
+                Select(main_opts, value=cur_main, allow_blank=False, id="out_primary"), classes="frow"))
             children.append(Static("Position: x y in pixels. Right of a 2560 px wide monitor = 2560 0. "
                                    "With scaling, use the scaled width.", classes="hint"))
             boxes = []
@@ -591,7 +612,7 @@ class SettingsApp(App):
         )
 
     def on_mount(self) -> None:
-        use_theme(self, self.s["theme"]["name"], self.s["theme"]["accent"])
+        use_theme(self, self.s["theme"]["name"], self.s["theme"]["accent"], self.s["bar"]["layout"])
         self.update_swatches()
         self.status()
         self.set_timer(0.6, self._done_loading)
@@ -656,7 +677,7 @@ class SettingsApp(App):
             return
         settings.set_(self.s, f.path, val)
         if f.path == "theme.accent":
-            use_theme(self, self.s["theme"]["name"], val)
+            use_theme(self, self.s["theme"]["name"], val, self.s["bar"]["layout"])
             self.live_apply()
         elif f.path in ("theme.wallpaper", "theme.ascii"):
             self.refresh_hero()
@@ -739,6 +760,10 @@ class SettingsApp(App):
                 "adaptive_sync": self.query_one(f"#out{n}_vrr", Switch).value,
             }
         self.s["display"]["outputs"] = outs
+        prim = self.query("#out_primary")
+        if prim:
+            v = prim.first(Select).value
+            self.s["display"]["primary"] = v if isinstance(v, str) else ""
         self.changed()
 
     # ── Theme & layout lists: apply immediately ─────────────────────
@@ -756,7 +781,7 @@ class SettingsApp(App):
         self.sync_layout_list()
         self.load_colors(t)
         self.query_one("#custom_name", Input).value = t.label if t.custom else ""
-        use_theme(self, t.id, self.s["theme"]["accent"])
+        use_theme(self, t.id, self.s["theme"]["accent"], self.s["bar"]["layout"])
         self.refresh_hero()
         if changed:
             self.notify(f"{t.label}: style applied ({', '.join(changed)}) – change it under Appearance/Layout")
@@ -771,6 +796,7 @@ class SettingsApp(App):
     def layout_selected(self, ev: ListView.Selected) -> None:
         if isinstance(ev.item, LayoutItem):
             self.s["bar"]["layout"] = ev.item.lay.id
+            use_layout(self, ev.item.lay.id)
             self.notify(f"Layout: {ev.item.lay.label}")
             self.live_apply()
 
@@ -824,7 +850,7 @@ class SettingsApp(App):
         self.s["theme"]["name"] = t.id
         self.s["theme"]["accent"] = ""
         self.set_widget("theme.accent")
-        use_theme(self, t.id)
+        use_theme(self, t.id, "", self.s["bar"]["layout"])
         self.notify(f"Theme “{t.label}” saved ({t.path.name if t.path else ''}) and activated")
         self.live_apply()
 

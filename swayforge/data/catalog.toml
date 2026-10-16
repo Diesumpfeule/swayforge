@@ -115,7 +115,7 @@ label = "Desktop"
     "sway", "swaybg", "swayidle", "swaylock", "waybar", "rofi", "mako", "libnotify",
     "grim", "slurp", "swappy", "wl-clipboard", "cliphist", "brightnessctl", "playerctl",
     "pavucontrol", "pulseaudio-utils", "NetworkManager-tui", "network-manager-applet", "gammastep",
-    "xdg-desktop-portal-wlr", "xdg-desktop-portal-gtk", "lxqt-policykit", "wlr-randr",
+    "xdg-desktop-portal-wlr", "xdg-desktop-portal-gtk", "lxqt-policykit", "wlr-randr", "xrandr",
     "papirus-icon-theme", "adw-gtk3-theme", "librsvg2", "librsvg2-tools",
     "google-noto-emoji-fonts", "jetbrains-mono-fonts-all", "fontconfig",
     "zsh", "zsh-autosuggestions", "zsh-syntax-highlighting", "fzf", "zoxide",
