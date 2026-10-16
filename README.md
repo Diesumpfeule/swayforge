@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <b>Fedora Sway</b> · AMD · keyboard-first · 16 themes × 8 layouts · 93 apps · reset-friendly
+  <b>Fedora Sway</b> · AMD · keyboard-first · 17 themes × 8 layouts · 93 apps · reset-friendly
 </p>
 
 > ⚠ **Proof of concept, written by Claude (AI) – no warranty, use at your own risk.** See [Disclaimer](#disclaimer).
@@ -17,7 +17,7 @@ gaming, IT tools, keyboard-driven use and **frequent resets**.
   network, keyboard/mouse, terminal & prompt, shortcuts, power, boot & login, security,
   installed apps, cleanup & drive wiping, files.
 - **Tiling only** by default – no floating windows, no tabs or stacking; workspaces do the rest.
-- **16 colour themes × 8 layouts** – every theme recolours Sway, Waybar, Rofi, kitty/Alacritty,
+- **17 colour themes × 8 layouts** – every theme recolours Sway, Waybar, Rofi, kitty/Alacritty,
   Spaceship, fastfetch, GTK apps, mako, swaylock, btop, cava, MangoHud, the boot screen and the
   login screen. One Nerd Font everywhere.
 - **Your tweaks always win** – every generated file has a companion file that belongs to you.
@@ -126,6 +126,7 @@ swayforge also switches dnf to **Enter = yes** (`[Y/n]` instead of `[y/N]`). Tha
 | **Type O** | gothic black & deep green · pointed-arch wallpaper |
 | **Phosphor** / **Amber** | green / amber CRT · Terminus font · BIOS wallpaper |
 | **Wired** | full-on hacker: black, red, static, network nodes · Wired layout |
+| **Onyx** | pure black & white, square, no colour at all |
 | **Requiem** | gothic cathedral: black, bone white, crimson, a touch of deep green · Cathedral layout · rose-window wallpaper with stained glass, lancet windows, candles and a wrought-iron fence |
 
 Retro themes bring their own style (square corners, retro font, layout). Switch to another theme
