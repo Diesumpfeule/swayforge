@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <b>Fedora Sway</b> · AMD · keyboard-first · 15 themes × 7 layouts · 88 apps · reset-friendly
+  <b>Fedora Sway</b> · AMD · keyboard-first · 15 themes × 7 layouts · 89 apps · reset-friendly
 </p>
 
 Set up Fedora Sway in one go – then tweak everything from a terminal app, like KDE's
@@ -79,7 +79,7 @@ Everything is optional except the Sway base.
 |---|---|
 | Desktop | **Sway base**, **Thunar file manager**, **Image & video viewers**, **Terminal tools**, **cava**, SwayFX (effects) |
 | Gaming | **Steam**, **GameMode + MangoHud**, **Protontricks**, **ProtonPlus**, **Prism Launcher**, **Heroic Games Launcher**, **Discord**, Vesktop*, Lutris, Bottles, Gamescope, CoreCtrl, RetroArch, ProtonUp-Qt*, Dolphin, PCSX2*, Ruffle*, OpenRGB |
-| Browser | **Firefox**, Brave, **LibreWolf**, Chromium, Zen Browser* |
+| Browser | **Firefox**, Brave, **LibreWolf**, **[wolfforge](https://github.com/Diesumpfeule/wolfforge)** (LibreWolf overhaul), Chromium, Zen Browser* |
 | Dev | **Visual Studio Code**, VSCodium, **Python**, **uv**, Thonny, **Compilers & build tools**, **Podman**, **GitHub CLI + tig**, Node.js, Rust, **tmux**, **Distrobox** |
 | IT & Security | **Network tools**, **Wireshark**, **Virtual machines (KVM)**, Tailscale, Remmina, Password audit tools, **KeePassXC**, Pentest basics, Kali container, Ghidra*, WireGuard tools |
 | Media | OBS Studio, **VLC**, Kdenlive, Audacity, EasyEffects, LibreOffice, GIMP, Inkscape, Krita, Blender, Spotify*, Obsidian*, Thunderbird, qBittorrent, **yt-dlp**, Syncthing, **7-Zip + unrar** |
@@ -88,6 +88,10 @@ Everything is optional except the Sway base.
 | System | RPM Fusion, codecs, AMD video acceleration, firmware updates, Timeshift, Bluetooth, Flathub |
 | Boot & login | themed Plymouth boot screen, tuigreet login |
 | Own tools | [CS2 chat translator](https://github.com/Diesumpfeule/cs2translate) |
+
+**LibreWolf follows your theme:** with [wolfforge](https://github.com/Diesumpfeule/wolfforge) installed,
+every theme change also re-themes LibreWolf (toolbar, tabs, start page, new tab) – swayforge writes
+`~/.local/share/swayforge/generated/palette.json`, wolfforge picks it up.
 
 Missing something? Add it to `~/.config/swayforge/catalog.toml` – see
 [docs/CUSTOMIZING.md](docs/CUSTOMIZING.md#recipes).

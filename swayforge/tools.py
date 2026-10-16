@@ -161,6 +161,7 @@ EXPORT_FILES = [
     paths.XDG_CONFIG / "waybar/config.jsonc", paths.XDG_CONFIG / "gtk-3.0/gtk.css",
     paths.XDG_CONFIG / "gtk-4.0/gtk.css", paths.HOME / ".zshrc", paths.HOME / ".spaceshiprc.zsh",
     paths.XDG_DATA / "cs2-chat-uebersetzer", paths.XDG_CONFIG / "cs2_chat_uebersetzer.json",
+    paths.XDG_CONFIG / "wolfforge",
 ]
 
 

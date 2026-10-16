@@ -327,6 +327,14 @@ label = "Browser"
   dnf = ["librewolf"]
 
   [[group.items]]
+  id = "wolfforge"
+  label = "wolfforge (LibreWolf overhaul)"
+  desc = "Your theme, layout, toolbar, ASCII start page, privacy levels and bookmarks for LibreWolf – follows the system theme"
+  default = true
+  needs = ["librewolf"]
+  post = ["d=$HOME/.local/share/wolfforge/src; if [ -d \"$d/.git\" ]; then git -C \"$d\" pull -q; else gh repo clone Diesumpfeule/wolfforge \"$d\" -- -q 2>/dev/null || git clone -q https://github.com/Diesumpfeule/wolfforge.git \"$d\"; fi && bash \"$d/install.sh\" --apply"]
+
+  [[group.items]]
   id = "chromium"
   label = "Chromium"
   desc = "For sites that only work in Chrome"

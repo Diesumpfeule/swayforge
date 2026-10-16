@@ -389,6 +389,16 @@ frametime_color={c['accent']}
 """
 
 
+def palette_json(ctx: Ctx) -> str:
+    """The active look as plain data – wolfforge (LibreWolf) and other tools read this."""
+    return json.dumps({
+        "theme": ctx.theme.id, "label": ctx.theme.label, "dark": ctx.theme.dark, "colors": ctx.c,
+        "ansi": ctx.theme.ansi, "font": ctx.s["theme"]["font"], "font_size": ctx.s["theme"]["font_size"],
+        "radius": ctx.s["look"]["radius"], "layout": ctx.s["bar"]["layout"], "art": ctx.art_name,
+        "art_lines": asc.art(ctx.art_name),
+    }, indent=2, ensure_ascii=False) + "\n"
+
+
 def fastfetch(ctx: Ctx) -> str:
     c = ctx.c
     cfg = {
@@ -753,6 +763,8 @@ def render_all(s: dict | None = None, dry: bool = False, si: SysInfo | None = No
     if not dry:                                     # no marker possible in a logo file
         (paths.GEN_DIR / "fastfetch-logo.txt").write_text(asc.fastfetch_logo(ctx.art_name))
     w.owned(C / "fastfetch/config.jsonc", fastfetch(ctx))
+    if not dry:                                     # for wolfforge & other apps that follow the theme
+        (paths.GEN_DIR / "palette.json").write_text(palette_json(ctx))
 
     # One font everywhere
     if s["theme"]["font_everywhere"]:
@@ -867,4 +879,14 @@ def apply(s: dict | None = None, live: bool = True) -> Result:
     res = render_all(s)
     if live and not res.errors:
         res.notes += [f"reloaded: {x}" for x in reload(s)]
+        follow_browser(res)
     return res
+
+
+def follow_browser(res: Result) -> None:
+    """LibreWolf follows the theme too when wolfforge is installed (applies at its next start)."""
+    exe = shutil.which("wolfforge") or str(paths.HOME / ".local/bin/wolfforge")
+    if Path(exe).exists() and (paths.XDG_CONFIG / "wolfforge").is_dir():
+        subprocess.Popen([exe, "apply", "--quiet"], start_new_session=True,
+                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        res.notes.append("LibreWolf theme updated (wolfforge)")
