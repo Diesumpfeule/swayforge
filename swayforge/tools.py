@@ -42,7 +42,7 @@ def power() -> None:
         ("[halt]" if wired else f"{I['power']}  Shut down"): ["systemctl", "poweroff"],
     }
     s = settings.load()
-    art = "\n".join(asc.banner(s["boot"]["text"] or "bye", fill="▓")) if wired else ""
+    art = "\n".join(asc.best_banner(s["boot"]["text"] or "bye", 44)) if wired else ""
     choice = rofi_menu(list(opts), "> power" if wired else "Power", width="420px", message=art)
     if not choice or choice not in opts:
         return

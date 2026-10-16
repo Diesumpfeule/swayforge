@@ -21,7 +21,7 @@
 
 [[group]]
 id = "system"
-label = "System & drivers"
+label = "System"
 
   [[group.items]]
   id = "dnf-defaultyes"
@@ -86,6 +86,13 @@ label = "System & drivers"
   dnf = ["fwupd"]
 
   [[group.items]]
+  id = "timeshift"
+  label = "Timeshift"
+  desc = "System snapshots – roll back a broken update in minutes"
+  default = false
+  dnf = ["timeshift"]
+
+  [[group.items]]
   id = "bluetooth"
   label = "Bluetooth"
   desc = "Enable the service + Blueman as a fallback GUI"
@@ -96,7 +103,7 @@ label = "System & drivers"
 
 [[group]]
 id = "desktop"
-label = "Sway desktop"
+label = "Desktop"
 
   [[group.items]]
   id = "core"
@@ -173,6 +180,13 @@ label = "Gaming"
   post = ["sudo usermod -aG gamemode {user} || true"]
 
   [[group.items]]
+  id = "protontricks"
+  label = "Protontricks"
+  desc = "Winetricks for Proton games (fixes, DLLs, fonts)"
+  default = true
+  dnf = ["protontricks"]
+
+  [[group.items]]
   id = "protonplus"
   label = "ProtonPlus"
   desc = "Proton-GE & co. in one click (COPR wehagy/protonplus)"
@@ -202,6 +216,14 @@ label = "Gaming"
   default = true
   needs = ["rpmfusion"]
   dnf = ["discord"]
+
+  [[group.items]]
+  id = "vesktop"
+  label = "Vesktop"
+  desc = "Discord client with working screen share on Wayland/Sway [Flatpak]"
+  default = false
+  needs = ["flathub"]
+  flatpak = ["dev.vencord.Vesktop"]
 
   [[group.items]]
   id = "lutris"
@@ -247,6 +269,36 @@ label = "Gaming"
   needs = ["flathub"]
   flatpak = ["net.davidotek.pupgui2"]
 
+  [[group.items]]
+  id = "dolphin"
+  label = "Dolphin"
+  desc = "GameCube & Wii emulator"
+  default = false
+  dnf = ["dolphin-emu"]
+
+  [[group.items]]
+  id = "pcsx2"
+  label = "PCSX2"
+  desc = "PlayStation 2 emulator (no Fedora RPM) [Flatpak]"
+  default = false
+  needs = ["flathub"]
+  flatpak = ["net.pcsx2.PCSX2"]
+
+  [[group.items]]
+  id = "ruffle"
+  label = "Ruffle"
+  desc = "Flash Player emulator – old SWF games, safely [Flatpak]"
+  default = false
+  needs = ["flathub"]
+  flatpak = ["rs.ruffle.Ruffle"]
+
+  [[group.items]]
+  id = "openrgb"
+  label = "OpenRGB"
+  desc = "RGB lighting for mainboard, RAM, GPU, peripherals"
+  default = false
+  dnf = ["openrgb"]
+
 [[group]]
 id = "browser"
 label = "Browser"
@@ -269,8 +321,8 @@ label = "Browser"
   [[group.items]]
   id = "librewolf"
   label = "LibreWolf"
-  desc = "Privacy-focused Firefox (official repo)"
-  default = false
+  desc = "Privacy-focused Firefox, uBlock Origin built in (official repo)"
+  default = true
   pre = ["curl -fsSL https://repo.librewolf.net/librewolf.repo | sudo tee /etc/yum.repos.d/librewolf.repo >/dev/null"]
   dnf = ["librewolf"]
 
@@ -291,7 +343,7 @@ label = "Browser"
 
 [[group]]
 id = "dev"
-label = "Programming"
+label = "Dev"
 
   [[group.items]]
   id = "vscode"
@@ -318,6 +370,20 @@ label = "Programming"
   desc = "pip, dev headers, ipython, Tkinter"
   default = true
   dnf = ["python3-pip", "python3-devel", "python3-ipython", "python3-tkinter"]
+
+  [[group.items]]
+  id = "uv"
+  label = "uv"
+  desc = "Very fast Python package & project manager (pip + venv in one)"
+  default = true
+  dnf = ["uv"]
+
+  [[group.items]]
+  id = "thonny"
+  label = "Thonny"
+  desc = "Python IDE for learning – step-by-step debugger, variables view"
+  default = false
+  dnf = ["thonny"]
 
   [[group.items]]
   id = "build-tools"
@@ -360,6 +426,14 @@ label = "Programming"
   desc = "Terminal multiplexer"
   default = true
   dnf = ["tmux"]
+
+  [[group.items]]
+  id = "distrobox"
+  label = "Distrobox"
+  desc = "Other distros' tools in containers (Ubuntu, Arch, Kali …)"
+  default = true
+  dnf = ["distrobox"]
+  needs = ["containers"]
 
 [[group]]
 id = "it"
@@ -421,9 +495,39 @@ label = "IT & Security"
   default = true
   dnf = ["keepassxc"]
 
+  [[group.items]]
+  id = "pentest"
+  label = "Pentest basics"
+  desc = "Hydra, Gobuster, Aircrack-ng – only on your own systems/labs"
+  default = false
+  dnf = ["hydra", "gobuster", "aircrack-ng"]
+
+  [[group.items]]
+  id = "kali-box"
+  label = "Kali container"
+  desc = "Kali Linux in a Distrobox – apt install any Kali tool, nothing touches Fedora"
+  default = false
+  needs = ["distrobox"]
+  post = ["distrobox create --yes --name kali --image docker.io/kalilinux/kali-rolling:latest || true"]
+
+  [[group.items]]
+  id = "ghidra"
+  label = "Ghidra"
+  desc = "Reverse engineering suite (community build) [Flatpak]"
+  default = false
+  needs = ["flathub"]
+  flatpak = ["org.ghidra_sre.Ghidra"]
+
+  [[group.items]]
+  id = "wireguard"
+  label = "WireGuard tools"
+  desc = "wg / wg-quick for your own VPN tunnels"
+  default = false
+  dnf = ["wireguard-tools"]
+
 [[group]]
 id = "media"
-label = "Medien & Office"
+label = "Media"
 
   [[group.items]]
   id = "obs"
@@ -432,6 +536,34 @@ label = "Medien & Office"
   default = false
   needs = ["codecs"]
   dnf = ["obs-studio"]
+
+  [[group.items]]
+  id = "vlc"
+  label = "VLC"
+  desc = "Plays everything"
+  default = true
+  dnf = ["vlc"]
+
+  [[group.items]]
+  id = "kdenlive"
+  label = "Kdenlive"
+  desc = "Video editing"
+  default = false
+  dnf = ["kdenlive"]
+
+  [[group.items]]
+  id = "audacity"
+  label = "Audacity"
+  desc = "Audio editing"
+  default = false
+  dnf = ["audacity"]
+
+  [[group.items]]
+  id = "easyeffects"
+  label = "EasyEffects"
+  desc = "Equalizer, noise suppression for your mic, bass boost"
+  default = false
+  dnf = ["easyeffects"]
 
   [[group.items]]
   id = "libreoffice"
@@ -448,11 +580,26 @@ label = "Medien & Office"
   dnf = ["gimp"]
 
   [[group.items]]
-  id = "freecad"
-  label = "FreeCAD"
-  desc = "3D CAD (Inventor alternative)"
+  id = "inkscape"
+  label = "Inkscape"
+  desc = "Vector graphics (SVG, logos)"
   default = false
-  dnf = ["freecad"]
+  dnf = ["inkscape"]
+
+  [[group.items]]
+  id = "krita"
+  label = "Krita"
+  desc = "Digital painting"
+  default = false
+  dnf = ["krita"]
+
+  [[group.items]]
+  id = "blender"
+  label = "Blender"
+  desc = "3D modelling, animation, rendering"
+  default = false
+  dnf = ["blender"]
+
 
   [[group.items]]
   id = "spotify"
@@ -469,6 +616,100 @@ label = "Medien & Office"
   default = false
   needs = ["flathub"]
   flatpak = ["md.obsidian.Obsidian"]
+
+  [[group.items]]
+  id = "thunderbird"
+  label = "Thunderbird"
+  desc = "Mail & calendar"
+  default = false
+  dnf = ["thunderbird"]
+
+  [[group.items]]
+  id = "qbittorrent"
+  label = "qBittorrent"
+  desc = "Torrents (Linux ISOs …)"
+  default = false
+  dnf = ["qbittorrent"]
+
+  [[group.items]]
+  id = "ytdlp"
+  label = "yt-dlp"
+  desc = "Download videos/audio from the terminal"
+  default = true
+  dnf = ["yt-dlp"]
+
+  [[group.items]]
+  id = "syncthing"
+  label = "Syncthing"
+  desc = "Sync folders between your devices, no cloud"
+  default = false
+  dnf = ["syncthing"]
+  post = ["systemctl --user enable --now syncthing.service || true"]
+
+  [[group.items]]
+  id = "archives"
+  label = "7-Zip + unrar"
+  desc = "Every archive format"
+  default = true
+  needs = ["rpmfusion"]
+  dnf = ["7zip", "unrar"]
+
+[[group]]
+id = "usb"
+label = "USB & SD"
+
+  [[group.items]]
+  id = "etcher"
+  label = "balenaEtcher"
+  desc = "Flash ISOs/images to USB & SD – official RPM from GitHub (re-run for updates)"
+  default = true
+  post = ["url=$(curl -fsSL https://api.github.com/repos/balena-io/etcher/releases/latest | grep -o 'https://[^\"]*x86_64\\.rpm' | head -1) && [ -n \"$url\" ] && sudo dnf install -y \"$url\""]
+
+  [[group.items]]
+  id = "rpi-imager"
+  label = "Raspberry Pi Imager"
+  desc = "Official Pi OS writer with Wi-Fi/SSH presets"
+  default = true
+  dnf = ["rpi-imager"]
+
+  [[group.items]]
+  id = "mediawriter"
+  label = "Fedora Media Writer"
+  desc = "Make a Fedora USB stick for the next reset"
+  default = false
+  dnf = ["mediawriter"]
+
+  [[group.items]]
+  id = "gparted"
+  label = "GParted"
+  desc = "Partition, format, resize drives"
+  default = true
+  dnf = ["gparted"]
+
+[[group]]
+id = "maker"
+label = "Maker"
+
+  [[group.items]]
+  id = "freecad"
+  label = "FreeCAD"
+  desc = "3D CAD (Inventor alternative)"
+  default = false
+  dnf = ["freecad"]
+
+  [[group.items]]
+  id = "kicad"
+  label = "KiCad"
+  desc = "Schematics and PCBs (cyberdeck electronics)"
+  default = false
+  dnf = ["kicad"]
+
+  [[group.items]]
+  id = "prusa-slicer"
+  label = "PrusaSlicer"
+  desc = "3D printing slicer (works for most printers)"
+  default = false
+  dnf = ["prusa-slicer"]
 
 [[group]]
 id = "bootlogin"

@@ -86,6 +86,14 @@ def text_svg(lines: list[str], color: str, size: int, font: str, bg: str | None 
             f'fill-opacity="{opacity}">{body}</g></svg>')
 
 
+def two_tone_svg(lines: list[str], face: str, shade: str, size: int, font: str) -> str:
+    """Two text layers on the same grid: block faces + shadow lines in a darker colour."""
+    f, s = asc.layers(lines)
+    a, b = text_svg(f, face, size, font), text_svg(s, shade, size, font)
+    inner = b[b.index("<g "):b.rindex("</svg>")]
+    return a.replace("</svg>", inner + "</svg>")
+
+
 def rect_svg(w: int, h: int, fill: str, stroke: str | None = None, sw: int = 0, rx: int = 0,
              opacity: float = 1.0) -> str:
     s = f' stroke="{stroke}" stroke-width="{sw}"' if stroke else ""
@@ -283,8 +291,10 @@ def plymouth_files(ctx: "Ctx") -> dict[str, str]:
     style = style_for(ctx)
     text = banner_text(ctx)
     files: dict[str, str] = {}
-    big = asc.banner(text)
-    files["banner.svg"] = text_svg(big, c["accent"], 30 if style != "bios" else 18, font)
+    size = 30 if style != "bios" else 18
+    big = asc.best_banner(text, 70 if style != "bios" else 100)
+    from .render import mix
+    files["banner.svg"] = two_tone_svg(big, c["accent"], mix(c["accent"], c["base"], 0.5), size, font)
     files["prompt.svg"] = text_svg(["  Disk passphrase  "], c["text"], 26, font, bg=c["surface"], pad=14)
     files["bullet.svg"] = rect_svg(14, 14, c["accent"])
     top, bottom = c["base"], c["mantle"]

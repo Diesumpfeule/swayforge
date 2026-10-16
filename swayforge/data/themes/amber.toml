@@ -27,5 +27,5 @@ font = "Terminess Nerd Font"
 font_size = 13
 wallpaper = "crt"
 layout = "solid"
-ascii = "terminal"
+ascii = "crt"
 boot = "bios"

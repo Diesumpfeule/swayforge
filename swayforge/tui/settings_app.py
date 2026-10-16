@@ -19,7 +19,8 @@ from textual.widgets.selection_list import Selection
 from .. import ascii as asc
 from .. import boot, layouts, paths, render, settings, themes
 from ..system import detect, have, run
-from .common import BASE_CSS, Field, coerce, field_row, path_from_wid, section, swatch, use_theme
+from .common import (BASE_CSS, Field, coerce, field_row, hero_text, path_from_wid, section, swatch,
+                     two_tone, use_theme)
 from .panels import AudioPanel, BluetoothPanel, NetworkPanel
 
 ON_OFF = [("always", "always"), ("only via SSH/root", "needed"), ("never", "false")]
@@ -164,9 +165,6 @@ FIELDS: dict[str, list[Field | str]] = {
 # Fields a theme style can change → refresh the form after a theme switch
 STYLE_PATHS = ["look.radius", "theme.font", "theme.font_size"]
 
-APP_BANNER = "\n".join(asc.banner("swayforge"))
-
-
 class ThemeItem(ListItem):
     def __init__(self, t: themes.Theme) -> None:
         super().__init__(name=t.id)
@@ -191,8 +189,9 @@ class SettingsApp(App):
     SUB_TITLE = "Settings"
     CSS = BASE_CSS + """
     #hero { height: auto; margin-bottom: 1; }
-    #hero_banner { color: $accent; width: auto; margin-right: 4; }
-    #hero_art { color: $secondary; width: auto; }
+    #hero_banner { width: auto; height: auto; margin: 1 0; }
+    #hero_art { width: auto; margin-right: 4; }
+    #hero_intro { width: 1fr; padding-top: 1; }
     #themelist { height: auto; max-height: 18; border: round $panel; margin-bottom: 1; }
     #themelist > ThemeItem { height: 1; padding: 0 1; }
     ThemeItem Horizontal { height: 1; }
@@ -288,11 +287,13 @@ class SettingsApp(App):
         art_opts = [("Theme's motif", "auto")] + [(n, n) for n in asc.all_art()]
         return self.page(
             "theme",
-            Horizontal(Static(APP_BANNER, id="hero_banner", markup=False),
-                       Static("\n".join(asc.art(asc.resolve(self.s, t))), id="hero_art", markup=False), id="hero"),
-            Static("One click recolours everything: Sway, bar, Rofi, terminal, prompt, fastfetch, GTK apps, "
-                   "lock screen, notifications, btop, cava, MangoHud and the boot/login screens. Retro "
-                   "themes also bring square corners, a retro font and their own layout.", classes="hint"),
+            Static(hero_text(self.s["theme"]["name"], self.s["theme"]["accent"]), id="hero_banner"),
+            Horizontal(Static(two_tone(asc.art(asc.resolve(self.s, t)), t.with_accent(self.s["theme"]["accent"])["accent2"],
+                                       t.colors["overlay"]), id="hero_art"),
+                       Static("One click recolours everything: Sway, bar, Rofi, terminal, prompt, fastfetch, "
+                              "GTK apps, lock screen, notifications, btop, cava, MangoHud and the boot/login "
+                              "screens.\n\nRetro themes also bring square corners, a retro font and their own "
+                              "layout.", classes="hint", id="hero_intro"), id="hero"),
             ListView(*items, id="themelist", initial_index=current),
             field_row(Field("theme.accent", "Accent colour", "choice", accent_opts), self.s),
             field_row(Field("theme.ascii", "ASCII art", "choice", art_opts,

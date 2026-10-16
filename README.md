@@ -1,12 +1,10 @@
-# swayforge
+<p align="center">
+  <img src="docs/img/banner.svg" alt="swayforge" width="100%">
+</p>
 
-```
- ███ █   █  ██  █ █ ███  ██  ███   ███ ███
-█    █   █ █  █ █ █ █   █  █ █  █ █    █
- ██  █ █ █ ████  █  ██  █  █ ███  █ ██ ██
-   █ ██ ██ █  █  █  █   █  █ █ █  █  █ █
-███  █   █ █  █  █  █    ██  █  █  ██  ███
-```
+<p align="center">
+  <b>Fedora Sway</b> · AMD · keyboard-first · 15 themes × 7 layouts · 88 apps · reset-friendly
+</p>
 
 Set up Fedora Sway in one go – then tweak everything from a terminal app, like KDE's
 System Settings but for Sway. Built for the Fedora Sway Spin on AMD graphics, with a focus on
@@ -22,6 +20,25 @@ gaming, IT tools, keyboard-driven use and **frequent resets**.
 
 > New here after a while? Read **[docs/CUSTOMIZING.md](docs/CUSTOMIZING.md)** – it's the
 > "how do I change X again?" cheat sheet.
+
+## Screenshots
+
+<table>
+  <tr>
+    <td><img src="docs/img/type-o_modern.png" alt="Type O"><br><sub><b>Type O</b> · Modern islands · bat motif</sub></td>
+    <td><img src="docs/img/rust_win98.png" alt="Rust"><br><sub><b>Rust</b> · Classic 98 · rose motif</sub></td>
+  </tr>
+  <tr>
+    <td><img src="docs/img/green-night_win98.png" alt="Green Night"><br><sub><b>Green Night</b> · Classic 98 · moon motif</sub></td>
+    <td><img src="docs/img/wired_wired.png" alt="Wired"><br><sub><b>Wired</b> · Wired layout · network motif</sub></td>
+  </tr>
+  <tr>
+    <td><img src="docs/img/phosphor_solid.png" alt="Phosphor"><br><sub><b>Phosphor</b> · Solid bar · CRT motif</sub></td>
+    <td><img src="docs/img/catppuccin-mocha_modern.png" alt="Catppuccin Mocha"><br><sub><b>Catppuccin Mocha</b> · Modern islands · forge motif</sub></td>
+  </tr>
+</table>
+
+<sub>Rendered from the real generated configs (bar, colours, fastfetch art, fonts).</sub>
 
 ---
 
@@ -53,12 +70,34 @@ tweaks and the CS2 translator into one file. After the next reset:
 
 Tip: commit your exported backup (or `~/.config/swayforge/`) to a private repo too.
 
+## What you can install
+
+**Bold** = ticked by default · \* = Flatpak (only when there's no maintained RPM).
+Everything is optional except the Sway base.
+
+| Group | Apps |
+|---|---|
+| Desktop | **Sway base**, **Thunar file manager**, **Image & video viewers**, **Terminal tools**, **cava**, SwayFX (effects) |
+| Gaming | **Steam**, **GameMode + MangoHud**, **Protontricks**, **ProtonPlus**, **Prism Launcher**, **Heroic Games Launcher**, **Discord**, Vesktop*, Lutris, Bottles, Gamescope, CoreCtrl, RetroArch, ProtonUp-Qt*, Dolphin, PCSX2*, Ruffle*, OpenRGB |
+| Browser | **Firefox**, Brave, **LibreWolf**, Chromium, Zen Browser* |
+| Dev | **Visual Studio Code**, VSCodium, **Python**, **uv**, Thonny, **Compilers & build tools**, **Podman**, **GitHub CLI + tig**, Node.js, Rust, **tmux**, **Distrobox** |
+| IT & Security | **Network tools**, **Wireshark**, **Virtual machines (KVM)**, Tailscale, Remmina, Password audit tools, **KeePassXC**, Pentest basics, Kali container, Ghidra*, WireGuard tools |
+| Media | OBS Studio, **VLC**, Kdenlive, Audacity, EasyEffects, LibreOffice, GIMP, Inkscape, Krita, Blender, Spotify*, Obsidian*, Thunderbird, qBittorrent, **yt-dlp**, Syncthing, **7-Zip + unrar** |
+| USB & SD | **balenaEtcher**, **Raspberry Pi Imager**, Fedora Media Writer, **GParted** |
+| Maker | FreeCAD, KiCad, PrusaSlicer |
+| System | RPM Fusion, codecs, AMD video acceleration, firmware updates, Timeshift, Bluetooth, Flathub |
+| Boot & login | themed Plymouth boot screen, tuigreet login |
+| Own tools | [CS2 chat translator](https://github.com/Diesumpfeule/cs2translate) |
+
+Missing something? Add it to `~/.config/swayforge/catalog.toml` – see
+[docs/CUSTOMIZING.md](docs/CUSTOMIZING.md#recipes).
+
 ## Packages: Fedora first
 
 1. **Fedora repos** whenever possible
 2. **RPM Fusion / COPR / vendor RPM repos** – Steam & Discord (RPM Fusion), Prism Launcher &
-   ProtonPlus (COPR), Heroic (official RPM), Brave / LibreWolf / VS Code / VSCodium (vendor repos)
-3. **Flatpak** only when there's no maintained RPM (Spotify, Obsidian, Zen) – marked **[Flatpak]**
+   ProtonPlus (COPR), Heroic & balenaEtcher (official RPMs from GitHub), Brave / LibreWolf / VS Code / VSCodium (vendor repos)
+3. **Flatpak** only when there's no maintained RPM (Spotify, Obsidian, Zen, Vesktop, PCSX2, Ruffle, Ghidra …) – marked **[Flatpak]**
 
 swayforge also switches dnf to **Enter = yes** (`[Y/n]` instead of `[y/N]`). That applies to
 `dnf remove` too – read before pressing Enter.
@@ -91,6 +130,23 @@ and your own values come back. **Make your own:** `Theme → Edit colours → Sa
 | Sidebar | vertical icon bar on the left |
 
 Any layout works with any theme. `Super+Shift+L` cycles layouts, `Super+Shift+T` cycles themes.
+
+## ASCII art
+
+A 3D shadow font for banners (settings, installer, boot screen, power menu) and shaded motifs
+for fastfetch, the login and the boot screen – faces in the accent colour, shading darker:
+
+```
+██████╗   ██╗   ██╗   ██████╗ ██████╗
+██╔═══██╗ ██║   ██║ ██╔═════╝ ╚═██╔═╝
+██████╔═╝ ██║   ██║ ╚═████╗     ██║
+██╔═██║   ██║   ██║   ╚═══██╗   ██║
+██║ ╚═██╗ ╚═████╔═╝ ██████╔═╝   ██║
+╚═╝   ╚═╝   ╚═══╝   ╚═════╝     ╚═╝
+```
+
+Motifs: `forge` · `crt` · `cyberdeck` · `gamepad` · `bat` · `lantern` · `rose` · `moon` ·
+`wired` · `skull` · `terminal` · `anvil` – or your own `~/.config/swayforge/ascii/NAME.txt`.
 
 ## Keys
 
@@ -151,7 +207,8 @@ swayforge/
   templates/*.j2           config templates (sway, waybar, rofi, kitty, …)
   render.py                turns settings + theme + layout into config files
   layouts.py               bar/UI layouts
-  ascii.py                 block font + ASCII motifs
+  ascii.py                 block + 3D shadow font, ASCII motifs
+scripts/make_banner.py     regenerates docs/img/banner.svg
   boot.py                  Plymouth boot screens + tuigreet login
   tui/                     the installer and settings apps (Textual)
 ```

@@ -30,6 +30,25 @@ def use_theme(app, theme_id: str, accent: str = "") -> None:
     app.theme = th.name
 
 
+def two_tone(lines: list[str], face: str, shade: str) -> Text:
+    """ASCII art with block faces in one colour and shading/shadow in another."""
+    from ..ascii import SHADE
+    txt = Text(no_wrap=True)
+    for i, line in enumerate(lines):
+        if i:
+            txt.append("\n")
+        for ch in line:
+            txt.append(ch, style=shade if ch in SHADE else face)
+    return txt
+
+
+def hero_text(theme_id: str, accent: str = "", word: str = "swayforge") -> Text:
+    from ..ascii import shadow
+    from ..render import mix
+    c = themes.get(theme_id).with_accent(accent)
+    return two_tone(shadow(word), f"bold {c['accent']}", mix(c["accent"], c["base"], 0.5))
+
+
 def swatch(t: themes.Theme, width: int = 3) -> Text:
     txt = Text()
     for k in ("base", "surface", "accent", "accent2", "red", "green", "yellow", "blue", "magenta", "cyan"):

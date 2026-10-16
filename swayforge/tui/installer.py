@@ -16,7 +16,7 @@ from .. import ascii as asc
 from .. import catalog as cat
 from .. import layouts, paths, plan, settings, themes
 from ..system import detect, installed_rpms
-from .common import BASE_CSS, swatch, use_theme
+from .common import BASE_CSS, hero_text, swatch, use_theme
 
 
 class Nav(Horizontal):
@@ -70,8 +70,8 @@ class Welcome(Step):
             lines.append(f"{warn} Fedora {si.fedora} is too old – 41 or newer is expected.")
         prof = plan.Profile.load()
         with VerticalScroll(classes="page"):
-            yield Horizontal(Static("\n".join(asc.banner("swayforge")), id="w_banner"),
-                             Static("\n".join(asc.art("anvil")), id="w_art", markup=False), id="w_hero")
+            yield Static(hero_text(self.app.s["theme"]["name"], self.app.s["theme"]["accent"]), id="w_banner")
+            yield Static("\n".join(asc.art("forge")), id="w_art", markup=False)
             yield Static("Sets up Fedora Sway in one go: apps, drivers, theme, layout, bar, launcher, "
                          "terminal, prompt, boot and login screen. You choose, swayforge does the rest – "
                          "afterwards Super+I lets you change everything.", classes="hint")
@@ -336,8 +336,8 @@ class InstallerApp(App):
     CSS = BASE_CSS + """
     .steptitle { text-style: bold; color: $accent; padding: 1 3 0 3; height: auto; }
     #w_hero { height: auto; margin-bottom: 1; }
-    #w_banner { color: $accent; width: auto; margin-right: 4; }
-    #w_art { color: $secondary; width: auto; }
+    #w_banner { width: auto; height: auto; margin: 1 0; }
+    #w_art { color: $secondary; width: auto; margin-bottom: 1; }
     TabbedContent { height: 1fr; margin: 0 2; }
     .applist { height: 1fr; border: none; }
     .applist > .option-list--option { padding: 0 1; }

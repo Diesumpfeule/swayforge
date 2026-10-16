@@ -394,7 +394,8 @@ def fastfetch(ctx: Ctx) -> str:
     cfg = {
         "$schema": "https://github.com/fastfetch-cli/fastfetch/raw/dev/doc/json_schema.json",
         "logo": {"type": "file", "source": str(paths.GEN_DIR / "fastfetch-logo.txt"),
-                 "color": {"1": sgr(c["accent"]), "2": sgr(c["accent2"])},
+                 "color": {"1": sgr(c["accent"]), "2": sgr(c["accent2"]),
+                           "3": sgr(mix(c["accent"], c["base"], 0.45))},
                  "padding": {"top": 1, "right": 3}},
         "display": {"separator": "  ", "color": {"keys": sgr(c["accent"]), "title": sgr(c["accent2"])},
                     "key": {"width": 11}},
