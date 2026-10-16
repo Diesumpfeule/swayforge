@@ -32,7 +32,7 @@ bold "swayforge – admin rights are requested once:"
 sudo -v
 
 bold "Packages swayforge itself needs …"
-sudo dnf install -y --skip-unavailable python3 python3-textual python3-jinja2 git >/dev/null
+sudo dnf install -y --skip-unavailable python3 python3-textual python3-jinja2 python3-pillow git >/dev/null
 
 bold "Copying swayforge to $APP …"
 mkdir -p "$APP" "$(dirname "$BIN")"

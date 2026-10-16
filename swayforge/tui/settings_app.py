@@ -208,6 +208,8 @@ class SettingsApp(App):
     SUB_TITLE = "Settings"
     CSS = BASE_CSS + """
     #ap_table { height: 24; margin-bottom: 1; }
+    #wpt_mode { width: 40; }
+    #wp_path { width: 1fr; }
     #ap_filter { width: 30; }
     #ap_group { width: 28; }
     #ap_sum { padding: 0; }
@@ -351,6 +353,13 @@ class SettingsApp(App):
                             help="images from ~/Pictures/Wallpapers (localized folder names work too)"), self.s),
             Horizontal(Input(placeholder="… or type a path to an image", id="wp_path"),
                        Button("Apply", id="wp_apply"), classes="btnrow"),
+            Static("[b]Theme from wallpaper[/b] – builds a whole theme from the picture's colours "
+                   "(everything follows: bar, terminal, Rofi, GTK, LibreWolf …). It replaces the last "
+                   "“From wallpaper” theme; to keep one, name it below and press “Save as my theme”.",
+                   classes="hint"),
+            Horizontal(Select([("Dark or light: from the picture", "auto"), ("Always dark", "dark"),
+                               ("Always light", "light")], value="auto", allow_blank=False, id="wpt_mode"),
+                       Button("Theme from wallpaper", id="wp_theme", variant="primary"), classes="btnrow"),
             section("Edit colours → your own theme"),
             Static("Everything else (gaps, font, bar, shortcuts …) stays when you switch themes. "
                    "Colours are changed here: edit, give it a name, save – it then shows up above as "
@@ -875,6 +884,47 @@ class SettingsApp(App):
         self.notify(f"Theme “{t.label}” saved ({t.path.name if t.path else ''}) and activated")
         self.live_apply()
 
+    def show_wallpaper(self, img: str) -> None:
+        """Set an image as wallpaper and show it in the wallpaper list."""
+        self.s["theme"]["wallpaper"] = img
+        opts = self.wallpaper_options()
+        if img not in [v for _, v in opts]:
+            opts.append((Path(img).name, img))
+        for sel in self.query("#f__theme__wallpaper").results(Select):
+            with self.prevent(Select.Changed):
+                sel.set_options(opts)
+                sel.value = img
+
+    def theme_from_wallpaper(self) -> None:
+        from .. import wallpalette
+        typed = os.path.expanduser(self.query_one("#wp_path", Input).value.strip())
+        img = typed or self.s["theme"]["wallpaper"]
+        if not img or not Path(img).is_file():
+            self.notify("Pick an image wallpaper first (list above or a path)", severity="warning")
+            return
+        mode = str(self.query_one("#wpt_mode", Select).value)
+        try:
+            t = wallpalette.make_theme(img, mode)
+        except ImportError:
+            self.notify("Needs Pillow: sudo dnf install python3-pillow", severity="error", timeout=10)
+            return
+        except OSError as e:
+            self.notify(f"Can't read that image: {e}", severity="error")
+            return
+        self.show_wallpaper(img)
+        self.s["theme"]["accent"] = ""
+        self.set_widget("theme.accent")
+        self.all_themes = themes.all_themes()
+        lv = self.query_one("#themelist", ListView)
+        for item in list(lv.children):
+            if isinstance(item, ThemeItem) and item.t.id == t.id:
+                item.remove()
+        lv.append(ThemeItem(t))
+        self.select_theme(t)
+        self.query_one("#custom_name", Input).value = ""
+        self.notify(f"{'Dark' if t.dark else 'Light'} theme made from {Path(img).name} – "
+                    "name it and press “Save as my theme” to keep it")
+
     def live_apply(self) -> None:
         """Make theme changes visible right away (saves as well)."""
         self.save_and_apply(quiet=True)
@@ -907,8 +957,10 @@ class SettingsApp(App):
             if not Path(p).is_file():
                 self.notify("File not found", severity="error")
                 return
-            self.s["theme"]["wallpaper"] = p
+            self.show_wallpaper(p)
             self.live_apply()
+        elif bid == "wp_theme":
+            self.theme_from_wallpaper()
         elif bid == "keys_reset":
             self.s["keys"] = {}
             for aid, _l, key, _c in settings.KEY_ACTIONS:

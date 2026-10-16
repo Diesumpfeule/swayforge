@@ -133,6 +133,26 @@ def theme_cmd(name: str | None, nxt: bool, list_: bool) -> int:
     return 1 if res.errors else 0
 
 
+def theme_from_wallpaper(image: str, mode: str = "auto", save_as: str = "") -> int:
+    from . import wallpalette
+    img = os.path.abspath(os.path.expanduser(image))
+    if not os.path.isfile(img):
+        print(f"{image}: not found")
+        return 1
+    try:
+        t = wallpalette.make_theme(img, mode, label=save_as,
+                                   tid=themes.slug(save_as) if save_as else wallpalette.LIVE_ID)
+    except ImportError:
+        print("Needs Pillow: sudo dnf install python3-pillow")
+        return 1
+    s = settings.load()
+    s["theme"]["wallpaper"] = img
+    s["theme"]["accent"] = ""
+    print(f"{t.label}: {'dark' if t.dark else 'light'} theme → ~/.config/swayforge/themes/{t.id}.toml")
+    settings.save(s)
+    return theme_cmd(t.id, False, False)
+
+
 def layout_cmd(name: str | None, nxt: bool, list_: bool) -> int:
     s = settings.load()
     cur = layouts.get(s["bar"]["layout"]).id

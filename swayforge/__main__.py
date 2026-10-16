@@ -4,7 +4,7 @@
   swayforge install            installer (TUI)
   swayforge install --yes      install the saved profile without questions
   swayforge apply              regenerate configs from settings.toml + reload
-  swayforge theme NAME         switch theme (--list, --next)
+  swayforge theme NAME         switch theme (--list, --next, --from-wallpaper IMAGE)
   swayforge layout NAME        switch bar/UI layout (--list, --next)
   swayforge boot               install the boot screen (Plymouth)
   swayforge login              install the tuigreet login screen
@@ -36,6 +36,9 @@ def main(argv: list[str] | None = None) -> int:
 
     p = sub.add_parser("theme", help="switch colour theme")
     p.add_argument("name", nargs="?")
+    p.add_argument("--from-wallpaper", metavar="IMAGE", help="make a theme from an image, set it as wallpaper")
+    p.add_argument("--mode", choices=["auto", "dark", "light"], default="auto", help="with --from-wallpaper")
+    p.add_argument("--save", metavar="NAME", help="with --from-wallpaper: keep it as your own theme NAME")
     p.add_argument("--list", action="store_true")
     p.add_argument("--next", action="store_true")
 
@@ -129,6 +132,8 @@ def main(argv: list[str] | None = None) -> int:
 
     if a.cmd == "theme":
         from . import tools
+        if a.from_wallpaper:
+            return tools.theme_from_wallpaper(a.from_wallpaper, a.mode, a.save or "")
         return tools.theme_cmd(a.name, a.next, a.list)
     if a.cmd == "layout":
         from . import tools

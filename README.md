@@ -125,6 +125,14 @@ swayforge also switches dnf to **Enter = yes** (`[Y/n]` instead of `[y/N]`). Tha
 Retro themes bring their own style (square corners, retro font, layout). Switch to another theme
 and your own values come back. **Make your own:** `Theme → Edit colours → Save as my theme`.
 
+**Theme from wallpaper:** `Theme → Wallpaper → Theme from wallpaper` (or
+`swayforge theme --from-wallpaper IMAGE`) sets the image as wallpaper and builds a whole theme from
+its colours. Background and text take the picture's main hue but stay calm, the accents are its
+most striking colours, and every text colour is checked for contrast. Dark or light follows the
+picture, or you force one. Your bar, terminal, Rofi, GTK apps and LibreWolf all follow. Each new
+picture replaces the last "From wallpaper" theme. To keep one, name it and press *Save as my
+theme*, or use `--save "NAME"` on the command line.
+
 ## Layouts
 
 | Layout | Look |
