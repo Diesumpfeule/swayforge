@@ -27,6 +27,21 @@ LOG_FILE = STATE_DIR / "install.log"
 SWAY_CUSTOM = XDG_CONFIG / "sway" / "custom.conf"   # yours – never overwritten
 
 
+def _pictures_dir() -> Path:
+    """~/Pictures – or its localized name from user-dirs.dirs (e.g. ~/Bilder)."""
+    try:
+        for line in (XDG_CONFIG / "user-dirs.dirs").read_text().splitlines():
+            if line.startswith("XDG_PICTURES_DIR="):
+                return Path(line.split("=", 1)[1].strip().strip('"').replace("$HOME", str(HOME)))
+    except OSError:
+        pass
+    return HOME / "Pictures"
+
+
+WALLPAPER_DIR = _pictures_dir() / "Wallpapers"     # drop your images here
+WALLPAPER_EXT = (".png", ".jpg", ".jpeg", ".webp", ".svg")
+
+
 def ensure_dirs() -> None:
-    for d in (CONFIG_DIR, USER_THEMES, STATE_DIR, GEN_DIR, BACKUP_DIR):
+    for d in (CONFIG_DIR, USER_THEMES, STATE_DIR, GEN_DIR, BACKUP_DIR, WALLPAPER_DIR):
         d.mkdir(parents=True, exist_ok=True)

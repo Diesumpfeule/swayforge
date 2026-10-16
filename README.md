@@ -125,6 +125,9 @@ swayforge also switches dnf to **Enter = yes** (`[Y/n]` instead of `[y/N]`). Tha
 Retro themes bring their own style (square corners, retro font, layout). Switch to another theme
 and your own values come back. **Make your own:** `Theme → Edit colours → Save as my theme`.
 
+**Wallpapers:** drop images into `~/Pictures/Wallpapers` (*Theme → Open wallpaper folder*, drag
+them in, press ↻) and pick one from the list. A localized Pictures folder (e.g. `~/Bilder`) works too.
+
 **Theme from wallpaper:** `Theme → Wallpaper → Theme from wallpaper` (or
 `swayforge theme --from-wallpaper IMAGE`) sets the image as wallpaper and builds a whole theme from
 its colours. Background and text take the picture's main hue but stay calm, the accents are its
