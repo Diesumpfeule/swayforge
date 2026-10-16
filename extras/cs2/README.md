@@ -1,6 +1,6 @@
 # CS2 chat translator
 
-Your live translator for the Counter-Strike 2 chat (`cs2_chat_uebersetzer.py`) is bundled here.
+Your live translator for the Counter-Strike 2 chat ([cs2translate](https://github.com/Diesumpfeule/cs2translate)) is bundled here.
 It only reads `console.log`, which CS2 writes itself with the launch option `-condebug`, and
 shows the translation as a click-through overlay over the game chat. The original German
 manual is in [README.original.de.md](README.original.de.md).
