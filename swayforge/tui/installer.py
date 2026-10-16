@@ -17,7 +17,7 @@ from .. import catalog as cat
 from .. import layouts, paths, plan, settings, themes
 from ..system import detect, installed_rpms
 from ..render import mix
-from .common import BASE_CSS, hero_text, swatch, two_tone, use_layout, use_theme
+from .common import BASE_CSS, AnimatedArt, art_styles, hero_text, swatch, two_tone, use_layout, use_theme
 
 
 class Nav(Horizontal):
@@ -168,10 +168,11 @@ class Welcome(Step):
             lines.append(f"{warn} Fedora {si.fedora} is too old – 41 or newer is expected.")
         prof = plan.Profile.load()
         with VerticalScroll(classes="page"):
-            yield Static(hero_text(self.app.s["theme"]["name"], self.app.s["theme"]["accent"],
-                                   width=max(40, self.app.size.width - 8)), id="w_banner")
             c = themes.get(self.app.s["theme"]["name"]).with_accent(self.app.s["theme"]["accent"])
-            yield Static(two_tone(asc.art("forge"), c["accent2"], mix(c["accent2"], c["base"], 0.55)), id="w_art")
+            anim = self.app.s["theme"]["animate"]
+            yield AnimatedArt(asc.best_banner("swayforge", max(40, self.app.size.width - 8)),
+                              art_styles(c, bold=True), animate=anim, id="w_banner")
+            yield AnimatedArt(asc.art("forge"), art_styles(c, "accent2"), animate=anim, id="w_art")
             yield Static("Sets up Fedora Sway in one go: apps, drivers, theme, layout, bar, launcher, "
                          "terminal, prompt, boot and login screen. You choose, swayforge does the rest – "
                          "afterwards Super+I lets you change everything.", classes="hint")

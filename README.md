@@ -184,6 +184,11 @@ Motifs: `forge` · `anvil` · `bat` · `moon` · `rose` · `skull` · `lantern` 
 `gamepad` · `cyberdeck` · `wired` – or your own `~/.config/swayforge/ascii/NAME.txt`.
 `scripts/make_art.py` regenerates them (needs numpy, scipy, Pillow – only for development).
 
+**Animated:** a glint of light sweeps across the art every few seconds and lone sparks twinkle. You
+see it in the settings app, in the installer and in LibreWolf (start page and new tab, via wolfforge).
+A new terminal plays a one-second ignite animation before fastfetch draws its logo; any key skips
+it. Turn it off under *Theme → Animate the ASCII art*.
+
 The installer opens with a short animation (about 1.5 s): the motif ignites out of sparks, then the
 name is forged left to right. Any key skips it; `SWAYFORGE_NO_INTRO=1` turns it off.
 
@@ -293,6 +298,7 @@ swayforge theme NAME          switch theme   (--list, --next)
 swayforge layout NAME         switch layout  (--list, --next)
 swayforge boot / login        install boot screen / login screen
 swayforge gamemode            toggle gaming mode
+swayforge hello               animated ASCII greeting, then fastfetch
 swayforge scan [TARGET]       malware scan: downloads | home | drives | PATH
 swayforge audit rootkit|system  rkhunter + chkrootkit / Lynis
 swayforge wipe [DEVICE]       wipe + format a USB stick / SD card / external SSD (no DEVICE = list)

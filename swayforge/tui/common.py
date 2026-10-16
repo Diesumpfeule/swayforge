@@ -53,6 +53,52 @@ def two_tone(lines: list[str], face: str, shade: str) -> Text:
     return txt
 
 
+class AnimatedArt(Static):
+    """ASCII art that glints and twinkles (see anim.py). Static when animate=False."""
+
+    def __init__(self, lines: list[str], styles: dict[str, str], animate: bool = True, fps: int = 12,
+                 **kw) -> None:
+        super().__init__("", **kw)
+        self.lines, self.palette, self.animate, self.fps = lines, styles, animate, fps
+        self._timer = None
+
+    def on_mount(self) -> None:
+        import time
+        self._t0 = time.monotonic()
+        self._draw()
+        if self.animate:
+            self._timer = self.set_interval(1 / self.fps, self._draw)
+
+    def _draw(self) -> None:
+        import time
+        from ..anim import rich_frame
+        t = (time.monotonic() - self._t0) if self.animate else 10_000.0
+        self.update(rich_frame(self.lines, t + 3.0 if self.animate else t, self.palette))
+
+    def set_animate(self, on: bool) -> None:
+        self.animate = on
+        if on and self._timer is None:
+            self._timer = self.set_interval(1 / self.fps, self._draw)
+        elif not on and self._timer is not None:
+            self._timer.stop()
+            self._timer = None
+        self._draw()
+
+    def set_art(self, lines: list[str], styles: dict[str, str] | None = None) -> None:
+        self.lines = lines
+        if styles:
+            self.palette = styles
+        self._draw()
+
+
+def art_styles(c: dict[str, str], main: str = "accent", bold: bool = False) -> dict[str, str]:
+    """Colours for AnimatedArt: face/shade from one theme colour, glint = text, sparks = yellow."""
+    from ..render import mix
+    b = "bold " if bold else ""
+    return {"face": f"{b}{c[main]}", "shade": mix(c[main], c["base"], 0.5),
+            "glint": f"bold {c['text']}", "hot": f"bold {c['yellow']}"}
+
+
 def hero_text(theme_id: str, accent: str = "", word: str = "swayforge", width: int = 78) -> Text:
     from ..ascii import best_banner
     from ..render import mix

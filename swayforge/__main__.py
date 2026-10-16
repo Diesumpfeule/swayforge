@@ -63,6 +63,7 @@ def main(argv: list[str] | None = None) -> int:
     sub.add_parser("power", help="power menu (Rofi)")
     sub.add_parser("start", help="start menu (Rofi)")
     sub.add_parser("keys", help="shortcut overview (Rofi)")
+    sub.add_parser("hello", help="animated ASCII greeting, then fastfetch (terminal start)")
     sub.add_parser("clip", help="clipboard history (Rofi)")
     sub.add_parser("session", help="at Sway start: GTK settings, swayidle")
     p = sub.add_parser("osd", help="volume/brightness with on-screen display")
@@ -176,6 +177,10 @@ def main(argv: list[str] | None = None) -> int:
         for c in mounts.candidates():
             print("  " + mounts.describe(c))
         return 0
+
+    if a.cmd == "hello":
+        from . import anim
+        return anim.hello()
 
     if a.cmd == "wipe":
         from . import cleanup

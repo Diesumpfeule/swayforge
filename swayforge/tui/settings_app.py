@@ -19,7 +19,7 @@ from textual.widgets.selection_list import Selection
 from .. import ascii as asc
 from .. import boot, layouts, paths, render, settings, themes
 from ..system import detect, have, run
-from .common import (BASE_CSS, Field, coerce, field_row, hero_text, path_from_wid, section, swatch,
+from .common import (BASE_CSS, AnimatedArt, Field, art_styles, coerce, field_row, hero_text, path_from_wid, section, swatch,
                      two_tone, use_layout, use_theme)
 from .maintenance import AppsPanel, CleanupPanel, MountsPanel
 from .panels import AudioPanel, BluetoothPanel, NetworkPanel
@@ -340,9 +340,12 @@ class SettingsApp(App):
         art_opts = [("Theme's motif", "auto")] + [(n, n) for n in asc.all_art()]
         return self.page(
             "theme",
-            Static(hero_text(self.s["theme"]["name"], self.s["theme"]["accent"]), id="hero_banner"),
-            Horizontal(Static(two_tone(asc.art(asc.resolve(self.s, t)), t.with_accent(self.s["theme"]["accent"])["accent2"],
-                                       t.colors["overlay"]), id="hero_art"),
+            AnimatedArt(asc.best_banner("swayforge", 78), art_styles(t.with_accent(self.s["theme"]["accent"]),
+                                                                      bold=True),
+                        animate=self.s["theme"]["animate"], id="hero_banner"),
+            Horizontal(AnimatedArt(asc.art(asc.resolve(self.s, t)),
+                                   art_styles(t.with_accent(self.s["theme"]["accent"]), "accent2"),
+                                   animate=self.s["theme"]["animate"], id="hero_art"),
                        Static("One click recolours everything: Sway, bar, Rofi, terminal, prompt, fastfetch, "
                               "GTK apps, lock screen, notifications, btop, cava, MangoHud and the boot/login "
                               "screens.\n\nRetro themes also bring square corners, a retro font and their own "
@@ -352,6 +355,8 @@ class SettingsApp(App):
             field_row(Field("theme.ascii", "ASCII art", "choice", art_opts,
                             help="fastfetch, login, boot screen · add your own in ~/.config/swayforge/ascii"),
                       self.s),
+            field_row(Field("theme.animate", "Animate the ASCII art", "bool",
+                            help="glint + twinkling sparks · terminal greeting · LibreWolf"), self.s),
             section("Wallpaper"),
             Static(f"Drop your images into [b]{str(paths.WALLPAPER_DIR).replace(str(paths.HOME), '~')}[/b] "
                    "(Open folder, drag them in), then ↻ – they show up in the list.", classes="hint"),
@@ -703,7 +708,10 @@ class SettingsApp(App):
 
     def refresh_hero(self) -> None:
         t = themes.get(self.s["theme"]["name"])
-        self.query_one("#hero_art", Static).update("\n".join(asc.art(asc.resolve(self.s, t))))
+        c = t.with_accent(self.s["theme"]["accent"])
+        self.query_one("#hero_art", AnimatedArt).set_art(asc.art(asc.resolve(self.s, t)), art_styles(c, "accent2"))
+        self.query_one("#hero_banner", AnimatedArt).set_art(asc.best_banner("swayforge", 78),
+                                                           art_styles(c, bold=True))
         ctx = render.make_ctx(self.s, self.si)
         self.query_one("#boot_preview", Static).update(boot.PREVIEWS[boot.style_for(ctx)])
 
@@ -729,6 +737,11 @@ class SettingsApp(App):
         settings.set_(self.s, f.path, val)
         if f.path == "theme.accent":
             use_theme(self, self.s["theme"]["name"], val, self.s["bar"]["layout"])
+            self.refresh_hero()
+            self.live_apply()
+        elif f.path == "theme.animate":
+            for w in self.query(AnimatedArt):
+                w.set_animate(bool(val))
             self.live_apply()
         elif f.path in ("theme.wallpaper", "theme.ascii"):
             self.refresh_hero()

@@ -26,6 +26,7 @@ DEFAULTS: dict[str, Any] = {
         "cursor_size": 24,
         "wallpaper": "theme",         # theme | solid | /path/to/image
         "ascii": "auto",              # auto = the theme's motif, or anvil/rose/moon/bat/…
+        "animate": True,              # ASCII art glints and twinkles (apps, terminal greeting, LibreWolf)
         "style_backup": {},           # internal: your own values while a theme style is active
     },
     "look": {
