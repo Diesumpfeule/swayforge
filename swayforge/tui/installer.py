@@ -76,6 +76,8 @@ class Welcome(Step):
                          "terminal, prompt, boot and login screen. You choose, swayforge does the rest – "
                          "afterwards Super+I lets you change everything.", classes="hint")
             yield Static("\n".join(lines))
+            yield Static("[dim]Proof of concept, written by Claude (Anthropic) – no warranty. "
+                         "Read the summary before you install.[/]")
             if prof:
                 yield Static("")
                 yield Static(f"[b]Saved profile found[/b] ({len(prof.selected)} items). "

@@ -124,12 +124,12 @@ def cs2_watcher() -> str:
     return str(p) if p.exists() else ""
 
 
-CS2_CFG = paths.XDG_CONFIG / "cs2_chat_uebersetzer.json"
+CS2_CFG = paths.XDG_CONFIG / "cs2translate.json"
 
 
 def cs2_theme(ctx: "Ctx", dry: bool) -> None:
     """Theme colours + font for the CS2 overlay (only the "theme" key; position etc. stay)."""
-    if dry or not (paths.XDG_DATA / "cs2-chat-uebersetzer").is_dir():
+    if dry or not (paths.XDG_DATA / "cs2translate").is_dir():
         return
     try:
         cfg = json.loads(CS2_CFG.read_text()) if CS2_CFG.exists() else {}

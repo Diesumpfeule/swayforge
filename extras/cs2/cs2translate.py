@@ -1,26 +1,27 @@
 #!/usr/bin/env python3
 """
-CS2 Chat-Übersetzer für Linux
-------------------------------
-Liest die Datei console.log, die CS2 mit der Startoption -condebug selbst schreibt,
-und übersetzt Chatnachrichten live auf Deutsch.
+cs2translate – live Counter-Strike 2 chat translation for Linux
+----------------------------------------------------------------
+Reads console.log, which CS2 writes itself when started with the launch option
+-condebug, and translates chat messages live (into German by default, --lang changes it).
 
-Das Tool greift NICHT auf den Spielprozess, den Speicher oder Spieldateien zu,
-es liest nur eine Textdatei, die das Spiel selbst schreibt.
+The tool does NOT touch the game process, its memory or game files – it only
+reads a text file the game writes itself.
 
-Übersetzung über Google (gtx-Schnittstelle), bei Sperre automatisch über MyMemory.
-Keine Zusatzpakete nötig.
+Translation via Google (gtx endpoint), falls back to MyMemory when blocked.
+No extra packages needed besides Tkinter for the overlay.
 
 Setup:
   1. sudo dnf install python3-tkinter
-  2. Steam -> CS2 -> Eigenschaften -> Startoptionen:  -condebug
-  3. Im Terminal starten:  python3 cs2_chat_uebersetzer.py
+  2. Steam -> CS2 -> Properties -> Launch options:  -condebug
+  3. Run:  python3 cs2translate.py
 
-Prüfmodus (zeigt JEDE neue Zeile der Log, nicht nur Chat):
-     python3 cs2_chat_uebersetzer.py --alles
+Debug mode (shows EVERY new log line, not just chat):
+     python3 cs2translate.py --debug --terminal
 """
 import argparse
 import glob
+import json
 import os
 import queue
 import re
@@ -34,27 +35,30 @@ STEAM_ROOTS = [
     "~/.local/share/Steam",
     "~/.steam/steam",
     "~/.steam/root",
-    "~/.var/app/com.valvesoftware.Steam/.local/share/Steam",  # Flatpak-Steam
+    "~/.var/app/com.valvesoftware.Steam/.local/share/Steam",  # Flatpak Steam
     "~/snap/steam/common/.local/share/Steam",
 ]
 
-# Beispiele: "[ALL] Name: hi"   "[CT] Name﹫CT Start: rotate"
+# Examples: "[ALL] Name: hi"   "[CT] Name﹫CT Start: rotate"
 CHAT_RE = re.compile(r"\[(ALL|CT|T|TEAM)\]\s*(.+?)(?:\s*[@﹫＠][^:]*)?:\s+(.+)$")
 INVISIBLE = dict.fromkeys(map(ord, "‎‏​﻿"), None)
 
-# Startlogo (r"..." damit die Backslashes erhalten bleiben)
+# Start logo (r"..." keeps the backslashes)
 LOGO = r"""
   ___ ___ ___    ___ _         _
  / __/ __|_  )  / __| |_  __ _| |_
 | (__\__ \/ /  | (__| ' \/ _` |  _|
  \___|___/___|  \___|_||_\__,_|\__|
-        Übersetzer  →  Deutsch
+        translate  →  {lang}
 """
-LOGO_SEKUNDEN = 4
+LOGO_SECONDS = 4
+
+CONFIG = Path(os.path.expanduser("~/.config/cs2translate.json"))
+OLD_CONFIG = Path(os.path.expanduser("~/.config/cs2_chat_uebersetzer.json"))   # earlier versions
 
 
 def candidate_logs():
-    """Alle möglichen console.log-Pfade, auch aus weiteren Steam-Bibliotheken."""
+    """Every possible console.log path, including extra Steam libraries."""
     libs = []
     for root in STEAM_ROOTS:
         r = Path(os.path.expanduser(root))
@@ -74,7 +78,7 @@ def candidate_logs():
                 libs.append(Path(d) / name)
     seen, out = set(), []
     for lib in libs:
-        p = (lib / CS2_REL)
+        p = lib / CS2_REL
         try:
             key = p.resolve()
         except OSError:
@@ -89,7 +93,7 @@ def find_log():
     cands = candidate_logs()
     existing = [p for p in cands if p.exists()]
     if existing:
-        return max(existing, key=lambda p: p.stat().st_mtime)  # die zuletzt beschriebene
+        return max(existing, key=lambda p: p.stat().st_mtime)  # the most recently written one
     for p in cands:
         if p.parent.exists():
             return p
@@ -105,19 +109,19 @@ def parse_chat(line):
 
 
 def follow(path: Path, history, status):
-    """Wie 'tail -f'. Kommt mit Neustart des Spiels (Datei neu angelegt) klar."""
+    """Like 'tail -f'. Copes with the game restarting (file recreated)."""
     while not path.exists():
-        status("Warte auf console.log … (ist -condebug gesetzt und CS2 gestartet?)")
+        status("Waiting for console.log … (is -condebug set and CS2 running?)")
         time.sleep(1)
     with open(path, encoding="utf-8", errors="replace") as f:
         old = [l.rstrip("\r\n") for l in f]
     for l in [l for l in old if parse_chat(l)][-history:] if history > 0 else []:
-        yield ("alt", l)
+        yield ("old", l)
     f = open(path, encoding="utf-8", errors="replace")
     f.seek(0, os.SEEK_END)
     inode = os.fstat(f.fileno()).st_ino
     buf, count = "", 0
-    status(f"Verbunden. Lese neue Zeilen … (0 bisher)")
+    status("Connected. Reading new lines … (0 so far)")
     while True:
         chunk = f.readline()
         if chunk:
@@ -125,8 +129,8 @@ def follow(path: Path, history, status):
             if buf.endswith("\n"):
                 count += 1
                 if count % 20 == 1:
-                    status(f"Verbunden. {count} neue Logzeilen gelesen")
-                yield ("neu", buf.rstrip("\r\n"))
+                    status(f"Connected. {count} new log lines read")
+                yield ("new", buf.rstrip("\r\n"))
                 buf = ""
             continue
         time.sleep(0.15)
@@ -139,14 +143,14 @@ def follow(path: Path, history, status):
             f = open(path, encoding="utf-8", errors="replace")
             inode = os.fstat(f.fileno()).st_ino
             buf = ""
-            status("Log wurde neu angelegt (Spiel neu gestartet), lese weiter …")
+            status("Log was recreated (game restarted), reading on …")
 
 
 class Translator:
-    """Mehrere kostenlose Dienste, automatischer Wechsel bei Sperre/Fehler.
-    Braucht nur die Python-Standardbibliothek."""
+    """Several free services, automatic switch when one blocks or fails.
+    Only needs the Python standard library."""
 
-    UA = {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64) cs2-chat-uebersetzer"}
+    UA = {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64) cs2translate"}
 
     def __init__(self, target, status):
         self.target = target
@@ -155,7 +159,6 @@ class Translator:
         self.blocked_until = {}
 
     def _get_json(self, url):
-        import json
         import urllib.request
         req = urllib.request.Request(url, headers=self.UA)
         with urllib.request.urlopen(req, timeout=6) as r:
@@ -174,10 +177,10 @@ class Translator:
                f"&langpair=Autodetect|{self.target}")
         data = self._get_json(url)
         out = (data.get("responseData") or {}).get("translatedText") or ""
-        if "DISTINCT LANGUAGES" in out.upper():  # war schon in der Zielsprache
+        if "DISTINCT LANGUAGES" in out.upper():  # already in the target language
             return text
         if data.get("responseStatus") not in (200, "200") or "MYMEMORY WARNING" in out.upper():
-            raise RuntimeError(out or "MyMemory-Fehler")
+            raise RuntimeError(out or "MyMemory error")
         return out
 
     def translate(self, text):
@@ -191,14 +194,14 @@ class Translator:
                     return result
             except Exception as e:
                 last_err = f"{name}: {getattr(e, 'code', '') or e.__class__.__name__}"
-                self.blocked_until[name] = time.time() + 60  # 1 Minute Pause für diesen Dienst
-                self.status(f"{name} gerade nicht erreichbar ({last_err}), nutze anderen Dienst")
-        raise RuntimeError(last_err or "kein Dienst verfügbar")
+                self.blocked_until[name] = time.time() + 60  # pause this service for a minute
+                self.status(f"{name} unavailable right now ({last_err}), using another service")
+        raise RuntimeError(last_err or "no service available")
 
 
 def worker(log_path, target, out_q, history, show_all):
     def status(text):
-        print(f"[Status] {text}", flush=True)
+        print(f"[status] {text}", flush=True)
         out_q.put(("status", text))
 
     tr = Translator(target, status)
@@ -206,7 +209,7 @@ def worker(log_path, target, out_q, history, show_all):
     for kind, line in follow(log_path, history, status):
         parsed = parse_chat(line)
         if not parsed:
-            if show_all and kind == "neu":
+            if show_all and kind == "new":
                 print(f"  log | {line}", flush=True)
                 out_q.put(("raw", line))
             continue
@@ -215,8 +218,8 @@ def worker(log_path, target, out_q, history, show_all):
             try:
                 cache[msg] = tr.translate(msg) or msg
             except Exception as e:
-                # nicht cachen, damit es beim nächsten Mal erneut versucht wird
-                translated = f"{msg}  (Übersetzung fehlgeschlagen: {e})"
+                # not cached, so it's retried next time
+                translated = f"{msg}  (translation failed: {e})"
                 print(f"[{channel}] {name}: {translated}", flush=True)
                 out_q.put(("chat", (channel, name, msg, translated, True)))
                 continue
@@ -226,11 +229,11 @@ def worker(log_path, target, out_q, history, show_all):
         out_q.put(("chat", (channel, name, msg, translated, same)))
 
 
-def run_gui(out_q, alpha, log_path):
+def run_window(out_q, alpha, log_path):
     import tkinter as tk
 
     root = tk.Tk()
-    root.title("CS2 Chat → Deutsch")
+    root.title("CS2 Chat translation")
     root.geometry("560x300+40+40")
     root.attributes("-topmost", True)
     try:
@@ -248,7 +251,7 @@ def run_gui(out_q, alpha, log_path):
     text.tag_config("all", foreground="#9be37a")
     text.tag_config("orig", foreground="#777", font=("DejaVu Sans", 9))
     text.tag_config("raw", foreground="#555", font=("DejaVu Sans Mono", 8))
-    text.insert("end", f"Lese: {log_path}\n", "orig")
+    text.insert("end", f"Reading: {log_path}\n", "orig")
     text.config(state="disabled")
 
     def poll():
@@ -277,28 +280,25 @@ def run_gui(out_q, alpha, log_path):
     root.mainloop()
 
 
-CONFIG = Path(os.path.expanduser("~/.config/cs2_chat_uebersetzer.json"))
-
-
 def load_cfg():
-    import json
-    try:
-        return json.loads(CONFIG.read_text())
-    except Exception:
-        return {}
+    for f in (CONFIG, OLD_CONFIG):
+        try:
+            return json.loads(f.read_text())
+        except Exception:
+            continue
+    return {}
 
 
 def save_cfg(cfg):
-    import json
     try:
         CONFIG.parent.mkdir(parents=True, exist_ok=True)
         CONFIG.write_text(json.dumps(cfg, indent=2))
     except OSError as e:
-        print(f"Konnte Position nicht speichern: {e}")
+        print(f"Couldn't save the position: {e}")
 
 
 def make_click_through(win):
-    """Maus-Klicks gehen durch das Overlay ins Spiel (X11/XWayland, über libXext)."""
+    """Mouse clicks go through the overlay into the game (X11/XWayland, via libXext)."""
     import ctypes
     import ctypes.util
     try:
@@ -320,13 +320,13 @@ def make_click_through(win):
         except Exception:
             pass
         for wid in ids:
-            # ShapeInput=2, ShapeSet=0, leere Rechteckliste = keine Klickfläche
+            # ShapeInput=2, ShapeSet=0, empty rectangle list = no clickable area
             xext.XShapeCombineRectangles(dpy, wid, 2, 0, 0, None, 0, 0, 0)
         x11.XFlush(dpy)
-        win._x11_dpy = dpy  # offen halten
+        win._x11_dpy = dpy  # keep it open
         return True
     except Exception as e:
-        print(f"Durchklicken nicht möglich ({e}). Overlay funktioniert trotzdem.")
+        print(f"Click-through not possible ({e}). The overlay works anyway.")
         return False
 
 
@@ -336,14 +336,14 @@ def run_overlay(out_q, args):
     cfg = load_cfg()
     root = tk.Tk()
     root.title("CS2 Chat Overlay")
-    sw, sh = root.winfo_screenwidth(), root.winfo_screenheight()
-    width = args.breite
+    sh = root.winfo_screenheight()
+    width = args.width
     height = int(sh * 0.22)
     x = args.x if args.x is not None else cfg.get("x", 20)
-    # Standard: links, etwas oberhalb vom CS2-Chat
+    # default: left, a bit above the CS2 chat
     y = args.y if args.y is not None else cfg.get("y", int(sh * 0.40))
 
-    # Farben/Schrift: optional aus "theme" in der Config (swayforge trägt dort das System-Theme ein)
+    # colours/font: optional "theme" in the config (swayforge fills it with your system theme)
     th = cfg.get("theme") or {}
     BG = th.get("bg", "#0b0b0b")
     TEXT = th.get("text", "#ffffff")
@@ -363,14 +363,13 @@ def run_overlay(out_q, args):
     box.pack(side="bottom", fill="x", anchor="sw")
     colors = {"CT": th.get("ct", "#6fb6ff"), "T": th.get("t", "#f2b84b")}
     ALL = th.get("all", "#9be37a")
-    font = (FONT, args.schrift, "bold")
-    small = (FONT, max(args.schrift - 3, 7))
-    lines = []  # (frame, ablaufzeit)
+    font = (FONT, args.font_size, "bold")
+    small = (FONT, max(args.font_size - 3, 7))
+    lines = []  # (frame, expiry time)
 
-    hint = None
-    if args.verschieben:
-        hint = tk.Label(root, text="Overlay mit der Maus an die gewünschte Stelle ziehen.\n"
-                                   "Position wird gespeichert. Danach ohne --verschieben starten.",
+    if args.move:
+        hint = tk.Label(root, text="Drag the overlay where you want it.\n"
+                                   "The position is saved. Then start without --move.",
                         bg="#333", fg="#fff", font=small, justify="left")
         hint.pack(side="top", fill="x")
         drag = {}
@@ -384,9 +383,9 @@ def run_overlay(out_q, args):
         def stop(_e):
             cfg.update(x=root.winfo_x(), y=root.winfo_y())
             save_cfg(cfg)
-            print(f"Position gespeichert: x={cfg['x']} y={cfg['y']}", flush=True)
+            print(f"Position saved: x={cfg['x']} y={cfg['y']}", flush=True)
 
-        # Bindung am Hauptfenster gilt auch für alle Unter-Elemente
+        # bindings on the main window apply to all child widgets too
         root.bind("<ButtonPress-1>", start)
         root.bind("<B1-Motion>", move)
         root.bind("<ButtonRelease-1>", stop)
@@ -406,40 +405,40 @@ def run_overlay(out_q, args):
             tk.Label(f, text="   " + orig, fg=ORIG, bg=BG, font=small, anchor="w",
                      wraplength=width - 40, justify="left").pack(anchor="w")
         f.pack(side="top", anchor="w", fill="x", padx=8, pady=1)
-        lines.append((f, time.time() + args.dauer))
-        while len(lines) > args.zeilen:
+        lines.append((f, time.time() + args.duration))
+        while len(lines) > args.lines:
             lines.pop(0)[0].destroy()
 
-    if args.verschieben:
-        add_line("CT", "Beispiel", "Hallo, das ist eine übersetzte Nachricht", "hello, this is a message")
-        add_line("T", "Spieler", "Wir gehen B")
+    if args.move:
+        add_line("CT", "Example", "Hello, this is a translated message", "hallo, das ist eine Nachricht")
+        add_line("T", "Player", "We go B")
 
-    # Startlogo: zeigt, dass der Übersetzer läuft, und verschwindet dann
-    splash = tk.Label(box, text=LOGO.strip("\n"), fg=th.get("logo", ALL), bg=BG, justify="left",
-                      font=(MONO, 9, "bold"))
+    # start logo: shows the translator is running, then disappears
+    splash = tk.Label(box, text=LOGO.format(lang=args.lang.upper()).strip("\n"), fg=th.get("logo", ALL),
+                      bg=BG, justify="left", font=(MONO, 9, "bold"))
     splash.pack(side="top", anchor="w", padx=8, pady=4)
-    logo_aktiv = [True]
+    logo_on = [True]
 
-    def logo_weg():
-        logo_aktiv[0] = False
+    def logo_off():
+        logo_on[0] = False
         splash.destroy()
 
-    root.after(LOGO_SEKUNDEN * 1000, logo_weg)
+    root.after(LOGO_SECONDS * 1000, logo_off)
 
     def poll():
         while not out_q.empty():
             kind, data = out_q.get()
             if kind == "chat":
                 channel, name, msg, tr, same = data
-                add_line(channel, name, tr, None if same or args.ohne_original else msg)
-            elif kind == "raw" and args.alles:
+                add_line(channel, name, tr, None if same or args.no_original else msg)
+            elif kind == "raw" and args.debug:
                 add_line("ALL", "log", data)
         now = time.time()
-        while lines and lines[0][1] < now and not args.verschieben:
+        while lines and lines[0][1] < now and not args.move:
             lines.pop(0)[0].destroy()
-        # Fenster unsichtbar, wenn nichts anzuzeigen ist
+        # invisible while there's nothing to show
         try:
-            root.attributes("-alpha", args.alpha if (lines or args.verschieben or logo_aktiv[0]) else 0.0)
+            root.attributes("-alpha", args.alpha if (lines or args.move or logo_on[0]) else 0.0)
         except tk.TclError:
             pass
         root.lift()
@@ -449,48 +448,60 @@ def run_overlay(out_q, args):
     root.mainloop()
 
 
+# options of the earlier German version still work, silently
+OLD_FLAGS = {"--fenster": "--window", "--verschieben": "--move", "--breite": "--width",
+             "--schrift": "--font-size", "--zeilen": "--lines", "--dauer": "--duration",
+             "--ohne-original": "--no-original", "--alles": "--debug", "--verlauf": "--history"}
+
+
 def main():
-    ap = argparse.ArgumentParser(description="CS2-Chat live übersetzen")
-    ap.add_argument("--fenster", action="store_true", help="Normales Fenster statt Overlay")
-    ap.add_argument("--verschieben", action="store_true",
-                    help="Overlay mit der Maus positionieren (Position wird gespeichert)")
-    ap.add_argument("--x", type=int, help="Overlay-Position links (Pixel)")
-    ap.add_argument("--y", type=int, help="Overlay-Position oben (Pixel)")
-    ap.add_argument("--breite", type=int, default=520, help="Overlay-Breite (Standard 520)")
-    ap.add_argument("--schrift", type=int, default=12, help="Schriftgröße (Standard 12)")
-    ap.add_argument("--zeilen", type=int, default=6, help="Max. sichtbare Nachrichten (Standard 6)")
-    ap.add_argument("--dauer", type=int, default=15, help="Sekunden bis eine Nachricht verschwindet")
-    ap.add_argument("--ohne-original", action="store_true", help="Originaltext nicht anzeigen")
-    ap.add_argument("--log", help="Pfad zu console.log (in Anführungszeichen!). Sonst automatische Suche.")
-    ap.add_argument("--lang", default="de", help="Zielsprache, Standard: de")
-    ap.add_argument("--terminal", action="store_true", help="Kein Fenster, nur Terminal")
-    ap.add_argument("--alles", action="store_true", help="Prüfmodus: jede neue Logzeile anzeigen")
-    ap.add_argument("--verlauf", type=int, default=5, help="Alte Chatnachrichten beim Start (Standard 5)")
-    ap.add_argument("--alpha", type=float, default=0.7, help="Fenster-Transparenz 0.2–1.0")
-    args = ap.parse_args()
+    ap = argparse.ArgumentParser(
+        description="Translate the CS2 chat live",
+        epilog="Proof of concept, written by Claude (Anthropic). No warranty – use at your own risk.")
+    ap.add_argument("--window", action="store_true", help="normal window instead of overlay")
+    ap.add_argument("--move", action="store_true",
+                    help="position the overlay with the mouse (position is saved)")
+    ap.add_argument("--x", type=int, help="overlay position from the left (pixels)")
+    ap.add_argument("--y", type=int, help="overlay position from the top (pixels)")
+    ap.add_argument("--width", type=int, default=520, help="overlay width (default 520)")
+    ap.add_argument("--font-size", dest="font_size", type=int, default=12,
+                    help="font size (default 12)")
+    ap.add_argument("--lines", type=int, default=6, help="max. messages shown at once (default 6)")
+    ap.add_argument("--duration", type=int, default=15,
+                    help="seconds until a message disappears (default 15)")
+    ap.add_argument("--no-original", dest="no_original", action="store_true",
+                    help="hide the original text")
+    ap.add_argument("--log", help='path to console.log (in "quotes"!). Otherwise found automatically.')
+    ap.add_argument("--lang", default="de", help="target language, default: de (German)")
+    ap.add_argument("--terminal", action="store_true", help="no window, terminal output only")
+    ap.add_argument("--debug", action="store_true", help="show every new log line")
+    ap.add_argument("--history", type=int, default=5,
+                    help="old chat messages shown at start (default 5)")
+    ap.add_argument("--alpha", type=float, default=0.7, help="window transparency 0.2–1.0")
+    args = ap.parse_args([OLD_FLAGS.get(a, a) for a in sys.argv[1:]])
 
     log_path = Path(os.path.expanduser(args.log)) if args.log else find_log()
     if not log_path:
-        print("CS2-Ordner nicht gefunden. Gesucht wurde in:")
+        print("CS2 folder not found. Searched in:")
         for p in candidate_logs():
             print("  ", p)
-        sys.exit("Gib den Pfad mit --log \"PFAD\" an.")
-    print(LOGO, flush=True)
-    print(f"Lese: {log_path}", flush=True)
+        sys.exit('Give the path with --log "PATH".')
+    print(LOGO.format(lang=args.lang.upper()), flush=True)
+    print(f"Reading: {log_path}", flush=True)
 
     out_q = queue.Queue()
-    threading.Thread(target=worker, args=(log_path, args.lang, out_q, args.verlauf, args.alles),
+    threading.Thread(target=worker, args=(log_path, args.lang, out_q, args.history, args.debug),
                      daemon=True).start()
 
     if not args.terminal:
         try:
-            if args.fenster:
-                run_gui(out_q, args.alpha, log_path)
+            if args.window:
+                run_window(out_q, args.alpha, log_path)
             else:
                 run_overlay(out_q, args)
             return
         except Exception as e:
-            print(f"Fenster geht nicht ({e}), nur Terminal-Ausgabe.", flush=True)
+            print(f"No window possible ({e}), terminal output only.", flush=True)
     while True:
         time.sleep(1)
 

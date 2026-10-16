@@ -21,7 +21,7 @@ from pathlib import Path
 
 
 def main(argv: list[str] | None = None) -> int:
-    ap = argparse.ArgumentParser(prog="swayforge", description="Set up and theme Fedora Sway")
+    ap = argparse.ArgumentParser(epilog="Proof of concept, written by Claude (Anthropic). No warranty – use at your own risk.", prog="swayforge", description="Set up and theme Fedora Sway")
     sub = ap.add_subparsers(dest="cmd")
 
     p = sub.add_parser("install", help="install apps & desktop")

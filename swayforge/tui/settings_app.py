@@ -301,7 +301,7 @@ class SettingsApp(App):
                       self.s),
             section("Wallpaper"),
             field_row(Field("theme.wallpaper", "Wallpaper", "choice", wps,
-                            help="images from ~/Pictures/Wallpapers or ~/Bilder/Hintergründe"), self.s),
+                            help="images from ~/Pictures/Wallpapers (localized folder names work too)"), self.s),
             Horizontal(Input(placeholder="… or type a path to an image", id="wp_path"),
                        Button("Apply", id="wp_apply"), classes="btnrow"),
             section("Edit colours → your own theme"),
@@ -424,7 +424,7 @@ class SettingsApp(App):
         )
 
     def cs2_section(self) -> list:
-        if not (paths.XDG_DATA / "cs2-chat-uebersetzer").is_dir():
+        if not (paths.XDG_DATA / "cs2translate").is_dir():
             return []
         watcher = run(["pgrep", "-f", "swayforge-cs2-watcher"]).returncode == 0 if have("pgrep") else False
         cond = False
@@ -512,6 +512,9 @@ class SettingsApp(App):
                    "After a reset: ./install.sh --restore FILE", classes="hint"),
             Horizontal(Input(str(paths.HOME / "swayforge-backup.tar.gz"), id="export_path"),
                        Button("Export", id="sys_export", variant="success"), classes="btnrow"),
+            section("About"),
+            Static("swayforge – proof of concept, written by Claude (Anthropic). Provided as is, without "
+                   "any warranty; use at your own risk. Not accepting outside code.", classes="hint"),
             section("Automatic backups of old configs"),
             ListView(*[ListItem(Label(d.name), name=str(d)) for d in backups[:30]] or
                      [ListItem(Label("none yet"))], id="backuplist"),
@@ -802,15 +805,15 @@ class SettingsApp(App):
                       "login_restore": "restore-sddm.sh"}[bid]
             self.spawn_term(f"bash {shlex.quote(str(boot.BOOT_DIR / script))}; {hold}")
         elif bid == "cs2_move":
-            subprocess.Popen([str(paths.HOME / ".local/bin/cs2-uebersetzer"), "--verschieben"],
+            subprocess.Popen([str(paths.HOME / ".local/bin/cs2translate"), "--move"],
                              start_new_session=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
             self.notify("Drag the overlay over the CS2 chat, then press Esc", timeout=6)
         elif bid == "cs2_test":
-            self.spawn_term(f"{shlex.quote(str(paths.HOME / '.local/bin/cs2-uebersetzer'))} --terminal --alles; {hold}")
+            self.spawn_term(f"{shlex.quote(str(paths.HOME / '.local/bin/cs2translate'))} --terminal --debug; {hold}")
         elif bid == "cs2_args":
             self.open_file(paths.CONFIG_DIR / "cs2.args")
         elif bid == "cs2_log":
-            self.spawn_term(f"less +F {shlex.quote(str(paths.HOME / '.cache/cs2_chat_uebersetzer.log'))}")
+            self.spawn_term(f"less +F {shlex.quote(str(paths.HOME / '.cache/cs2translate.log'))}")
         elif bid == "sys_update":
             self.spawn_term(f"sudo dnf upgrade --refresh; flatpak update 2>/dev/null; {hold}")
         elif bid == "sys_fw":

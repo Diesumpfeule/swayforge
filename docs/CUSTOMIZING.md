@@ -104,7 +104,7 @@ label = "My stuff"
 
 **CS2 chat translator** → options (font size, transparency, `--ohne-original` …) in
 `~/.config/swayforge/cs2.args`; your own overlay colours: `"theme_locked": true` in
-`~/.config/cs2_chat_uebersetzer.json`; the program itself: `extras/cs2/cs2_chat_uebersetzer.py`,
+`~/.config/cs2translate.json`; the program itself: `extras/cs2/cs2translate.py`,
 then run the installer item again. Settings → *Apps & shortcuts* has position/test/log buttons.
 
 **Feed in an old Sway config** → `swayforge import-sway ~/old-config` – keys, rules and

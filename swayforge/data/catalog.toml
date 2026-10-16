@@ -743,7 +743,7 @@ label = "Own tools"
 
   [[group.items]]
   id = "cs2-translator"
-  label = "CS2 chat translator"
+  label = "cs2translate (CS2 chat translator)"
   desc = "Live chat translation overlay in your theme – starts and stops with CS2 (launch option -condebug)"
   default = true
   dnf = ["python3-tkinter"]
