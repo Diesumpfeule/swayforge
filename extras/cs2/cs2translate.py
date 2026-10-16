@@ -467,6 +467,7 @@ def run_overlay_layershell(out_q, args):
         label.orig {{ font-size: {max(args.font_size - 3, 7)}pt; font-weight: normal; color: {ORIG}; }}
         label.logo {{ font-family: "{MONO}"; font-size: 9pt; color: {th.get("logo", ALL)}; }}
         label.hint {{ background: #333; color: #fff; font-size: 9pt; font-weight: normal; padding: 4px; }}
+        window.empty {{ background: transparent; }}
     """.encode())
     Gtk.StyleContext.add_provider_for_screen(win.get_screen(), css, Gtk.STYLE_PROVIDER_PRIORITY_USER)
 
@@ -567,18 +568,22 @@ def run_overlay_layershell(out_q, args):
         now = time.time()
         while lines and lines[0][1] < now and not args.move:
             lines.pop(0)[0].destroy()
+        # Nothing to show: the window stays mapped (re-mapping a layer surface is unreliable)
+        # but becomes fully transparent and tiny – clicks go through it anyway.
         show = bool(lines or args.move or state["logo"])
+        ctx = win.get_style_context()
         if show and not state["shown"]:
-            win.show_all()
+            ctx.remove_class("empty")
         elif not show and state["shown"]:
-            win.hide()
-        if show:
-            win.resize(1, 1)                              # shrink back to the messages
+            ctx.add_class("empty")                        # never 0×0 – the empty box keeps a few px
+        win.resize(1, 1)                                  # shrink to the messages
         state["shown"] = show
         return True
 
     GLib.timeout_add(200, poll)
     win.connect("destroy", Gtk.main_quit)
+    win.show_all()
+    state["shown"] = True
     poll()
     Gtk.main()
 
