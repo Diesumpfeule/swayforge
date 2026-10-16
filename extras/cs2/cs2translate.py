@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-cs2translate – live Counter-Strike 2 chat translation for Linux
-----------------------------------------------------------------
+cs2translate – live Counter-Strike 2 chat translation for Linux and Windows
+-----------------------------------------------------------------------------
 Reads console.log, which CS2 writes itself when started with the launch option
 -condebug, and translates chat messages live (into German by default, --lang changes it).
 
@@ -11,10 +11,12 @@ reads a text file the game writes itself.
 Translation via Google (gtx endpoint), falls back to MyMemory when blocked.
 No extra packages needed besides Tkinter for the overlay.
 
-Setup:
+Setup (Linux):
   1. sudo dnf install python3-tkinter
   2. Steam -> CS2 -> Properties -> Launch options:  -condebug
   3. Run:  python3 cs2translate.py
+Setup (Windows 11): download cs2translate.exe from the GitHub releases, set -condebug,
+  double-click it once – it then starts and stops with CS2 by itself.
 
 Debug mode (shows EVERY new log line, not just chat):
      python3 cs2translate.py --debug --terminal
@@ -30,6 +32,7 @@ import threading
 import time
 from pathlib import Path
 
+WINDOWS = sys.platform == "win32"
 CS2_REL = "steamapps/common/Counter-Strike Global Offensive/game/csgo/console.log"
 STEAM_ROOTS = [
     "~/.local/share/Steam",
@@ -53,14 +56,38 @@ LOGO = r"""
 """
 LOGO_SECONDS = 4
 
-CONFIG = Path(os.path.expanduser("~/.config/cs2translate.json"))
+if WINDOWS:
+    CONFIG = Path(os.environ.get("APPDATA") or os.path.expanduser("~")) / "cs2translate" / "config.json"
+else:
+    CONFIG = Path(os.path.expanduser("~/.config/cs2translate.json"))
 OLD_CONFIG = Path(os.path.expanduser("~/.config/cs2_chat_uebersetzer.json"))   # earlier versions
+
+
+def windows_steam_roots():
+    """Steam's folder from the registry, plus the usual install places."""
+    roots = []
+    try:
+        import winreg
+        for hive, key, val in ((winreg.HKEY_CURRENT_USER, r"Software\Valve\Steam", "SteamPath"),
+                               (winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\WOW6432Node\Valve\Steam", "InstallPath"),
+                               (winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\Valve\Steam", "InstallPath")):
+            try:
+                with winreg.OpenKey(hive, key) as k:
+                    roots.append(winreg.QueryValueEx(k, val)[0].replace("/", "\\"))
+            except OSError:
+                pass
+    except ImportError:
+        pass
+    pf86 = os.environ.get("ProgramFiles(x86)", r"C:\Program Files (x86)")
+    pf = os.environ.get("ProgramFiles", r"C:\Program Files")
+    roots += [os.path.join(pf86, "Steam"), os.path.join(pf, "Steam")]
+    return roots
 
 
 def candidate_logs():
     """Every possible console.log path, including extra Steam libraries."""
     libs = []
-    for root in STEAM_ROOTS:
+    for root in (windows_steam_roots() if WINDOWS else STEAM_ROOTS):
         r = Path(os.path.expanduser(root))
         if not r.exists():
             continue
@@ -72,10 +99,22 @@ def candidate_logs():
                     libs.append(Path(p.replace("\\\\", "\\")))
             except OSError:
                 pass
-    for pattern in ("/run/media/*/*", "/mnt/*", "/media/*/*"):
-        for d in glob.glob(pattern):
-            for name in ("SteamLibrary", "steam", "Steam", ""):
-                libs.append(Path(d) / name)
+    if WINDOWS:                       # libraries on other drives: D:\SteamLibrary …
+        import string
+        for letter in string.ascii_uppercase[2:]:
+            drive = Path(f"{letter}:\\")
+            try:
+                ok = drive.exists()
+            except OSError:
+                ok = False
+            if ok:
+                for name in ("SteamLibrary", "Steam", "Games\\Steam", "Program Files (x86)\\Steam"):
+                    libs.append(drive / name)
+    else:
+        for pattern in ("/run/media/*/*", "/mnt/*", "/media/*/*"):
+            for d in glob.glob(pattern):
+                for name in ("SteamLibrary", "steam", "Steam", ""):
+                    libs.append(Path(d) / name)
     seen, out = set(), []
     for lib in libs:
         p = lib / CS2_REL
@@ -241,16 +280,17 @@ def run_window(out_q, alpha, log_path):
     except tk.TclError:
         pass
     status_var = tk.StringVar(value=f"Log: {log_path}")
+    ui, mono = ("Segoe UI", "Consolas") if WINDOWS else ("DejaVu Sans", "DejaVu Sans Mono")
     tk.Label(root, textvariable=status_var, bg="#222", fg="#aaa", anchor="w",
-             font=("DejaVu Sans", 8), padx=6).pack(fill="x", side="bottom")
-    text = tk.Text(root, bg="#111", fg="#ddd", font=("DejaVu Sans", 11),
+             font=(ui, 8), padx=6).pack(fill="x", side="bottom")
+    text = tk.Text(root, bg="#111", fg="#ddd", font=(ui, 11),
                    wrap="word", bd=0, padx=8, pady=6)
     text.pack(fill="both", expand=True)
     text.tag_config("ct", foreground="#5aa9ff")
     text.tag_config("t", foreground="#f0b44a")
     text.tag_config("all", foreground="#9be37a")
-    text.tag_config("orig", foreground="#777", font=("DejaVu Sans", 9))
-    text.tag_config("raw", foreground="#555", font=("DejaVu Sans Mono", 8))
+    text.tag_config("orig", foreground="#777", font=(ui, 9))
+    text.tag_config("raw", foreground="#555", font=(mono, 8))
     text.insert("end", f"Reading: {log_path}\n", "orig")
     text.config(state="disabled")
 
@@ -297,8 +337,34 @@ def save_cfg(cfg):
         print(f"Couldn't save the position: {e}")
 
 
+def make_click_through_windows(win):
+    """Windows: layered + transparent extended style → clicks fall through to the game; the
+    overlay never takes focus and has no taskbar button."""
+    import ctypes
+    try:
+        user32 = ctypes.windll.user32
+        win.update_idletasks()
+        hwnd = user32.GetParent(win.winfo_id()) or win.winfo_id()
+        GWL_EXSTYLE = -20
+        WS_EX_LAYERED, WS_EX_TRANSPARENT = 0x00080000, 0x00000020
+        WS_EX_TOOLWINDOW, WS_EX_NOACTIVATE, WS_EX_TOPMOST = 0x00000080, 0x08000000, 0x00000008
+        get = getattr(user32, "GetWindowLongPtrW", user32.GetWindowLongW)
+        put = getattr(user32, "SetWindowLongPtrW", user32.SetWindowLongW)
+        get.restype = ctypes.c_ssize_t
+        put.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.c_ssize_t]
+        style = get(ctypes.c_void_p(hwnd), GWL_EXSTYLE)
+        put(ctypes.c_void_p(hwnd), GWL_EXSTYLE, style | WS_EX_LAYERED | WS_EX_TRANSPARENT
+            | WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE | WS_EX_TOPMOST)
+        return True
+    except Exception as e:
+        print(f"Click-through not possible ({e}). The overlay works anyway.")
+        return False
+
+
 def make_click_through(win):
     """Mouse clicks go through the overlay into the game (X11/XWayland, via libXext)."""
+    if WINDOWS:
+        return make_click_through_windows(win)
     import ctypes
     import ctypes.util
     try:
@@ -330,7 +396,199 @@ def make_click_through(win):
         return False
 
 
+def _hex_rgba(c, a):
+    c = c.lstrip("#")
+    return f"rgba({int(c[0:2], 16)}, {int(c[2:4], 16)}, {int(c[4:6], 16)}, {a:.2f})"
+
+
+def layer_shell_available():
+    """Wayland (Sway, Hyprland, KDE …) + gtk-layer-shell: a real overlay – see-through background,
+    sits above fullscreen games, clicks go through."""
+    if WINDOWS or not os.environ.get("WAYLAND_DISPLAY") or os.environ.get("CS2T_BACKEND") == "tk":
+        return False
+    try:
+        import gi
+        gi.require_version("Gtk", "3.0")
+        gi.require_version("GtkLayerShell", "0.1")
+        from gi.repository import GtkLayerShell  # noqa: F401
+        import cairo  # noqa: F401  (empty input region = click-through)
+        return True
+    except (ImportError, ValueError):
+        return False
+
+
+def run_overlay_layershell(out_q, args):
+    import gi
+    gi.require_version("Gtk", "3.0")
+    gi.require_version("GtkLayerShell", "0.1")
+    import cairo
+    from gi.repository import Gdk, GLib, Gtk, GtkLayerShell
+    from html import escape
+
+    cfg = load_cfg()
+    th = cfg.get("theme") or {}
+    BG, TEXT, ORIG = th.get("bg", "#0b0b0b"), th.get("text", "#ffffff"), th.get("orig", "#8a8a8a")
+    FONT, MONO = th.get("font", "DejaVu Sans"), th.get("mono", "DejaVu Sans Mono")
+    colors = {"CT": th.get("ct", "#6fb6ff"), "T": th.get("t", "#f2b84b")}
+    ALL = th.get("all", "#9be37a")
+
+    mon = Gdk.Display.get_default().get_monitor(0)
+    sh = mon.get_geometry().height if mon else 1080
+    height = int(sh * 0.22)
+    pos = {"x": args.x if args.x is not None else cfg.get("x", 20),
+           "y": args.y if args.y is not None else cfg.get("y", int(sh * 0.40))}
+    bottom = pos["y"] + height                     # grows upwards from here, like the Tk overlay
+
+    win = Gtk.Window(title="CS2 Chat Overlay")
+    vis = win.get_screen().get_rgba_visual()
+    if vis:
+        win.set_visual(vis)
+    GtkLayerShell.init_for_window(win)
+    GtkLayerShell.set_namespace(win, "cs2translate")
+    GtkLayerShell.set_layer(win, GtkLayerShell.Layer.OVERLAY)
+    GtkLayerShell.set_exclusive_zone(win, -1)
+    for edge in (GtkLayerShell.Edge.LEFT, GtkLayerShell.Edge.BOTTOM):
+        GtkLayerShell.set_anchor(win, edge, True)
+    try:
+        GtkLayerShell.set_keyboard_mode(win, GtkLayerShell.KeyboardMode.ON_DEMAND if args.move
+                                        else GtkLayerShell.KeyboardMode.NONE)
+    except AttributeError:                       # older gtk-layer-shell
+        GtkLayerShell.set_keyboard_interactivity(win, bool(args.move))
+
+    def place():
+        GtkLayerShell.set_margin(win, GtkLayerShell.Edge.LEFT, max(0, pos["x"]))
+        GtkLayerShell.set_margin(win, GtkLayerShell.Edge.BOTTOM, max(0, sh - bottom))
+    place()
+
+    css = Gtk.CssProvider()
+    css.load_from_data(f"""
+        window {{ background: {_hex_rgba(BG, args.alpha)}; border-radius: 6px; }}
+        label {{ font-family: "{FONT}"; font-size: {args.font_size}pt; font-weight: bold; color: {TEXT}; }}
+        label.orig {{ font-size: {max(args.font_size - 3, 7)}pt; font-weight: normal; color: {ORIG}; }}
+        label.logo {{ font-family: "{MONO}"; font-size: 9pt; color: {th.get("logo", ALL)}; }}
+        label.hint {{ background: #333; color: #fff; font-size: 9pt; font-weight: normal; padding: 4px; }}
+    """.encode())
+    Gtk.StyleContext.add_provider_for_screen(win.get_screen(), css, Gtk.STYLE_PROVIDER_PRIORITY_USER)
+
+    box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
+    box.set_size_request(args.width, -1)
+    box.set_margin_start(8)
+    box.set_margin_end(8)
+    box.set_margin_top(4)
+    box.set_margin_bottom(4)
+    win.add(box)
+    lines = []
+
+    def label(markup, cls=None):
+        lb = Gtk.Label()
+        lb.set_markup(markup)
+        lb.set_xalign(0)
+        lb.set_line_wrap(True)
+        lb.set_max_width_chars(max(20, args.width // 9))
+        if cls:
+            lb.get_style_context().add_class(cls)
+        return lb
+
+    def add_line(channel, name, text, orig=None):
+        row = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        row.pack_start(label(f'<span foreground="{colors.get(channel, ALL)}">{escape(name)}:</span> '
+                             f'{escape(text)}'), False, False, 0)
+        if orig:
+            row.pack_start(label("   " + escape(orig), "orig"), False, False, 0)
+        box.pack_start(row, False, False, 0)
+        row.show_all()
+        lines.append((row, time.time() + args.duration))
+        while len(lines) > args.lines:
+            lines.pop(0)[0].destroy()
+
+    if args.move:
+        box.pack_start(label("Drag the overlay where you want it – the position is saved. Esc = done.",
+                             "hint"), False, False, 0)
+        drag = {}
+
+        def press(_w, e):
+            drag.update(x=e.x, y=e.y)
+
+        def motion(_w, e):
+            if drag:
+                pos["x"] += int(e.x - drag["x"])
+                nonlocal_bottom[0] += int(e.y - drag["y"])
+                place2()
+
+        def release(_w, _e):
+            drag.clear()
+            cfg.update(x=pos["x"], y=nonlocal_bottom[0] - height)
+            save_cfg(cfg)
+            print(f"Position saved: x={cfg['x']} y={cfg['y']}", flush=True)
+
+        nonlocal_bottom = [bottom]
+
+        def place2():
+            GtkLayerShell.set_margin(win, GtkLayerShell.Edge.LEFT, max(0, pos["x"]))
+            GtkLayerShell.set_margin(win, GtkLayerShell.Edge.BOTTOM, max(0, sh - nonlocal_bottom[0]))
+
+        win.add_events(Gdk.EventMask.BUTTON_PRESS_MASK | Gdk.EventMask.BUTTON_RELEASE_MASK
+                       | Gdk.EventMask.POINTER_MOTION_MASK)
+        win.connect("button-press-event", press)
+        win.connect("motion-notify-event", motion)
+        win.connect("button-release-event", release)
+        win.connect("key-press-event", lambda _w, e: Gtk.main_quit() if e.keyval == Gdk.KEY_Escape else None)
+        add_line("CT", "Example", "Hello, this is a translated message", "hallo, das ist eine Nachricht")
+        add_line("T", "Player", "We go B")
+
+    logo = label(escape(LOGO.format(lang=args.lang.upper()).strip("\n")), "logo")
+    box.pack_start(logo, False, False, 0)
+    state = {"logo": True, "shown": False, "hint": False}
+
+    def logo_off():
+        state["logo"] = False
+        logo.destroy()
+        return False
+    GLib.timeout_add(LOGO_SECONDS * 1000, logo_off)
+
+    def click_through(*_a):
+        if not args.move and win.get_window():
+            win.input_shape_combine_region(cairo.Region())   # empty input region = clicks go through
+
+    win.connect("realize", click_through)
+    win.connect("map", click_through)
+
+    def poll():
+        while not out_q.empty():
+            kind, data = out_q.get()
+            if kind == "status" and data.startswith("Waiting") and not state["hint"]:
+                state["hint"] = True
+                add_line("ALL", "cs2translate", "waiting for CS2 – is -condebug set in Steam's launch options?")
+            elif kind == "chat":
+                channel, name, msg, tr, same = data
+                add_line(channel, name, tr, None if same or args.no_original else msg)
+            elif kind == "raw" and args.debug:
+                add_line("ALL", "log", data)
+        now = time.time()
+        while lines and lines[0][1] < now and not args.move:
+            lines.pop(0)[0].destroy()
+        show = bool(lines or args.move or state["logo"])
+        if show and not state["shown"]:
+            win.show_all()
+        elif not show and state["shown"]:
+            win.hide()
+        if show:
+            win.resize(1, 1)                              # shrink back to the messages
+        state["shown"] = show
+        return True
+
+    GLib.timeout_add(200, poll)
+    win.connect("destroy", Gtk.main_quit)
+    poll()
+    Gtk.main()
+
+
 def run_overlay(out_q, args):
+    if layer_shell_available():
+        try:
+            return run_overlay_layershell(out_q, args)
+        except Exception as e:                    # fall back to the X11 window
+            print(f"Wayland overlay failed ({e}) – using the X11 window instead.", flush=True)
     import tkinter as tk
 
     cfg = load_cfg()
@@ -348,8 +606,8 @@ def run_overlay(out_q, args):
     BG = th.get("bg", "#0b0b0b")
     TEXT = th.get("text", "#ffffff")
     ORIG = th.get("orig", "#8a8a8a")
-    FONT = th.get("font", "DejaVu Sans")
-    MONO = th.get("mono", "DejaVu Sans Mono")
+    FONT = th.get("font", "Segoe UI" if WINDOWS else "DejaVu Sans")
+    MONO = th.get("mono", "Consolas" if WINDOWS else "DejaVu Sans Mono")
     root.overrideredirect(True)
     root.configure(bg=BG)
     root.geometry(f"{width}x{height}+{x}+{y}")
@@ -425,9 +683,29 @@ def run_overlay(out_q, args):
 
     root.after(LOGO_SECONDS * 1000, logo_off)
 
+    hint_shown = []
+    shown = [True]
+    bottom = y + height                       # the overlay grows upwards from here
+    last_geo = [""]
+
+    def fit():
+        """Only as tall as the messages – a small box instead of a big dark rectangle where the
+        desktop can't make windows see-through."""
+        if args.move:
+            return
+        root.update_idletasks()
+        h = max(box.winfo_reqheight() + 4, 24)
+        geo = f"{width}x{h}+{x}+{bottom - h}"
+        if geo != last_geo[0]:
+            last_geo[0] = geo
+            root.geometry(geo)
+
     def poll():
         while not out_q.empty():
             kind, data = out_q.get()
+            if kind == "status" and data.startswith("Waiting") and not hint_shown:
+                hint_shown.append(1)
+                add_line("ALL", "cs2translate", "waiting for CS2 – is -condebug set in Steam's launch options?")
             if kind == "chat":
                 channel, name, msg, tr, same = data
                 add_line(channel, name, tr, None if same or args.no_original else msg)
@@ -436,16 +714,239 @@ def run_overlay(out_q, args):
         now = time.time()
         while lines and lines[0][1] < now and not args.move:
             lines.pop(0)[0].destroy()
-        # invisible while there's nothing to show
-        try:
-            root.attributes("-alpha", args.alpha if (lines or args.move or logo_on[0]) else 0.0)
-        except tk.TclError:
-            pass
-        root.lift()
+        # nothing to show → hide the window completely. (Unmapping works on every desktop;
+        # an alpha of 0 is ignored by compositors that don't support X11 opacity, e.g. Sway.)
+        show = bool(lines or args.move or logo_on[0])
+        if show != shown[0]:
+            shown[0] = show
+            if show:
+                root.deiconify()
+                root.attributes("-topmost", True)
+            else:
+                root.withdraw()
+        if show:
+            fit()
+            if not WINDOWS:
+                root.lift()
         root.after(200, poll)
 
     poll()
     root.mainloop()
+
+
+# ── Starting with CS2 (watch mode), autostart, settings window ──────
+OPTION_KEYS = ("lang", "font_size", "width", "lines", "duration", "no_original", "alpha")
+DEFAULTS = {"lang": "de", "font_size": 12, "width": 520, "lines": 6, "duration": 15,
+            "no_original": False, "alpha": 0.7}
+LANGS = ["de", "en", "fr", "es", "it", "pt", "nl", "pl", "tr", "ru", "uk", "sv", "zh-CN", "ja", "ko"]
+NO_WINDOW = 0x08000000                                  # CREATE_NO_WINDOW (Windows)
+
+
+def self_cmd():
+    """How to start this program again (frozen .exe or python + script)."""
+    if getattr(sys, "frozen", False):
+        return [sys.executable]
+    exe = sys.executable
+    if WINDOWS and exe.lower().endswith("python.exe"):
+        exe = exe[:-10] + "pythonw.exe"                 # no console window
+    return [exe, os.path.abspath(__file__)]
+
+
+def options():
+    opts = dict(DEFAULTS)
+    opts.update({k: v for k, v in (load_cfg().get("options") or {}).items() if k in OPTION_KEYS})
+    return opts
+
+
+def cs2_running():
+    import subprocess
+    try:
+        if WINDOWS:
+            out = subprocess.run(["tasklist", "/FI", "IMAGENAME eq cs2.exe", "/FO", "CSV", "/NH"],
+                                 capture_output=True, text=True, creationflags=NO_WINDOW).stdout
+            return "cs2.exe" in out.lower()
+        return subprocess.run(["pgrep", "-x", "cs2"], capture_output=True).returncode == 0
+    except OSError:
+        return False
+
+
+def single_instance(name):
+    """True if this is the only watcher (Windows: named mutex, elsewhere: lock file)."""
+    if WINDOWS:
+        import ctypes
+        k32 = ctypes.windll.kernel32
+        single_instance.handle = k32.CreateMutexW(None, False, f"Local\\{name}")
+        return k32.GetLastError() != 183                # ERROR_ALREADY_EXISTS
+    import fcntl
+    single_instance.fh = open(os.path.join(os.environ.get("XDG_RUNTIME_DIR", "/tmp"), f"{name}.lock"), "w")
+    try:
+        fcntl.flock(single_instance.fh, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        return True
+    except OSError:
+        return False
+
+
+def watcher_running():
+    if WINDOWS:
+        import ctypes
+        h = ctypes.windll.kernel32.OpenMutexW(0x00100000, False, "Local\\cs2translate-watch")
+        if h:
+            ctypes.windll.kernel32.CloseHandle(h)
+            return True
+        return False
+    import fcntl
+    try:
+        with open(os.path.join(os.environ.get("XDG_RUNTIME_DIR", "/tmp"), "cs2translate-watch.lock"), "w") as f:
+            fcntl.flock(f, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            fcntl.flock(f, fcntl.LOCK_UN)
+        return False
+    except OSError:
+        return True
+
+
+def spawn(extra):
+    import subprocess
+    kw = {"creationflags": 0x00000008 | 0x00000200 | NO_WINDOW} if WINDOWS else {"start_new_session": True}
+    return subprocess.Popen(self_cmd() + extra, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, **kw)
+
+
+def watch():
+    """Background helper: overlay on while CS2 runs, off when it closes."""
+    if not single_instance("cs2translate-watch"):
+        print("Already watching for CS2.")
+        return
+    print("Watching for CS2 … (Ctrl+C to stop)", flush=True)
+    child = None
+    while True:
+        running = cs2_running()
+        if running and (child is None or child.poll() is not None):
+            child = spawn(["--history", "0"])
+        elif not running and child is not None:
+            if child.poll() is None:
+                child.terminate()
+            child = None
+        time.sleep(4)
+
+
+RUN_KEY = r"Software\Microsoft\Windows\CurrentVersion\Run"
+
+
+def autostart(on=None):
+    """Windows: start the watcher at login (HKCU Run key). Returns the current state."""
+    if not WINDOWS:
+        return False
+    import winreg
+    cmd = " ".join(f'"{c}"' for c in self_cmd()) + " --watch"
+    with winreg.OpenKey(winreg.HKEY_CURRENT_USER, RUN_KEY, 0,
+                        winreg.KEY_READ | winreg.KEY_SET_VALUE) as k:
+        if on is True:
+            winreg.SetValueEx(k, "cs2translate", 0, winreg.REG_SZ, cmd)
+        elif on is False:
+            try:
+                winreg.DeleteValue(k, "cs2translate")
+            except OSError:
+                pass
+        try:
+            winreg.QueryValueEx(k, "cs2translate")
+            return True
+        except OSError:
+            return False
+
+
+def settings_window():
+    """Small settings dialog – what a double-click on cs2translate.exe opens."""
+    import tkinter as tk
+    from tkinter import ttk
+
+    cfg = load_cfg()
+    opts = options()
+    first = "options" not in cfg
+    root = tk.Tk()
+    root.title("cs2translate")
+    root.resizable(False, False)
+    pad = {"padx": 10, "pady": 4}
+    frm = ttk.Frame(root, padding=12)
+    frm.pack(fill="both", expand=True)
+    ui = ("Segoe UI", 10) if WINDOWS else ("DejaVu Sans", 10)
+    ttk.Label(frm, text="cs2translate", font=(ui[0], 16, "bold")).grid(row=0, column=0, columnspan=2, sticky="w")
+    ttk.Label(frm, text="Live translation of the CS2 chat as an overlay.").grid(row=1, column=0, columnspan=2,
+                                                                              sticky="w", pady=(0, 8))
+    v = {"lang": tk.StringVar(value=opts["lang"]), "font_size": tk.IntVar(value=opts["font_size"]),
+         "width": tk.IntVar(value=opts["width"]), "lines": tk.IntVar(value=opts["lines"]),
+         "duration": tk.IntVar(value=opts["duration"]), "alpha": tk.DoubleVar(value=opts["alpha"]),
+         "show_orig": tk.BooleanVar(value=not opts["no_original"])}
+    rows = [("Translate into", ttk.Combobox(frm, textvariable=v["lang"], values=LANGS, width=10)),
+            ("Font size", ttk.Spinbox(frm, from_=8, to=28, textvariable=v["font_size"], width=8)),
+            ("Overlay width (px)", ttk.Spinbox(frm, from_=300, to=1600, increment=20, textvariable=v["width"], width=8)),
+            ("Messages at once", ttk.Spinbox(frm, from_=1, to=15, textvariable=v["lines"], width=8)),
+            ("Seconds visible", ttk.Spinbox(frm, from_=3, to=120, textvariable=v["duration"], width=8)),
+            ("Opacity", ttk.Scale(frm, from_=0.2, to=1.0, variable=v["alpha"], length=160)),
+            ("", ttk.Checkbutton(frm, text="Show the original text under the translation", variable=v["show_orig"]))]
+    for i, (label, w) in enumerate(rows, start=2):
+        ttk.Label(frm, text=label).grid(row=i, column=0, sticky="w", **pad)
+        w.grid(row=i, column=1, sticky="w", **pad)
+    r = len(rows) + 2
+    auto = tk.BooleanVar(value=autostart() if not first else True)
+    if WINDOWS:
+        ttk.Checkbutton(frm, text="Start with Windows (overlay appears whenever CS2 runs)",
+                        variable=auto).grid(row=r, column=0, columnspan=2, sticky="w", **pad)
+        r += 1
+    log = find_log()
+    found = log is not None and log.exists()
+    info = (f"✓ CS2 log found: {log}" if found else
+            "! console.log not found yet – in Steam: CS2 → Properties → Launch options:  -condebug\n"
+            "   and set CS2 to Fullscreen Windowed (Video settings).")
+    ttk.Label(frm, text=info, wraplength=520, foreground="#2a7" if found else "#c70").grid(
+        row=r, column=0, columnspan=2, sticky="w", pady=(8, 4))
+    r += 1
+    status = tk.StringVar(value="")
+    ttk.Label(frm, textvariable=status).grid(row=r, column=0, columnspan=2, sticky="w")
+    r += 1
+
+    def save(close=False):
+        try:
+            new = {"lang": v["lang"].get().strip() or "de", "font_size": int(v["font_size"].get()),
+                   "width": int(v["width"].get()), "lines": int(v["lines"].get()),
+                   "duration": int(v["duration"].get()), "alpha": round(float(v["alpha"].get()), 2),
+                   "no_original": not v["show_orig"].get()}
+        except (tk.TclError, ValueError):
+            status.set("Please enter numbers only.")
+            return
+        c = load_cfg()
+        c["options"] = new
+        save_cfg(c)
+        if WINDOWS:
+            try:
+                autostart(bool(auto.get()))
+            except OSError as e:
+                status.set(f"Autostart couldn't be set: {e}")
+        if not watcher_running():
+            spawn(["--watch"])
+        status.set("Saved. The overlay appears by itself while CS2 runs.")
+        if close:
+            root.destroy()
+
+    btns = ttk.Frame(frm)
+    btns.grid(row=r, column=0, columnspan=2, sticky="e", pady=(10, 0))
+    ttk.Button(btns, text="Position overlay …", command=lambda: (save(), spawn(["--move"]))).pack(side="left", padx=4)
+    ttk.Button(btns, text="Test", command=lambda: spawn(["--test"])).pack(side="left", padx=4)
+    ttk.Button(btns, text="Save", command=save).pack(side="left", padx=4)
+    ttk.Button(btns, text="Save & close", command=lambda: save(True)).pack(side="left", padx=4)
+    ttk.Label(frm, text="Proof of concept, written by Claude (Anthropic) – no warranty.",
+              foreground="#888").grid(row=r + 1, column=0, columnspan=2, sticky="w", pady=(10, 0))
+    root.mainloop()
+
+
+def self_test():
+    """Quick check that runs anywhere (used by the Windows build on GitHub)."""
+    assert parse_chat("[ALL] Ivan: привет всем") == ("ALL", "Ivan", "привет всем")
+    assert parse_chat("[T] Bob﹫T Start: go mid") == ("T", "Bob", "go mid")
+    assert parse_chat("Damage given to bot") is None
+    print("platform:", sys.platform, "| config:", CONFIG)
+    print("searching:", *[str(p) for p in candidate_logs()[:6]], sep="\n  ")
+    print("defaults:", options())
+    print("command to start again:", self_cmd())
+    print("self-test ok")
 
 
 # options of the earlier German version still work, silently
@@ -478,9 +979,33 @@ def main():
     ap.add_argument("--history", type=int, default=5,
                     help="old chat messages shown at start (default 5)")
     ap.add_argument("--alpha", type=float, default=0.7, help="window transparency 0.2–1.0")
-    args = ap.parse_args([OLD_FLAGS.get(a, a) for a in sys.argv[1:]])
+    ap.add_argument("--watch", action="store_true", help="stay in the background: overlay while CS2 runs")
+    ap.add_argument("--settings", action="store_true", help="settings window (default on Windows)")
+    ap.add_argument("--autostart", choices=["on", "off"], help="Windows: start the watcher at login")
+    ap.add_argument("--test", action="store_true", help="show the overlay with sample messages")
+    ap.add_argument("--self-test", dest="self_test", action="store_true", help=argparse.SUPPRESS)
+    ap.set_defaults(**{k: v for k, v in options().items()})   # your saved settings
+    argv = [OLD_FLAGS.get(a, a) for a in sys.argv[1:]]
+    args = ap.parse_args(argv)
+
+    if args.self_test:
+        self_test()
+        return
+    if args.autostart:
+        print("autostart:", autostart(args.autostart == "on"))
+        return
+    if args.watch:
+        watch()
+        return
+    if args.settings or (WINDOWS and not argv):
+        settings_window()
+        return
+    if args.test:
+        args.move = True
 
     log_path = Path(os.path.expanduser(args.log)) if args.log else find_log()
+    if not log_path and args.move:                    # positioning works without the game
+        log_path = Path(os.path.expanduser("~")) / "cs2-console.log-not-found"
     if not log_path:
         print("CS2 folder not found. Searched in:")
         for p in candidate_logs():

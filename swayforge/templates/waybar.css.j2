@@ -149,6 +149,30 @@ window#waybar {
 #window { color: {{ c.subtext }}; padding-left: 10px; }
 #clock { color: {{ c.accent }}; font-weight: normal; }
 
+{% elif layout == "cathedral" %}
+/* ── Cathedral: stone bar, double rule in the accent, serif numerals, ornaments ── */
+* { font-family: "DejaVu Serif", "{{ font }}", "Symbols Nerd Font", serif; }
+window#waybar {
+    background: linear-gradient(to bottom, {{ c.surface }}, {{ c.crust }});
+    border-top: 1px solid {{ rgba(c.text, 0.18) }};
+    border-bottom: 4px double {{ c.accent }};
+    color: {{ c.text }};
+}
+{{ mods }} { margin: 4px 0; padding: 0 14px; }
+.modules-left, .modules-right { padding: 0 8px; }
+#workspaces { padding: 0 6px; border-right: 1px solid {{ rgba(c.text, 0.15) }}; }
+#workspaces button { font-size: {{ s.theme.font_size + 3 }}px; letter-spacing: 1px; padding: 0 9px;
+    color: {{ c.subtext }}; background: transparent; border-bottom: 2px solid transparent; }
+#workspaces button.focused { color: {{ c.text }}; border-bottom: 2px solid {{ c.accent }};
+    background: linear-gradient(to top, {{ rgba(c.accent, 0.28) }}, transparent); }
+#workspaces button:hover { color: {{ c.text }}; background: {{ rgba(c.text, 0.06) }}; }
+#clock { font-size: {{ s.theme.font_size + 4 }}px; letter-spacing: 3px; color: {{ c.text }};
+    padding: 0 26px; border-left: 3px double {{ rgba(c.accent, 0.7) }}; border-right: 3px double {{ rgba(c.accent, 0.7) }}; }
+#cpu, #memory, #temperature, #custom-gpu, #network, #pulseaudio, #bluetooth, #battery, #backlight, #mpris {
+    color: {{ c.subtext }}; border-left: 1px solid {{ rgba(c.text, 0.12) }}; }
+#custom-power { font-size: {{ s.theme.font_size + 6 }}px; color: {{ c.accent }}; padding: 0 16px; }
+#custom-power:hover { color: {{ c.text }}; text-shadow: 0 0 6px {{ c.accent }}; }
+
 {% elif layout == "sidebar" %}
 /* ── Sidebar ────────────────────────────────────────────────────── */
 window#waybar {
@@ -162,7 +186,7 @@ window#waybar {
 {% endif %}
 
 /* ── Shared ─────────────────────────────────────────────────────── */
-{% if layout != "win98" %}
+{% if layout not in ("win98", "cathedral") %}
 #workspaces button {
     color: {{ c.subtext }};
     background: transparent;
@@ -182,7 +206,7 @@ window#waybar {
 #mode { background: {{ c.yellow }}; color: {{ c.crust }}; }
 #window { color: {{ c.subtext }}; }
 window#waybar.empty #window { background: transparent; border-color: transparent; }
-{% if layout not in ("win98", "win7", "wired") %}
+{% if layout not in ("win98", "win7", "wired", "cathedral") %}
 #clock { color: {{ c.accent }}; font-weight: bold; }
 #cpu { color: {{ c.blue }}; }
 #memory { color: {{ c.magenta }}; }

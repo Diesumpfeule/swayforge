@@ -263,7 +263,12 @@ def waybar_config(ctx: Ctx) -> dict:
         center, right = ["clock"], status + ["custom/power"]
 
     clock_fmt = "  ".join(x for x in (b["date_format"], b["clock_format"]) if x)
-    if text_only:
+    cathedral = lay == "cathedral"
+    if cathedral:
+        orn = f"<span color='{ctx.c['accent']}'>✠</span>"
+        clock = {"format": f"{orn}  {{:{b['clock_format']}}}  {orn}",
+                 "format-alt": f"{orn}  {{:%A · %d %B %Y}}  {orn}"}
+    elif text_only:
         clock = {"format": "[{:%H:%M:%S}]", "interval": 1, "format-alt": f"[{{:{clock_fmt}}}]"}
     elif icons_only:
         clock = {"format": "{:%H\n%M}", "format-alt": "{:%d\n%m}"}
@@ -291,7 +296,10 @@ def waybar_config(ctx: Ctx) -> dict:
         "layer": "top", "position": position, "spacing": 0,
         "modules-left": left, "modules-center": center, "modules-right": right,
         ws: {"disable-scroll": False, "all-outputs": False,
-             "format": "{name}" if not text_only else "[{name}]"},
+             "format": "{name}" if not text_only else "[{name}]"} | (
+            {"format": "{icon}", "format-icons": {str(i): r for i, r in enumerate(
+                ["", "I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X"]) if i} | {"default": "†"}}
+            if lay == "cathedral" else {}),
         "sway/mode": {"format": "{}" if not text_only else "<{}>"},
         "sway/window": {"max-length": 50, "icon": False,
                         "format": "{}" if not text_only else ":: {}"},
@@ -346,7 +354,8 @@ def waybar_config(ctx: Ctx) -> dict:
         "mpris": {"format": f(I["music"], "{title}", "play"), "format-paused": f(I["music"], "⏸ {title}", "pause"),
                   "max-length": 40},
         "tray": {"spacing": 10, "icon-size": 16},
-        "custom/power": {"format": "[off]" if text_only else I["power"], "tooltip-format": "Power menu",
+        "custom/power": {"format": "[off]" if text_only else ("❦" if lay == "cathedral" else I["power"]),
+                         "tooltip-format": "Power menu",
                          "on-click": f"{LAUNCHER} power"},
     }
     if position == "left":
@@ -644,7 +653,10 @@ def wallpaper(ctx: Ctx, w: Writer) -> None:
         w.res.notes.append(f"Wallpaper {p} not found – using the theme wallpaper")
     svg = paths.GEN_DIR / "wallpaper.svg"
     png = paths.GEN_DIR / "wallpaper.png"
-    content = tpl(f"wallpaper-{ctx.theme.wallpaper_style}.svg.j2", ctx.as_dict())
+    from . import wallart
+    style = ctx.theme.wallpaper_style
+    content = (wallart.ART[style](ctx.c) if style in wallart.ART
+               else tpl(f"wallpaper-{style}.svg.j2", ctx.as_dict()))
     changed = not svg.exists() or svg.read_text() != content or not png.exists()
     if not w.dry:
         svg.parent.mkdir(parents=True, exist_ok=True)

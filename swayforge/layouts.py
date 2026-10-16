@@ -33,6 +33,10 @@ LAYOUTS: dict[str, Layout] = {l.id: l for l in [
            "         ╰───╯ ╰───╯ ╰───╯"),
     Layout("wired", "Wired (hacker)", "Text only, brackets, no icons, seconds ticking", "top",
            "[01][02][03] :: kitty          [cpu 12%][mem 40%][net up][vol 40%] [21:30:07] [off]"),
+    Layout("cathedral", "Cathedral (gothic)",
+           "Ornamented top bar: roman-numeral workspaces, crosses around the clock, framed menus", "top",
+           "═╡ I  II  III ╞═══════════  ✠ 21:30 ✠  ═══════════╡ ♪ 40  ⇅  ❦ ⏻ ╞═\n"
+           "           ¨¨¨                    ˘˘˘˘˘˘˘                           "),
     Layout("minimal", "Minimal", "Only workspaces, clock, tray and power", "top",
            "                    1  2  3          21:30          ▤  ⏻"),
     Layout("sidebar", "Sidebar", "Vertical icon bar on the left", "left",

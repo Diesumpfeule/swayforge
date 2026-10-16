@@ -417,11 +417,44 @@ def m_wired(c: Canvas):
     c.write(c.cols - 13, 26, "connected_")
 
 
+def m_rosewindow(c: Canvas):
+    """Gothic rose window: stone ring, 12 lancet petals, foils, a hub – under a pointed arch."""
+    cx, cy, R = c.cols / 2, 16, 13
+    # pointed arch frame around it
+    arch = c.mask(lambda d, k: (d.rectangle([(cx - 17) * k.u, 15 * k.u, (cx + 17) * k.u, 31 * k.u], fill=255),
+                                d.pieslice([(cx - 17 - 17) * k.u, (15 - 17) * k.u, (cx + 17) * k.u, (15 + 17) * k.u],
+                                           270, 360, fill=255),
+                                d.pieslice([(cx - 17) * k.u, (15 - 17) * k.u, (cx + 17 + 17) * k.u, (15 + 17) * k.u],
+                                           180, 270, fill=255)))
+    inner = c.mask(lambda d, k: (d.rectangle([(cx - 15) * k.u, 15 * k.u, (cx + 15) * k.u, 31 * k.u], fill=255),
+                                 d.pieslice([(cx - 15 - 15) * k.u, (15 - 15) * k.u, (cx + 15) * k.u, (15 + 15) * k.u],
+                                            270, 360, fill=255),
+                                 d.pieslice([(cx - 15) * k.u, (15 - 15) * k.u, (cx + 15 + 15) * k.u, (15 + 15) * k.u],
+                                            180, 270, fill=255)))
+    c.add(arch & ~inner, 0.85, round_=0.9)
+    c.cut(inner)                                                   # open sky behind the tracery
+    ring = c.ellipse(cx, cy, R, R) & ~c.ellipse(cx, cy, R - 1.6, R - 1.6)
+    c.add(ring, 1.0, z=1.0, round_=0.9)
+    for i in range(12):
+        a = math.tau * i / 12
+        x1, y1 = cx + math.cos(a) * 3.2, cy + math.sin(a) * 3.2
+        x2, y2 = cx + math.cos(a) * (R - 1.4), cy + math.sin(a) * (R - 1.4)
+        c.add(c.line([(x1, y1), (x2, y2)], 0.55), 0.9, z=0.8, round_=0.3)          # tracery spokes
+        mx, my = cx + math.cos(a + math.tau / 24) * (R - 3.6), cy + math.sin(a + math.tau / 24) * (R - 3.6)
+        c.add(c.ellipse(mx, my, 1.25, 1.25) & ~c.ellipse(mx, my, 0.6, 0.6), 1.0, z=0.9, round_=0.4)
+        gx, gy = cx + math.cos(a + math.tau / 24) * (R - 7.5), cy + math.sin(a + math.tau / 24) * (R - 7.5)
+        c.paint(c.ellipse(gx, gy, 1.5, 1.5), 0.55 if i % 2 else 0.35)               # stained glass
+    hub = c.ellipse(cx, cy, 3.4, 3.4)
+    c.add(hub & ~c.ellipse(cx, cy, 1.6, 1.6), 1.0, z=1.2, round_=0.8)
+    c.paint(c.ellipse(cx, cy, 1.4, 1.4), 1.0)
+    c.shine(c.ellipse(cx, cy, 1.4, 1.4), 0.4, 1.5)
+
+
 MOTIFS = {   # name: (draw, design cols, design rows, output scale)
     "forge": (m_forge, 40, 15, 1.0), "anvil": (m_anvil, 40, 14, 1.0), "bat": (m_bat, 40, 12, 1.0),
     "moon": (m_moon, 38, 15, 1.05), "rose": (m_rose, 30, 20, 1.2), "skull": (m_skull, 34, 14, 1.15),
     "lantern": (m_lantern, 26, 14, 1.4), "crt": (m_crt, 38, 14, 1.0), "terminal": (m_terminal, 38, 13, 1.0),
-    "gamepad": (m_gamepad, 40, 14, 1.05), "cyberdeck": (m_cyberdeck, 40, 13, 1.0), "wired": (m_wired, 40, 15, 1.0),
+    "gamepad": (m_gamepad, 40, 14, 1.05), "rosewindow": (m_rosewindow, 36, 16, 1.1), "cyberdeck": (m_cyberdeck, 40, 13, 1.0), "wired": (m_wired, 40, 15, 1.0),
 }
 
 

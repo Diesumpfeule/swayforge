@@ -100,6 +100,50 @@ element selected.normal {
     text-color: @fg;
 }
 
+{% elif layout == "cathedral" %}
+/* ── Cathedral: a framed book of hours – double frame, ornament header, serif ── */
+* { font: "DejaVu Serif {{ s.theme.font_size + 1 }}"; }
+window {
+    width: 560px;
+    background-color: {{ c.crust }};
+    border: 3px;
+    border-color: {{ c.accent }};
+    padding: 5px;
+}
+mainbox {
+    border: 1px;
+    border-color: {{ rgba(c.text, 0.35) }};
+    padding: 14px 18px;
+    spacing: 10px;
+    children: [ textbox-orn, inputbar, listview, textbox-foot ];
+    background-color: {{ c.base }};
+}
+textbox-orn {
+    expand: false; horizontal-align: 0.5;
+    content: "❦  ─────  ✠  ─────  ❦";
+    text-color: {{ c.accent }};
+}
+textbox-foot {
+    expand: false; horizontal-align: 0.5;
+    content: "· · ·";
+    text-color: {{ c.overlay }};
+}
+inputbar {
+    border: 0 0 1px 0; border-color: {{ rgba(c.text, 0.25) }};
+    padding: 4px 2px 8px; spacing: 10px;
+    children: [ prompt, entry ];
+}
+prompt { text-color: @accent; }
+entry  { placeholder: "seek …"; placeholder-color: @fg-dim; }
+listview { lines: 10; columns: 1; spacing: 2px; fixed-height: false; scrollbar: false; }
+element { padding: 6px 10px; spacing: 12px; }
+element normal.normal, element alternate.normal { text-color: {{ c.subtext }}; }
+element selected.normal {
+    background-color: {{ rgba(c.accent, 0.22) }};
+    border: 0 0 0 3px; border-color: @accent;
+    text-color: {{ c.text }};
+}
+
 {% elif layout == "wired" %}
 /* ── Wired: a terminal prompt ────────────────────────────────────── */
 window {

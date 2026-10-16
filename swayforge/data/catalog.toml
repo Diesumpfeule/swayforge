@@ -777,7 +777,7 @@ label = "Own tools"
   label = "cs2translate (CS2 chat translator)"
   desc = "Live chat translation overlay in your theme – starts and stops with CS2 (launch option -condebug)"
   default = true
-  dnf = ["python3-tkinter"]
+  dnf = ["python3-tkinter", "gtk-layer-shell", "python3-gobject", "python3-cairo"]
   post = ["bash {app}/extras/cs2/install.sh"]
 
 # Packages offered for clean-up – only shown when installed.

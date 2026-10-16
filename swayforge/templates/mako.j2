@@ -3,11 +3,13 @@ font={{ font }} {{ s.theme.font_size }}
 background-color={{ (bv.face if layout == 'win98' else c.crust if layout == 'wired' else c.base) }}ee
 {% if layout == 'wired' %}
 format=<b>// %s</b>\n%b
+{% elif layout == 'cathedral' %}
+format=<span color="{{ c.accent }}">✠</span>  <b>%s</b>\n%b
 {% endif %}
 text-color={{ c.text }}
 border-color={{ bv.hi if layout == 'win98' else c.accent }}
 progress-color=over {{ c.surface2 }}
-border-size={{ 1 if layout in ('wired', 'win7') else 2 }}
+border-size={{ 1 if layout in ('wired', 'win7') else 3 if layout == 'cathedral' else 2 }}
 border-radius={{ 6 if layout == 'win7' else s.look.radius }}
 padding=12,16
 margin={{ s.look.gaps_inner + s.look.gaps_outer }}

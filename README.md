@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <b>Fedora Sway</b> · AMD · keyboard-first · 15 themes × 7 layouts · 93 apps · reset-friendly
+  <b>Fedora Sway</b> · AMD · keyboard-first · 16 themes × 8 layouts · 93 apps · reset-friendly
 </p>
 
 > ⚠ **Proof of concept, written by Claude (AI) – no warranty, use at your own risk.** See [Disclaimer](#disclaimer).
@@ -17,7 +17,7 @@ gaming, IT tools, keyboard-driven use and **frequent resets**.
   network, keyboard/mouse, terminal & prompt, shortcuts, power, boot & login, security,
   installed apps, cleanup & drive wiping, files.
 - **Tiling only** by default – no floating windows, no tabs or stacking; workspaces do the rest.
-- **15 colour themes × 7 layouts** – every theme recolours Sway, Waybar, Rofi, kitty/Alacritty,
+- **16 colour themes × 8 layouts** – every theme recolours Sway, Waybar, Rofi, kitty/Alacritty,
   Spaceship, fastfetch, GTK apps, mako, swaylock, btop, cava, MangoHud, the boot screen and the
   login screen. One Nerd Font everywhere.
 - **Your tweaks always win** – every generated file has a companion file that belongs to you.
@@ -126,6 +126,7 @@ swayforge also switches dnf to **Enter = yes** (`[Y/n]` instead of `[y/N]`). Tha
 | **Type O** | gothic black & deep green · pointed-arch wallpaper |
 | **Phosphor** / **Amber** | green / amber CRT · Terminus font · BIOS wallpaper |
 | **Wired** | full-on hacker: black, red, static, network nodes · Wired layout |
+| **Requiem** | gothic cathedral: black, bone white, crimson, a touch of deep green · Cathedral layout · rose-window wallpaper with stained glass, lancet windows, candles and a wrought-iron fence |
 
 Retro themes bring their own style (square corners, retro font, layout). Switch to another theme
 and your own values come back. **Make your own:** `Theme → Edit colours → Save as my theme`.
@@ -152,6 +153,7 @@ theme*, or use `--save "NAME"` on the command line.
 | **Wired** | text only, `[brackets]`, no icons, seconds ticking, terminal-style launcher |
 | Minimal | only workspaces, clock, tray, power |
 | Sidebar | vertical icon bar on the left |
+| Cathedral | gothic: stone bar with a crimson double rule, roman-numeral workspaces, ✠ around the clock, framed launcher and notifications |
 
 Any layout works with any theme. `Super+Shift+B` cycles bar layouts, `Super+Shift+T` cycles themes.
 
@@ -186,7 +188,7 @@ Everywhere it appears, dense characters take the accent colour and light ones a 
 ```
 
 Motifs: `forge` · `anvil` · `bat` · `moon` · `rose` · `skull` · `lantern` · `crt` · `terminal` ·
-`gamepad` · `cyberdeck` · `wired` – or your own `~/.config/swayforge/ascii/NAME.txt`.
+`gamepad` · `cyberdeck` · `wired` · `rosewindow` – or your own `~/.config/swayforge/ascii/NAME.txt`.
 `scripts/make_art.py` regenerates them (needs numpy, scipy, Pillow – only for development).
 
 **Animated:** a glint of light sweeps across the art every few seconds and lone sparks twinkle. You
