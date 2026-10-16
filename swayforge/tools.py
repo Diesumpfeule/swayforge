@@ -64,8 +64,8 @@ def keys() -> None:
     for _aid, label, key, _cmd in settings.keybinds(s):
         if key.strip():
             rows.append(f"{key.replace('$mod', 'Super'):<26} {label}")
-    rows += [f"{'Super+Arrows':<26} Move focus",
-             f"{'Super+Shift+Arrows':<26} Move window",
+    rows += [f"{'Super+h/j/k/l or arrows':<26} Move focus",
+             f"{'Super+Shift+h/j/k/l/arrows':<26} Move window",
              f"{'Super+1…0':<26} Switch workspace",
              f"{'Super+Shift+1…0':<26} Move window to workspace",
              f"{'Super+mouse drag':<26} Move (left) / resize (right) window"]

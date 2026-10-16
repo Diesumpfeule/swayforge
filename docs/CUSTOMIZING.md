@@ -39,6 +39,8 @@ bindsym $mod+p exec keepassxc
 assign [class="steam"] workspace number 9
 for_window [app_id="mpv"] floating enable
 ```
+Tiling only is the default (*Appearance → Tiling only*). Rules in `custom.conf` come later in the
+config, so a single `floating enable` there still works for that one app.
 
 **Autostart something** → settings app → *Apps & shortcuts → Autostart*, one command per line.
 

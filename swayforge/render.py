@@ -178,12 +178,13 @@ class Ctx:
             for k, v in repl.items():
                 cmd = cmd.replace(k, v)
             keys.append((label, key, cmd))
+        used_keys = {k for _l, k, _c in keys}
         sections = [x for x in self.s["prompt"]["sections"] if x in settings.PROMPT_SECTIONS]
         if "char" not in sections:
             sections.append("char")
         return dict(
             s=self.s, si=self.si, c=self.c, ansi=self.theme.ansi, dark=self.theme.dark,
-            theme=self.theme, keys=keys, term_cmd=terminal_cmd(self.s), sf=LAUNCHER,
+            theme=self.theme, keys=keys, used_keys=used_keys, term_cmd=terminal_cmd(self.s), sf=LAUNCHER,
             wallpaper_kind=self.wallpaper_kind, wallpaper_path=self.wallpaper_path,
             outputs=sorted(self.s["display"]["outputs"].items()),
             custom_conf=str(paths.SWAY_CUSTOM), gen_dir=str(paths.GEN_DIR),
@@ -402,7 +403,7 @@ def palette_json(ctx: Ctx) -> str:
     """The active look as plain data – wolfforge (LibreWolf) and other tools read this."""
     return json.dumps({
         "theme": ctx.theme.id, "label": ctx.theme.label, "dark": ctx.theme.dark, "colors": ctx.c,
-        "ansi": ctx.theme.ansi, "font": ctx.s["theme"]["font"], "font_size": ctx.s["theme"]["font_size"],
+        "ansi": ctx.theme.ansi, "bevel": bevel(ctx.c), "font": ctx.s["theme"]["font"], "font_size": ctx.s["theme"]["font_size"],
         "radius": ctx.s["look"]["radius"], "layout": ctx.s["bar"]["layout"], "art": ctx.art_name,
         "art_lines": asc.art(ctx.art_name),
     }, indent=2, ensure_ascii=False) + "\n"

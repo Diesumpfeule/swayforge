@@ -53,11 +53,11 @@ def two_tone(lines: list[str], face: str, shade: str) -> Text:
     return txt
 
 
-def hero_text(theme_id: str, accent: str = "", word: str = "swayforge") -> Text:
-    from ..ascii import shadow
+def hero_text(theme_id: str, accent: str = "", word: str = "swayforge", width: int = 78) -> Text:
+    from ..ascii import best_banner
     from ..render import mix
     c = themes.get(theme_id).with_accent(accent)
-    return two_tone(shadow(word), f"bold {c['accent']}", mix(c["accent"], c["base"], 0.5))
+    return two_tone(best_banner(word, width), f"bold {c['accent']}", mix(c["accent"], c["base"], 0.5))
 
 
 def swatch(t: themes.Theme, width: int = 3) -> Text:

@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <b>Fedora Sway</b> · AMD · keyboard-first · 15 themes × 7 layouts · 91 apps · reset-friendly
+  <b>Fedora Sway</b> · AMD · keyboard-first · 15 themes × 7 layouts · 93 apps · reset-friendly
 </p>
 
 > ⚠ **Proof of concept, written by Claude (AI) – no warranty, use at your own risk.** See [Disclaimer](#disclaimer).
@@ -14,7 +14,9 @@ gaming, IT tools, keyboard-driven use and **frequent resets**.
 
 - **Installer** – pick apps, clean-up, theme and layout, run once, reboot.
 - **Settings** (`Super+I`) – theme, layout, appearance, bar, displays, audio, Bluetooth,
-  network, keyboard/mouse, terminal & prompt, shortcuts, power, boot & login, security, files.
+  network, keyboard/mouse, terminal & prompt, shortcuts, power, boot & login, security,
+  installed apps, cleanup & drive wiping, files.
+- **Tiling only** by default – no floating windows, no tabs or stacking; workspaces do the rest.
 - **15 colour themes × 7 layouts** – every theme recolours Sway, Waybar, Rofi, kitty/Alacritty,
   Spaceship, fastfetch, GTK apps, mako, swaylock, btop, cava, MangoHud, the boot screen and the
   login screen. One Nerd Font everywhere.
@@ -135,24 +137,63 @@ and your own values come back. **Make your own:** `Theme → Edit colours → Sa
 | Minimal | only workspaces, clock, tray, power |
 | Sidebar | vertical icon bar on the left |
 
-Any layout works with any theme. `Super+Shift+L` cycles layouts, `Super+Shift+T` cycles themes.
+Any layout works with any theme. `Super+Shift+B` cycles bar layouts, `Super+Shift+T` cycles themes.
 
 ## ASCII art
 
-A 3D shadow font for banners (settings, installer, boot screen, power menu) and shaded motifs
-for fastfetch, the login and the boot screen – faces in the accent colour, shading darker:
+Classic shaded ASCII art: each motif is drawn from simple shapes, lit from the top left and
+turned into characters from a density ramp – dense letters for lit surfaces, dots and commas for
+shadows. Banners (installer, settings, boot screen, power menu, start page) use shaded capitals.
+Everywhere it appears, dense characters take the accent colour and light ones a darker shade.
 
 ```
-██████╗   ██╗   ██╗   ██████╗ ██████╗
-██╔═══██╗ ██║   ██║ ██╔═════╝ ╚═██╔═╝
-██████╔═╝ ██║   ██║ ╚═████╗     ██║
-██╔═██║   ██║   ██║   ╚═══██╗   ██║
-██║ ╚═██╗ ╚═████╔═╝ ██████╔═╝   ██║
-╚═╝   ╚═╝   ╚═══╝   ╚═════╝     ╚═╝
+@@@@@@-  :*@@@@@= @@@@@@+   :+@@@@@* @@@@@@-
+@@=...  .@@=   @@ @@= -@@  .@@=    : @@=...
+%%%%%%: -%%    =% %%%*%%-  -%%  -*** %%%%%%:
+##=     .##=   ## ##=:+##  .##=   ## ##=
+**=      :******= **=  +**  :+****** ******+
 ```
 
-Motifs: `forge` · `crt` · `cyberdeck` · `gamepad` · `bat` · `lantern` · `rose` · `moon` ·
-`wired` · `skull` · `terminal` · `anvil` – or your own `~/.config/swayforge/ascii/NAME.txt`.
+```
+      '
+                wUvxkr        .
+  o#adqmwqQ     hkdYu)     ZqO0mmOcf
+0h*ahdpdkkkbOCY QLdxC/-OqbbdmZmmO0OQu{
+ jb*ohbdbhhkpqppokQXu(bpmwmmOmwmmOL|!
+ QamUZdpmwqqppb#@8Mbx_cZmO0OQ000Xnc|!
+ n]! JkkqmkkwpbaW*awx+(mO0ZLXJJX~ ~-!
+     cOr?-UqqdULbbkQ{~[Xm0U[!}f/l
+      -   )CL}!|X00j+~!{vU}l   i
+           1+   )f[~~!   ]!
+   *             ]r[l
+                                  +
+```
+
+Motifs: `forge` · `anvil` · `bat` · `moon` · `rose` · `skull` · `lantern` · `crt` · `terminal` ·
+`gamepad` · `cyberdeck` · `wired` – or your own `~/.config/swayforge/ascii/NAME.txt`.
+`scripts/make_art.py` regenerates them (needs numpy, scipy, Pillow – only for development).
+
+The installer opens with a short animation (about 1.5 s): the motif ignites out of sparks, then the
+name is forged left to right. Any key skips it; `SWAYFORGE_NO_INTRO=1` turns it off.
+
+## Installed apps, cleanup & drives
+
+- **Settings → Installed apps** – everything installed, grouped like the installer, plus
+  **Other** for what you installed yourself (dnf or Flatpak). Shows source (Fedora, RPM Fusion,
+  COPR, Flatpak, vendor repo) and size; *Uninstall* opens a terminal where dnf/flatpak ask once more.
+  The Sway base can't be removed from here.
+- **Settings → Cleanup & drives** – frees space with plain, well-known commands, each with its size:
+  package cache, unneeded packages, old logs (keeps 2 weeks), crash dumps, trash, thumbnails,
+  unused Flatpak runtimes. Plus ncdu and BleachBit if installed (installer → System → Cleanup tools).
+- **Drive wiper** – for USB sticks, SD cards and external SSDs. Only drives that are removable and
+  hold nothing of the running system are listed, so internal disks never show up.
+  - *Quick*: new partition table and empty file system in seconds.
+  - *Secure*: zero-fill every byte, or discard/TRIM all blocks on SSDs and SD cards.
+  - Then format as exFAT, FAT32, ext4 or leave it empty.
+
+  You type the device name to confirm. The terminal re-checks the drive (size and removability)
+  right before it starts. `swayforge wipe` does the same from the command line. Note that flash
+  wear levelling can keep stray old blocks – for secrets, use encryption from the start.
 
 ## Security
 
@@ -175,18 +216,28 @@ read the report before acting.
 
 | Key | Action |
 |---|---|
+| `Super+Enter` | terminal |
+| `Super+R` | app launcher + run (Rofi combi) |
+| `Super+W` / `Super+D` | browser / file manager |
+| `Super+Q` / `Super+F` | close window / fullscreen |
+| `Super+H J K L` or arrows / `+Shift` | move focus / move window |
+| `Super+1…0` / `+Shift` | workspace / move window to workspace |
+| `Super+A` | focus parent container |
+| `Super+Shift+C` / `Super+Shift+E` | reload Sway / exit (asks first) |
 | `Super+I` | swayforge settings |
 | `Super+F1` | show all shortcuts |
-| `Super+D` | app launcher (Rofi) |
-| `Super+Enter` | terminal |
 | `Ctrl+Shift+Esc` | task manager (btop) – also a bar button |
 | `Super+Shift+G` | gaming mode on/off – also a bar button |
 | `Super+Shift+A` / `Super+Shift+I` | audio / network settings |
 | `Super+Escape` | power menu (also the bar's ⏻ button) |
 | `Super+V` | clipboard history |
 | `Super+Shift+S` | screenshot area and edit · `Print` = area to clipboard |
-| `Super+Shift+T` / `Super+Shift+L` | next theme / next layout |
-| `Super+Arrows` / `+Shift` | move focus / move window |
+| `Super+Shift+T` / `Super+Shift+B` | next theme / next bar layout |
+
+**Tiling only (default):** every window tiles – dialogs too – and there are no floating, tabbed
+or stacked layouts; use workspaces instead. Splits, resize mode, floating, tabs and the scratchpad
+are still in *Settings → Shortcuts* without a key – give them one if you want them, or switch
+*Appearance → Tiling only* off.
 
 **Bar:** click speaker/Bluetooth/network → matching settings page; right-click = mute/advanced;
 scroll = volume. Volume and brightness keys show a themed on-screen display.
@@ -214,6 +265,7 @@ swayforge boot / login        install boot screen / login screen
 swayforge gamemode            toggle gaming mode
 swayforge scan [TARGET]       malware scan: downloads | home | drives | PATH
 swayforge audit rootkit|system  rkhunter + chkrootkit / Lynis
+swayforge wipe [DEVICE]       wipe + format a USB stick / SD card / external SSD (no DEVICE = list)
 swayforge import-sway FILE    take over an existing Sway config
 swayforge export [FILE]       back up;  swayforge restore FILE
 ```
@@ -232,10 +284,12 @@ swayforge/
   templates/*.j2           config templates (sway, waybar, rofi, kitty, …)
   render.py                turns settings + theme + layout into config files
   layouts.py               bar/UI layouts
-  ascii.py                 block + 3D shadow font, ASCII motifs
-scripts/make_banner.py     regenerates docs/img/banner.svg
+  ascii.py                 shaded banner font + ASCII motifs (data/art/)
+  apps.py / cleanup.py     installed-apps overview, cleanup, drive wiper
   boot.py                  Plymouth boot screens + tuigreet login
   tui/                     the installer and settings apps (Textual)
+scripts/make_art.py        regenerates the ASCII art (dev only)
+scripts/make_banner.py     regenerates docs/img/banner.svg
 ```
 
 ## CS2 chat translator

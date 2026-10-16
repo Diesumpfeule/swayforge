@@ -9,6 +9,7 @@
   swayforge boot               install the boot screen (Plymouth)
   swayforge login              install the tuigreet login screen
   swayforge import-sway FILE   take over an existing Sway config into custom.conf
+  swayforge wipe DEVICE        wipe + format a USB stick / SD card / external SSD (asks first)
   swayforge export FILE        back up settings + your tweaks
   swayforge restore FILE       … and bring them back after a reset
 """
@@ -72,6 +73,13 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--quiet", action="store_true", help="no output, just a notification (for the timer)")
     p = sub.add_parser("audit", help="rootkit check (rkhunter, chkrootkit) or system audit (Lynis)")
     p.add_argument("what", choices=["rootkit", "system"], nargs="?", default="rootkit")
+    p = sub.add_parser("wipe", help="wipe + format a removable drive (USB, SD, external SSD)")
+    p.add_argument("device", nargs="?", help="e.g. sdb or mmcblk0 – without it: list the drives")
+    p.add_argument("--mode", default="quick", choices=["quick", "zero", "discard"])
+    p.add_argument("--fs", default="exfat", choices=["exfat", "vfat", "ext4", "none"])
+    p.add_argument("--label", default="USB")
+    p.add_argument("--size", type=int, default=0, help=argparse.SUPPRESS)
+    p.add_argument("--confirm", default="", help=argparse.SUPPRESS)
     p = sub.add_parser("shot", help="screenshot")
     p.add_argument("mode", choices=["area", "output", "edit"], nargs="?", default="area")
 
@@ -141,6 +149,15 @@ def main(argv: list[str] | None = None) -> int:
         from . import security, settings
         q = settings.load()["security"]["quarantine"] and not a.no_quarantine
         return security.scan(a.target, quarantine=q, quiet=a.quiet)
+    if a.cmd == "wipe":
+        from . import cleanup
+        if not a.device:
+            drives = cleanup.wipeable_drives()
+            print("\n".join(cleanup.drive_label(d) for d in drives) or "No removable drive found.")
+            return 0
+        rc = cleanup.wipe_main(a.device, a.mode, a.fs, a.label, a.size, a.confirm)
+        return rc
+
     if a.cmd == "audit":
         from . import security
         rep = security.report_path("rootkit" if a.what == "rootkit" else "audit")

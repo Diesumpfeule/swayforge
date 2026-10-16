@@ -21,6 +21,7 @@ from .. import boot, layouts, paths, render, settings, themes
 from ..system import detect, have, run
 from .common import (BASE_CSS, Field, coerce, field_row, hero_text, path_from_wid, section, swatch,
                      two_tone, use_layout, use_theme)
+from .maintenance import AppsPanel, CleanupPanel
 from .panels import AudioPanel, BluetoothPanel, NetworkPanel
 
 ON_OFF = [("always", "always"), ("only via SSH/root", "needed"), ("never", "false")]
@@ -40,6 +41,8 @@ PAGES: list[tuple[str, str]] = [
     ("power", "\U000f06a5  Power & lock"),
     ("boot", "\U000f07b7  Boot & login"),
     ("security", "\U000f0483  Security"),
+    ("apps", "\U000f03d6  Installed apps"),
+    ("cleanup", "\U000f00e2  Cleanup & drives"),
     ("system", "\U000f0493  System & files"),
 ]
 
@@ -55,6 +58,8 @@ FIELDS: dict[str, list[Field | str]] = {
         Field("look.gaps_outer", "Gap to the screen edge", "int"),
         Field("look.border", "Border width", "int", help="0 = no border at all"),
         Field("look.radius", "Corner radius", "int", help="0 = square · 4 = slight · 10 = round"),
+        Field("look.tiling_only", "Tiling only", "bool",
+              help="every window tiles, even dialogs · no floating, tabs or stacking"),
         Field("look.title_bars", "Window title bars", "bool"),
         Field("look.gtk_buttons", "Close buttons in GTK apps", "bool", help="off = cleaner, keyboard-only"),
         Field("look.smart_gaps", "No gaps with a single window", "bool"),
@@ -96,7 +101,7 @@ FIELDS: dict[str, list[Field | str]] = {
     ],
     "input": [
         "Keyboard",
-        Field("input.kb_layout", "Layout", help="ch, de, us … several: ch,us"),
+        Field("input.kb_layout", "Layout", help="us, de, ch … several: us,de"),
         Field("input.kb_variant", "Variant", help="empty = Swiss German, fr = Swiss French"),
         Field("input.kb_options", "Options", help="e.g. caps:escape or grp:alt_shift_toggle"),
         Field("input.numlock", "NumLock on at start", "bool"),
@@ -201,6 +206,19 @@ class SettingsApp(App):
     TITLE = "swayforge"
     SUB_TITLE = "Settings"
     CSS = BASE_CSS + """
+    #ap_table { height: 24; margin-bottom: 1; }
+    #ap_filter { width: 30; }
+    #ap_group { width: 28; }
+    #ap_sum { padding: 0; }
+    #cl_items { height: auto; }
+    .clrow { height: auto; }
+    .clcheck { width: 52; height: auto; border: none; background: transparent; padding: 0; }
+    .clcheck:focus { background: transparent; }
+    .clcheck > .toggle--button { color: $panel; background: $panel; }
+    .clcheck.-on > .toggle--button { color: $background; background: $accent; text-style: bold; }
+    .cldesc { width: 1fr; }
+    #wp_drive, #wp_mode, #wp_fs { width: 1fr; }
+    #wp_label { width: 20; }
     #hero { height: auto; margin-bottom: 1; }
     #hero_banner { width: auto; height: auto; margin: 1 0; }
     #hero_art { width: auto; margin-right: 4; }
@@ -277,6 +295,8 @@ class SettingsApp(App):
                 yield self.page_power()
                 yield self.page_boot()
                 yield self.page_security()
+                yield AppsPanel(id="page-apps", classes="page")
+                yield CleanupPanel(id="page-cleanup", classes="page")
                 yield self.page_system()
         yield Static("", id="statusbar")
         yield Footer()

@@ -419,7 +419,7 @@ def login_files(ctx: "Ctx") -> dict[str, str]:
     greetd = (f"# {MARK_LINE}\n[terminal]\nvt = 1\n\n[default_session]\n"
               f'command = "{cmd}"\nuser = "@GUSER@"\n')
     art = ctx.as_dict()["art"]
-    lines = art + [""] + asc.banner(banner_text(ctx), fill="#") + [""]
+    lines = art + [""] + asc.banner(banner_text(ctx), 5) + [""]
     if lg["greeting"].strip():
         lines.append(lg["greeting"].strip())
     # tuigreet replaces \n, \s, \l … – keep backslashes in the art from turning into escapes

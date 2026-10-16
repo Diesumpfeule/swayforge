@@ -16,7 +16,8 @@ from .. import ascii as asc
 from .. import catalog as cat
 from .. import layouts, paths, plan, settings, themes
 from ..system import detect, installed_rpms
-from .common import BASE_CSS, hero_text, swatch, use_layout, use_theme
+from ..render import mix
+from .common import BASE_CSS, hero_text, swatch, two_tone, use_layout, use_theme
 
 
 class Nav(Horizontal):
@@ -50,6 +51,103 @@ class Step(Screen):
         raise NotImplementedError
 
 
+# ── 0. Intro animation ───────────────────────────────────────────────
+class Splash(Screen):
+    """~1.7 s: the forge heats up out of sparks, then the name is forged left to right.
+    Any key or click skips it; SWAYFORGE_NO_INTRO=1 turns it off."""
+    DURATION = 1.7
+    FPS = 30
+    CSS = """
+    Splash { align: center middle; background: $background; }
+    #splash { width: auto; height: auto; }
+    #skip { dock: bottom; width: 100%; text-align: center; color: $text-muted; height: 1; margin-bottom: 1; }
+    """
+
+    def compose(self) -> ComposeResult:
+        yield Static("", id="splash")
+        yield Static("press any key to skip", id="skip")
+
+    def on_mount(self) -> None:
+        import random
+        app = self.app
+        c = themes.get(app.s["theme"]["name"]).with_accent(app.s["theme"]["accent"])
+        self.col = {"face": f"bold {c['accent']}", "shade": mix(c["accent"], c["base"], 0.5),
+                    "art": c["accent2"], "artshade": mix(c["accent2"], c["base"], 0.55),
+                    "hot": f"bold {c['yellow']}", "spark": c["orange"]}
+        width = max(40, min(self.app.size.width - 4, 120))
+        self.art = asc.art("forge")
+        self.word = asc.best_banner("swayforge", width)
+        rnd = random.Random(7)
+        self.seed = {(r, x): rnd.random() for r, l in enumerate(self.art) for x in range(len(l))}
+        self.rnd = rnd
+        self.t = 0.0
+        self.done = False
+        self.timer = self.set_interval(1 / self.FPS, self.tick)
+        self.tick()
+
+    def frame(self, t: float):
+        from rich.text import Text
+        sh = asc.SHADE
+        out = Text(no_wrap=True)
+        aw = max(map(len, self.art), default=0)
+        ww = max(map(len, self.word), default=0)
+        width = max(aw, ww)
+        # forge motif: each character ignites at its own moment, glowing hot first
+        heat = min(t / 0.75, 1.0) * 1.2
+        for r, line in enumerate(self.art):
+            out.append(" " * ((width - aw) // 2))
+            for x, ch in enumerate(line):
+                if ch == " ":
+                    out.append(" ")
+                    continue
+                k = self.seed[(r, x)]
+                if heat >= k + 0.18:
+                    out.append(ch, style=self.col["artshade"] if ch in sh else self.col["art"])
+                elif heat >= k:
+                    out.append(self.rnd.choice("*+'.`"), style=self.col["hot"])
+                else:
+                    out.append(" ")
+            out.append("\n")
+        out.append("\n")
+        # the name: revealed left to right with a white-hot edge and sparks behind it
+        edge = (t - 0.45) / 0.9 * (ww + 6)
+        for line in self.word:
+            out.append(" " * ((width - ww) // 2))
+            for x, ch in enumerate(line):
+                if x < edge - 2:
+                    out.append(ch, style=self.col["shade"] if ch in sh else self.col["face"])
+                elif x < edge:
+                    out.append(ch if ch != " " else " ", style=self.col["hot"])
+                elif x < edge + 2 and self.rnd.random() < 0.25:
+                    out.append(self.rnd.choice("*'.`"), style=self.col["spark"])
+                else:
+                    out.append(" ")
+            out.append("\n")
+        return out
+
+    def tick(self) -> None:
+        if self.done:
+            return
+        self.t += 1 / self.FPS
+        self.query_one("#splash", Static).update(self.frame(self.t))
+        if self.t >= self.DURATION:
+            self.finish()
+
+    def finish(self) -> None:
+        if self.done:
+            return
+        self.done = True
+        self.timer.stop()
+        self.app.switch_screen(Welcome())
+
+    def on_key(self, event) -> None:
+        event.stop()
+        self.finish()
+
+    def on_click(self) -> None:
+        self.finish()
+
+
 # ── 1. Welcome ───────────────────────────────────────────────────────
 class Welcome(Step):
     def compose(self) -> ComposeResult:
@@ -70,8 +168,10 @@ class Welcome(Step):
             lines.append(f"{warn} Fedora {si.fedora} is too old – 41 or newer is expected.")
         prof = plan.Profile.load()
         with VerticalScroll(classes="page"):
-            yield Static(hero_text(self.app.s["theme"]["name"], self.app.s["theme"]["accent"]), id="w_banner")
-            yield Static("\n".join(asc.art("forge")), id="w_art", markup=False)
+            yield Static(hero_text(self.app.s["theme"]["name"], self.app.s["theme"]["accent"],
+                                   width=max(40, self.app.size.width - 8)), id="w_banner")
+            c = themes.get(self.app.s["theme"]["name"]).with_accent(self.app.s["theme"]["accent"])
+            yield Static(two_tone(asc.art("forge"), c["accent2"], mix(c["accent2"], c["base"], 0.55)), id="w_art")
             yield Static("Sets up Fedora Sway in one go: apps, drivers, theme, layout, bar, launcher, "
                          "terminal, prompt, boot and login screen. You choose, swayforge does the rest – "
                          "afterwards Super+I lets you change everything.", classes="hint")
@@ -244,7 +344,7 @@ class Look(Step):
         s["general"]["mod"] = self.query_one("#mod", Select).value
         s["bar"]["layout"] = self.query_one("#layout", Select).value
         s["shell"]["spaceship"] = self.query_one("#spaceship", Switch).value
-        s["input"]["kb_layout"] = self.query_one("#kb", Input).value.strip() or "ch"
+        s["input"]["kb_layout"] = self.query_one("#kb", Input).value.strip() or "us"
         self.app.push_screen(Summary())
 
 
@@ -415,7 +515,8 @@ class InstallerApp(App):
 
     def on_mount(self) -> None:
         use_theme(self, self.s["theme"]["name"], self.s["theme"]["accent"], self.s["bar"]["layout"])
-        self.push_screen(Welcome())
+        import os
+        self.push_screen(Welcome() if os.environ.get("SWAYFORGE_NO_INTRO") else Splash())
 
 
 def main() -> None:

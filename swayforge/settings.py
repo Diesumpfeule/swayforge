@@ -33,6 +33,7 @@ DEFAULTS: dict[str, Any] = {
         "gaps_outer": 4,
         "border": 2,
         "radius": 4,                  # bar/launcher/notifications; windows too with SwayFX (0 = square)
+        "tiling_only": True,          # every window tiles – no floating, no tabs/stacking
         "title_bars": False,
         "gtk_buttons": False,         # close/minimise buttons in GTK apps (keyboard users: off)
         "smart_gaps": True,
@@ -65,7 +66,7 @@ DEFAULTS: dict[str, Any] = {
         "date_format": "%a %d.%m.",
     },
     "input": {
-        "kb_layout": "ch",
+        "kb_layout": "us",
         "kb_variant": "",
         "kb_options": "",
         "numlock": True,
@@ -144,31 +145,27 @@ PROMPT_SECTIONS = ["time", "user", "dir", "host", "git", "package", "python", "v
 
 # (id, label, default key, command). {term} {browser} {files} {sf} {btop} {settings} are replaced.
 KEY_ACTIONS: list[tuple[str, str, str, str]] = [
+    # Defaults = the author's own long-time Sway shortcuts. Empty key = off (set one in the app).
     ("terminal", "Open terminal", "$mod+Return", "exec {term}"),
-    ("launcher", "App launcher (Rofi)", "$mod+d", "exec rofi -show drun"),
-    ("run", "Run a command", "$mod+Shift+d", "exec rofi -show run"),
+    ("launcher", "App launcher + run (Rofi)", "$mod+r",
+     "exec rofi -show combi -combi-modes drun#run -modes combi"),
+    ("run", "Run a command", "", "exec rofi -show run"),
     ("windows", "Find a window", "$mod+Shift+w", "exec rofi -show window"),
-    ("browser", "Browser", "$mod+b", "exec {browser}"),
-    ("files", "File manager", "$mod+e", "exec {files}"),
+    ("browser", "Browser", "$mod+w", "exec {browser}"),
+    ("files", "File manager", "$mod+d", "exec {files}"),
     ("settings", "swayforge settings", "$mod+i", "exec {settings}"),
     ("power", "Power menu", "$mod+Escape", "exec {sf} power"),
+    ("exit", "Exit Sway (asks first)", "$mod+Shift+e",
+     "exec swaynag -t warning -m 'Exit Sway? This ends your Wayland session.' -B 'Yes, exit' 'swaymsg exit'"),
     ("lock", "Lock screen", "$mod+Shift+x", "exec swaylock -f"),
     ("clipboard", "Clipboard history", "$mod+v", "exec {sf} clip"),
     ("keys", "Show all shortcuts", "$mod+F1", "exec {sf} keys"),
     ("kill", "Close window", "$mod+q", "kill"),
     ("fullscreen", "Fullscreen", "$mod+f", "fullscreen toggle"),
-    ("float", "Floating on/off", "$mod+Shift+space", "floating toggle"),
+    ("focus_parent", "Focus parent container", "$mod+a", "focus parent"),
     ("focus_mode", "Focus tiling/floating", "$mod+space", "focus mode_toggle"),
-    ("layout_stack", "Layout: stacked", "$mod+s", "layout stacking"),
-    ("layout_tab", "Layout: tabbed", "$mod+w", "layout tabbed"),
-    ("layout_split", "Layout: toggle split", "$mod+t", "layout toggle split"),
-    ("split_h", "Next window to the right", "$mod+h", "splith"),
-    ("split_v", "Next window below", "$mod+g", "splitv"),
-    ("resize", "Resize mode", "$mod+r", 'mode "resize"'),
     ("reload", "Reload Sway", "$mod+Shift+c", "reload"),
     ("ws_back", "Previous workspace", "$mod+Tab", "workspace back_and_forth"),
-    ("scratch_show", "Show scratchpad", "$mod+minus", "scratchpad show"),
-    ("scratch_move", "Move to scratchpad", "$mod+Shift+minus", "move scratchpad"),
     ("focus_out_l", "Focus left monitor", "$mod+Ctrl+Left", "focus output left"),
     ("focus_out_r", "Focus right monitor", "$mod+Ctrl+Right", "focus output right"),
     ("ws_to_out_l", "Workspace → left monitor", "$mod+Ctrl+Shift+Left", "move workspace to output left"),
@@ -179,11 +176,21 @@ KEY_ACTIONS: list[tuple[str, str, str, str]] = [
     ("notif_dismiss", "Dismiss notifications", "$mod+n", "exec makoctl dismiss --all"),
     ("notif_dnd", "Do not disturb on/off", "$mod+Shift+n", "exec makoctl mode -t do-not-disturb"),
     ("theme_next", "Next theme", "$mod+Shift+t", "exec {sf} theme --next"),
-    ("layout_next", "Next bar layout", "$mod+Shift+l", "exec {sf} layout --next"),
+    ("layout_next", "Next bar layout", "$mod+Shift+b", "exec {sf} layout --next"),
     ("taskmanager", "Task manager (btop)", "Ctrl+Shift+Escape", "exec {btop}"),
     ("gamemode", "Gaming mode on/off", "$mod+Shift+g", "exec {sf} gamemode"),
     ("audio", "Audio settings", "$mod+Shift+a", "exec {settings_page}audio"),
     ("network", "Network settings", "$mod+Shift+i", "exec {settings_page}network"),
+    # off by default – tiling + workspaces only. Give them a key if you ever want them.
+    ("split_h", "Next window to the right", "", "splith"),
+    ("split_v", "Next window below", "", "splitv"),
+    ("resize", "Resize mode (h/j/k/l or arrows)", "", 'mode "resize"'),
+    ("float", "Floating on/off", "", "floating toggle"),
+    ("layout_stack", "Layout: stacked", "", "layout stacking"),
+    ("layout_tab", "Layout: tabbed", "", "layout tabbed"),
+    ("layout_split", "Layout: toggle split", "", "layout toggle split"),
+    ("scratch_show", "Show scratchpad", "", "scratchpad show"),
+    ("scratch_move", "Move to scratchpad", "", "move scratchpad"),
 ]
 
 

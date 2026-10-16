@@ -108,15 +108,16 @@ focus_on_window_activation smart
 bindsym {{ key }} {{ cmd }}
 {% endfor %}
 
-# Move focus and windows with the arrow keys
-bindsym $mod+Left  focus left
-bindsym $mod+Down  focus down
-bindsym $mod+Up    focus up
-bindsym $mod+Right focus right
-bindsym $mod+Shift+Left  move left
-bindsym $mod+Shift+Down  move down
-bindsym $mod+Shift+Up    move up
-bindsym $mod+Shift+Right move right
+# Move focus and windows: vim keys (h j k l) and arrow keys
+{% for k, d in [("h", "left"), ("j", "down"), ("k", "up"), ("l", "right"),
+                ("Left", "left"), ("Down", "down"), ("Up", "up"), ("Right", "right")] %}
+{% if ("$mod+" ~ k) not in used_keys %}
+bindsym $mod+{{ k }} focus {{ d }}
+{% endif %}
+{% if ("$mod+Shift+" ~ k) not in used_keys %}
+bindsym $mod+Shift+{{ k }} move {{ d }}
+{% endif %}
+{% endfor %}
 
 # Workspaces
 {% for n in range(1, 11) %}
@@ -136,6 +137,10 @@ bindsym --locked XF86MonBrightnessUp exec {{ sf }} osd brightness +5
 bindsym --locked XF86MonBrightnessDown exec {{ sf }} osd brightness -5
 
 mode "resize" {
+    bindsym h resize shrink width 30px
+    bindsym j resize grow height 30px
+    bindsym k resize shrink height 30px
+    bindsym l resize grow width 30px
     bindsym Left  resize shrink width 30px
     bindsym Down  resize grow height 30px
     bindsym Up    resize shrink height 30px
@@ -145,6 +150,13 @@ mode "resize" {
 }
 
 # ── Window rules ────────────────────────────────────────────────
+{% if s.look.tiling_only %}
+# Tiling only: everything tiles – no floating windows, no tabbed/stacked containers.
+workspace_layout default
+for_window [all] floating disable
+# exception: the CS2 chat overlay has to sit on top of the fullscreen game
+for_window [title="^CS2 Chat"] floating enable, sticky enable, border none
+{% else %}
 for_window [window_role="pop-up"] floating enable
 for_window [window_role="dialog"] floating enable
 for_window [window_type="dialog"] floating enable
@@ -163,6 +175,7 @@ for_window [app_id="swappy"] floating enable
 for_window [title="(?:Open|Save) (?:File|Folder|As)"] floating enable
 for_window [title="Picture-in-Picture"] floating enable, sticky enable
 for_window [class="steam" title="^(?!Steam$).*"] floating enable
+{% endif %}
 for_window [class="steam_app_.*"] allow_tearing {{ "yes" if s.display.allow_tearing else "no" }}
 for_window [app_id="gamescope"] allow_tearing {{ "yes" if s.display.allow_tearing else "no" }}
 {% if s.power.inhibit_fullscreen %}

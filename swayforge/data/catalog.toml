@@ -101,6 +101,13 @@ label = "System"
   dnf = ["blueman", "bluez"]
   post = ["sudo systemctl enable --now bluetooth"]
 
+  [[group.items]]
+  id = "cleanup-tools"
+  label = "Cleanup tools (BleachBit, ncdu)"
+  desc = "BleachBit clears caches and app leftovers · ncdu shows what fills your disk – both in Settings → Cleanup"
+  default = false
+  dnf = ["bleachbit", "ncdu"]
+
 [[group]]
 id = "desktop"
 label = "Desktop"
@@ -115,7 +122,7 @@ label = "Desktop"
     "sway", "swaybg", "swayidle", "swaylock", "waybar", "rofi", "mako", "libnotify",
     "grim", "slurp", "swappy", "wl-clipboard", "cliphist", "brightnessctl", "playerctl",
     "pavucontrol", "pulseaudio-utils", "NetworkManager-tui", "network-manager-applet", "gammastep",
-    "xdg-desktop-portal-wlr", "xdg-desktop-portal-gtk", "lxqt-policykit", "wlr-randr", "xrandr",
+    "xdg-desktop-portal-wlr", "xdg-desktop-portal-gtk", "lxqt-policykit", "wlr-randr", "xrandr", "exfatprogs", "dosfstools",
     "papirus-icon-theme", "adw-gtk3-theme", "librsvg2", "librsvg2-tools",
     "google-noto-emoji-fonts", "jetbrains-mono-fonts-all", "fontconfig",
     "zsh", "zsh-autosuggestions", "zsh-syntax-highlighting", "fzf", "zoxide",
@@ -709,6 +716,13 @@ label = "USB & SD"
   desc = "Partition, format, resize drives"
   default = true
   dnf = ["gparted"]
+
+  [[group.items]]
+  id = "nwipe"
+  label = "Drive wiping (nwipe)"
+  desc = "Securely erase whole drives (DBAN-style) – Settings → Cleanup & drives has a safe quick/secure wipe too"
+  default = false
+  dnf = ["nwipe"]
 
 [[group]]
 id = "maker"
