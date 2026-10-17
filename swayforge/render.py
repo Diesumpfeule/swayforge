@@ -652,7 +652,9 @@ def wallpaper(ctx: Ctx, w: Writer) -> None:
             return
         w.res.notes.append(f"Wallpaper {p} not found – using the theme wallpaper")
     svg = paths.GEN_DIR / "wallpaper.svg"
-    png = paths.GEN_DIR / "wallpaper.png"
+    # the rendered picture lives in the wallpaper folder (visible, pickable, yours to keep),
+    # one file per theme; only the SVG source stays in the generated folder
+    png = paths.WALLPAPER_DIR / f"swayforge-{ctx.theme.id}.png"
     from . import wallart
     style = ctx.theme.wallpaper_style
     content = (wallart.ART[style](ctx.c) if style in wallart.ART
@@ -661,6 +663,7 @@ def wallpaper(ctx: Ctx, w: Writer) -> None:
     if not w.dry:
         svg.parent.mkdir(parents=True, exist_ok=True)
         svg.write_text(content)
+        png.parent.mkdir(parents=True, exist_ok=True)
         if changed and have("rsvg-convert"):
             run(["rsvg-convert", "-w", "3840", "-h", "2160", "-o", str(png), str(svg)])
     ctx.wallpaper_kind = "image"

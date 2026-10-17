@@ -82,7 +82,7 @@ download from nerdfonts.com into `~/.local/share/fonts/` and run `fc-cache -f`.
 buttons in GTK apps.
 
 **Wallpaper** → *Theme → Wallpaper*: theme motif, solid colour or any image from
-`~/Pictures/Wallpapers`.
+`~/Pictures/Wallpapers` (the drawn theme motifs end up there as `swayforge-<theme>.png`).
 
 **Monitors** → *Displays* (inside Sway). Settings are stored per monitor model, so they survive
 plugging into another port.

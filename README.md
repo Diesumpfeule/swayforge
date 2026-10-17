@@ -134,6 +134,7 @@ and your own values come back. **Make your own:** `Theme → Edit colours → Sa
 
 **Wallpapers:** drop images into `~/Pictures/Wallpapers` (*Theme → Open wallpaper folder*, drag
 them in, press ↻) and pick one from the list. A localized Pictures folder (e.g. `~/Bilder`) works too.
+The theme motifs swayforge draws itself are saved there as `swayforge-<theme>.png` – pick, copy or delete them like any other wallpaper.
 
 **Theme from wallpaper:** `Theme → Wallpaper → Theme from wallpaper` (or
 `swayforge theme --from-wallpaper IMAGE`) sets the image as wallpaper and builds a whole theme from
