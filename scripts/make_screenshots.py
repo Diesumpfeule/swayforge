@@ -1,6 +1,6 @@
 """Renders README screenshots in a headless Sway with a throw-away HOME (your desktop is untouched).
 
-    python3 scripts/make_screenshots.py requiem:cathedral catppuccin-mocha:win11 ...
+    python3 scripts/make_screenshots.py requiem:cathedral:760x380:"60 640" catppuccin-mocha:win11 ...
 
 Output: docs/img/<theme>_<layout>.png (1920x1080). Needs sway, waybar, kitty, grim, swaybg.
 """
@@ -44,7 +44,7 @@ exec sleep 600
 """
 
 
-def shot(theme: str, layout: str) -> Path:
+def shot(theme: str, layout: str, size: str = "1250x860", pos: str = "center") -> Path:
     tmp = Path(tempfile.mkdtemp(prefix="swayforge-shot-"))
     env = dict(os.environ, HOME=str(tmp), XDG_CONFIG_HOME=str(tmp / ".config"),
                XDG_DATA_HOME=str(tmp / ".local/share"), XDG_STATE_HOME=str(tmp / ".local/state"),
@@ -77,7 +77,7 @@ default_border pixel 2
 gaps inner 8
 gaps outer 8
 font pango:DejaVu Sans Mono 11
-for_window [app_id=kitty] floating enable, resize set 1250 860, move position center
+for_window [app_id=kitty] floating enable, resize set {size.replace('x', ' ')}, move position {pos}
 exec waybar
 exec kitty --config {tmp}/.config/kitty/kitty.conf -e sh {stage}
 """)
@@ -108,5 +108,5 @@ exec kitty --config {tmp}/.config/kitty/kitty.conf -e sh {stage}
 
 if __name__ == "__main__":
     for arg in sys.argv[1:]:
-        th, lay = arg.split(":")
-        print(shot(th, lay))
+        th, lay, *extra = arg.split(":")      # theme:layout[:WxH[:x y]] – small window shows the wallpaper
+        print(shot(th, lay, *(extra or [])))

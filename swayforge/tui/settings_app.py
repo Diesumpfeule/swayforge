@@ -311,6 +311,7 @@ class SettingsApp(App):
                 yield AudioPanel(id="page-audio", classes="page")
                 yield BluetoothPanel(id="page-bluetooth", classes="page")
                 yield NetworkPanel(id="page-network", classes="page")
+                yield self.page_fields("sound")
                 yield self.page_fields("input")
                 yield self.page_shell()
                 yield self.page_keys()
