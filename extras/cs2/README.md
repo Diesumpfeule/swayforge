@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="banner.svg" alt="cs2translate" width="100%">
+</p>
+
 # cs2translate – CS2 chat translator
 
 [cs2translate](https://github.com/Diesumpfeule/cs2translate) translates the Counter-Strike 2 chat
