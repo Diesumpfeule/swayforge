@@ -952,6 +952,29 @@ class SettingsApp(App):
         self.notify(f"{'Dark' if t.dark else 'Light'} theme made from {Path(img).name} – "
                     "name it and press “Save as my theme” to keep it")
 
+    def start_update(self) -> None:
+        """Update both projects in a terminal; when it reports success, restart with the new code."""
+        import time
+        from .. import update
+        update.DONE_MARK.unlink(missing_ok=True)
+        self._update_started = time.time()
+        self.spawn_term(update.terminal_command(HOLD))
+        self.notify("Updating in a terminal – this app restarts by itself when it is done", timeout=8)
+        if getattr(self, "_update_timer", None) is None:
+            self._update_timer = self.set_interval(1.0, self._check_update_done)
+
+    def _check_update_done(self) -> None:
+        from .. import update
+        try:
+            done = update.DONE_MARK.stat().st_mtime >= self._update_started - 1
+        except OSError:
+            return
+        if done:
+            update.DONE_MARK.unlink(missing_ok=True)
+            if self.dirty:
+                settings.save(self.s)              # nothing you changed gets lost
+            self.exit("restart")
+
     def live_apply(self) -> None:
         """Make theme changes visible right away (saves as well)."""
         self.save_and_apply(quiet=True)
@@ -987,8 +1010,7 @@ class SettingsApp(App):
         elif bid == "wp_refresh":
             self.refresh_wallpapers(quiet=False)
         elif bid == "sys_selfupdate":
-            from .. import update
-            self.spawn_term(f"{update.script()}; {hold}")
+            self.start_update()
             self.notify("Updating swayforge + wolfforge in a terminal – restart this app afterwards")
         elif bid == "wp_theme":
             self.theme_from_wallpaper()
@@ -1154,4 +1176,7 @@ class SettingsApp(App):
 
 
 def main(page: str = "") -> None:
-    SettingsApp(page).run()
+    from .. import crash
+    result = crash.run_app("swayforge settings", SettingsApp(page))
+    if result == "restart":                       # updated: start the new code in this same window
+        os.execv(render.LAUNCHER, [render.LAUNCHER, "settings", "--page", "about"])

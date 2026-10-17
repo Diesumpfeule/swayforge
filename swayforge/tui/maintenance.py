@@ -477,7 +477,11 @@ class AboutPanel(Panel):
                          Button("wolfforge on GitHub", id="ab_gh_wf"), classes="btnrow")
         yield Static("Update pulls the newest swayforge and wolfforge from GitHub, installs them and applies "
                      "your settings again – your settings, themes and tweaks stay. It runs in a terminal; "
-                     "afterwards restart this app (Super+I) to see the new version.", classes="hint")
+                     "when it worked, this app restarts by itself with the new version.", classes="hint")
+        yield Static("Crash reports", classes="section")
+        yield Static("", id="ab_crashes", classes="hint")
+        yield Horizontal(Button("Open newest report", id="ab_crash_open"),
+                         Button("Open crash folder", id="ab_crash_dir"), classes="btnrow")
         yield Static("About", classes="section")
         yield Static("swayforge – Fedora Sway installer and settings. wolfforge – LibreWolf overhaul. "
                      "Proof of concept, written by Claude (Anthropic). Provided as is, without any warranty; "
@@ -486,8 +490,20 @@ class AboutPanel(Panel):
     def on_show(self) -> None:
         self.refresh_data()
 
+    def show_crashes(self) -> None:
+        from .. import crash
+        reps = crash.recent()
+        if not reps:
+            txt = "No crashes recorded. If an app ever crashes, the report lands here."
+        else:
+            txt = "\n".join(f"{r.stem[:8]}  {r.stem[9:11]}:{r.stem[11:13]}  {r.stem[16:]}  –  "
+                            f"{(r.read_text(errors='replace').strip().splitlines() or ['?'])[-1][:90]}"
+                            for r in reps)
+        self.query_one("#ab_crashes", Static).update(txt)
+
     @work(thread=True, exclusive=True, group="about")
     def refresh_data(self) -> None:
+        self.app.call_from_thread(self.show_crashes)
         self.app.call_from_thread(self.query_one("#ab_versions", Static).update,
                                   "\n".join(update.describe(n, update.local(n), "", "unknown")
                                             .split("  [")[0] + "  [dim]checking GitHub …[/]"
@@ -495,20 +511,26 @@ class AboutPanel(Panel):
         lines = [update.describe(n, *update.status(n)) for n in update.APPS]
         self.app.call_from_thread(self.query_one("#ab_versions", Static).update, "\n".join(lines))
 
-    @on(Button.Pressed, "#ab_update, #ab_check, #ab_gh_sf, #ab_gh_wf")
+    @on(Button.Pressed, "#ab_update, #ab_check, #ab_gh_sf, #ab_gh_wf, #ab_crash_open, #ab_crash_dir")
     def buttons(self, ev: Button.Pressed) -> None:
         ev.stop()
         bid = ev.button.id
-        if bid == "ab_check":
+        if bid in ("ab_crash_open", "ab_crash_dir"):
+            from .. import crash
+            reps = crash.recent(1)
+            if bid == "ab_crash_open" and reps:
+                self.app.spawn_term(f"less {shlex.quote(str(reps[0]))}")         # type: ignore[attr-defined]
+            elif bid == "ab_crash_dir":
+                crash.CRASH_DIR.mkdir(parents=True, exist_ok=True)
+                import subprocess
+                subprocess.Popen(["xdg-open", str(crash.CRASH_DIR)], start_new_session=True,
+                                 stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            else:
+                self.app.notify("No crash reports – good.")
+        elif bid == "ab_check":
             self.refresh_data()
         elif bid == "ab_update":
-            # success: open the settings app anew on the About page and close this one (it runs the old
-            # code); failure: keep the terminal so the error can be read
-            again = shlex.quote(render.settings_cmd(self.app.s, "about"))        # type: ignore[attr-defined]
-            restart = (f"if command -v swaymsg >/dev/null; then echo; echo 'Restarting the settings app …'; "
-                       f"swaymsg -q exec {again}; sleep 2; kill {os.getpid()}; else {HOLD}; fi")
-            self.app.spawn_term(f"{update.script()}; if [ $? -eq 0 ]; then {restart}; else {HOLD}; fi")  # type: ignore[attr-defined]
-            self.app.notify("Updating in a terminal – the settings app restarts by itself when it is done")
+            self.app.start_update()                                              # type: ignore[attr-defined]
         else:
             import subprocess
             subprocess.Popen(["xdg-open", update.url("swayforge" if bid == "ab_gh_sf" else "wolfforge")],

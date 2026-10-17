@@ -76,7 +76,13 @@ The installer asks for your sudo password once and walks you through
 **Updating:** *Settings → About & updates* shows the installed version of swayforge and wolfforge
 and whether GitHub has a newer one. *Update from GitHub* pulls both, installs them and applies
 your settings again. Your settings, themes and tweaks stay. On the command line:
-`swayforge version` / `swayforge update`.
+`swayforge version` / `swayforge update`. When everything worked, the update terminal closes by itself
+and the settings app restarts in its own window with the new version. If a step fails, the terminal
+stays open so you can read why.
+
+**Crashes:** if swayforge, the installer, wolfforge or one of their helpers crashes, you get a
+notification and a report in `~/.local/share/swayforge/crashes/`. A terminal app keeps its window
+open with the error until you press Enter. *About & updates* lists recent reports.
 
 `Super+I → System & files → Export` saves settings, app selection, your themes, ASCII art,
 tweaks and the CS2 translator into one file. After the next reset:

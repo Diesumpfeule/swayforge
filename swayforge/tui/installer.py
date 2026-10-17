@@ -522,4 +522,5 @@ class InstallerApp(App):
 
 
 def main() -> None:
-    InstallerApp().run()
+    from .. import crash
+    crash.run_app("swayforge installer", InstallerApp())

@@ -72,9 +72,13 @@ def describe(name: str, info: dict, rem: str, verdict: str) -> str:
                 "unknown": "  [dim]– can't check (offline, or installed without git)[/]"}[verdict]
 
 
+DONE_MARK = paths.STATE_DIR / "update-done"
+
+
 def script(names: list[str] | None = None) -> str:
-    """Shell commands: pull (or clone) each repo, then run its installer without questions."""
-    parts = []
+    """Shell commands: pull (or clone) each repo, then run its installer without questions.
+    Ends with exit status 0 only if every step worked."""
+    parts = ["fail=0"]
     for name in names or list(APPS):
         app, default_src, flag = APPS[name]
         if not app.is_dir():
@@ -86,7 +90,19 @@ def script(names: list[str] | None = None) -> str:
         parts.append(
             f"echo; echo '── {name} ──'; "
             f"if [ -d {q}/.git ]; then git -C {q} pull --ff-only "
-            f"|| {{ echo '! {name}: your copy in {src} has own changes – pull skipped'; }}; "
-            f"else mkdir -p {shlex.quote(str(Path(src).parent))} && git clone -q {url(name)}.git {q}; fi "
-            f"&& bash {q}/install.sh {flag}")
-    return "; ".join(parts) if parts else "echo 'nothing installed'"
+            f"|| echo '! {name}: your copy in {src} has own changes – pull skipped, installing what is there'; "
+            f"else mkdir -p {shlex.quote(str(Path(src).parent))} && git clone -q {url(name)}.git {q}; fi; "
+            f"if bash {q}/install.sh {flag} </dev/null; then echo '✓ {name} updated'; "
+            f"else echo '✗ {name}: install step failed'; fail=1; fi")
+    parts.append("(exit $fail)")
+    return "; ".join(parts)
+
+
+def terminal_command(hold: str) -> str:
+    """What the update terminal runs: on success it says so, leaves a marker (the settings app
+    sees it and restarts itself with the new code) and closes; on failure it stays open."""
+    mark = shlex.quote(str(DONE_MARK))
+    return (f"{script()}; rc=$?; echo; "
+            f"if [ $rc -eq 0 ]; then mkdir -p {shlex.quote(str(DONE_MARK.parent))}; touch {mark}; "
+            f"echo '✓ All updated – the settings app restarts, this window closes.'; sleep 3; "
+            f"else echo '✗ The update didn’t finish – the messages above say why.'; {hold}; fi")
