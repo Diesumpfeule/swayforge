@@ -62,6 +62,9 @@ def main(argv: list[str] | None = None) -> int:
 
     p = sub.add_parser("settings", help="settings app (default)")
     p.add_argument("--page", default="", help="open a page directly (audio, network, layout, boot …)")
+    p = sub.add_parser("sound", help="system sounds: test | play EVENT | build")
+    p.add_argument("action", choices=["test", "play", "build"])
+    p.add_argument("event", nargs="?", default="bell")
     sub.add_parser("power", help="power menu (Rofi)")
     sub.add_parser("start", help="start menu (Rofi)")
     sub.add_parser("keys", help="shortcut overview (Rofi)")
@@ -233,7 +236,9 @@ def main(argv: list[str] | None = None) -> int:
         return tools.import_(a.file)
 
     from . import render, tools
-    if a.cmd == "power":
+    if a.cmd == "sound":
+        tools.sound(a.action, a.event)
+    elif a.cmd == "power":
         tools.power()
     elif a.cmd == "start":
         tools.start()

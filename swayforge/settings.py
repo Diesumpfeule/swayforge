@@ -45,7 +45,7 @@ DEFAULTS: dict[str, Any] = {
         "fx_dim_inactive": 0.0,       # SwayFX only, 0.0–0.5
     },
     "bar": {
-        "layout": "modern",           # modern | solid | win98 | win7 | wired | minimal | sidebar
+        "layout": "modern",           # modern | solid | win98 | win7 | win11 | touch | wired | minimal | sidebar
         "height": 34,
         "window_title": True,
         "taskmanager": True,          # button: btop in a terminal
@@ -83,6 +83,13 @@ DEFAULTS: dict[str, Any] = {
         "allow_tearing": True,        # lower input lag in fullscreen games
         "outputs": {},                # "Make Model Serial" = { mode=…, pos=…, scale=…, adaptive_sync=…, enabled=… }
         "primary": "",                # main screen ("Make Model Serial"): workspace 1 + games start there
+    },
+    "sound": {
+        "enabled": False,             # generated system sounds (login chime, notifications, errors …)
+        "pack": "auto",               # auto (follows theme/layout) | classic | glass | modern | touch | wired | gothic | soft
+        "volume": 0.7,
+        "login": True,                # chime at login
+        "notify": True,               # sound for notifications
     },
     "power": {
         "lock_after": 10,             # minutes, 0 = never

@@ -254,6 +254,12 @@ def waybar_config(ctx: Ctx) -> dict:
         left = ["custom/start", ws, "wlr/taskbar"]
         center: list[str] = []
         right = ["group/status", "custom/power"]
+    elif lay == "win11":
+        left, center = [ws], ["custom/start", "wlr/taskbar"]
+        right = ["group/status", "custom/power"]
+    elif lay == "touch":
+        left, center = ["custom/start", "custom/osk"], [ws]
+        right = ["group/status", "custom/power"]
     elif lay == "minimal":
         left, center, right = [], [ws, "clock"], status + ["custom/power"]
     elif lay == "sidebar":
@@ -261,6 +267,8 @@ def waybar_config(ctx: Ctx) -> dict:
     else:
         left = [ws, "sway/mode"] + (["sway/window"] if b["window_title"] else [])
         center, right = ["clock"], status + ["custom/power"]
+        if lay == "cathedral":
+            left, center, right = ["custom/orn-l"] + left, ["custom/orn-c1", "clock", "custom/orn-c2"], right + ["custom/orn-r"]
 
     clock_fmt = "  ".join(x for x in (b["date_format"], b["clock_format"]) if x)
     cathedral = lay == "cathedral"
@@ -268,11 +276,13 @@ def waybar_config(ctx: Ctx) -> dict:
         orn = f"<span color='{ctx.c['accent']}'>✠</span>"
         clock = {"format": f"{orn}  {{:{b['clock_format']}}}  {orn}",
                  "format-alt": f"{orn}  {{:%A · %d %B %Y}}  {orn}"}
+        orn_mods = {"custom/orn-l": "☩ ❦ †", "custom/orn-r": "† ❦ ☩",
+                    "custom/orn-c1": "⚜ ✧ ⚜ ❧", "custom/orn-c2": "❧ ⚜ ✧ ⚜"}
     elif text_only:
         clock = {"format": "[{:%H:%M:%S}]", "interval": 1, "format-alt": f"[{{:{clock_fmt}}}]"}
     elif icons_only:
         clock = {"format": "{:%H\n%M}", "format-alt": "{:%d\n%m}"}
-    elif lay in ("win98", "win7"):
+    elif lay in ("win98", "win7", "win11", "touch"):
         clock = {"format": f"{{:{b['clock_format']}}}", "format-alt": f"{{:{clock_fmt}}}"}
     else:
         clock = {"format": f"{I['clock']}  {{:{clock_fmt}}}", "format-alt": f"{I['clock']}  {{:{b['clock_format']}}}"}
@@ -354,26 +364,34 @@ def waybar_config(ctx: Ctx) -> dict:
         "mpris": {"format": f(I["music"], "{title}", "play"), "format-paused": f(I["music"], "⏸ {title}", "pause"),
                   "max-length": 40},
         "tray": {"spacing": 10, "icon-size": 16},
-        "custom/power": {"format": "[off]" if text_only else ("❦" if lay == "cathedral" else I["power"]),
+        "custom/power": {"format": "[off]" if text_only else ("☠" if lay == "cathedral" else I["power"]),
                          "tooltip-format": "Power menu",
                          "on-click": f"{LAUNCHER} power"},
     }
+    if cathedral:
+        for k, v in orn_mods.items():
+            cfg[k] = {"format": f"<span color='{ctx.c['accent']}'>{v}</span>", "tooltip": False}
     if position == "left":
         cfg["width"] = max(44, b["height"] + 10)
     else:
-        cfg["height"] = b["height"] + (6 if lay == "win7" else 0)
+        cfg["height"] = (max(b["height"], 56) if lay == "touch"
+                         else b["height"] + {"win7": 6, "win11": 10}.get(lay, 0))
     if si.gpu_busy:
         cfg["custom/gpu"] = {"exec": f"cat {si.gpu_busy}", "interval": 3, "on-click": btop_cmd(s),
                              "format": f(I["gpu"], "{}%", "gpu"), "tooltip-format": "GPU load"}
-    if lay in ("win98", "win7"):
+    if lay in ("win98", "win7", "win11", "touch"):
         cfg["custom/start"] = {"format": f"{I['fedora']}  Start" if lay == "win98" else I["fedora"],
                                "tooltip-format": "Start menu – apps (Super+D)",
                                "on-click": f"{LAUNCHER} start", "on-click-right": f"{LAUNCHER} power"}
         cfg["wlr/taskbar"] = {"format": "{icon}  {title:.22}" if lay == "win98" else "{icon}",
-                              "icon-size": 16 if lay == "win98" else 24,
+                              "icon-size": 16 if lay == "win98" else 32 if lay == "touch" else 24,
                               "tooltip-format": "{title}", "on-click": "activate",
                               "on-click-middle": "close", "on-click-right": "fullscreen"}
         cfg[ws]["persistent-workspaces"] = {}
+        if lay == "touch":
+            cfg["custom/osk"] = {"format": "\U000f030c", "tooltip-format": "On-screen keyboard (wvkbd)",
+                                 "on-click": "sh -c 'pgrep -x wvkbd-mobintl >/dev/null && "
+                                             "pkill -RTMIN -x wvkbd-mobintl || exec wvkbd-mobintl -L 300'"}
         cfg["group/status"] = {"orientation": "horizontal", "modules": status + ["clock"]}
     return cfg
 
@@ -865,6 +883,17 @@ def reload(s: dict | None = None) -> list[str]:
     return done
 
 
+def apply_sounds(s: dict, ctx: Ctx) -> None:
+    """Generate the sound pack and select it as the desktop's sound theme."""
+    from . import sounds
+    if not s["sound"]["enabled"]:
+        return
+    sounds.install(sounds.pack_for(s, ctx.theme.id, ctx.layout.id), float(s["sound"]["volume"]))
+    if have("gsettings"):
+        run(["gsettings", "set", "org.gnome.desktop.sound", "theme-name", "swayforge"])
+        run(["gsettings", "set", "org.gnome.desktop.sound", "event-sounds", "true"])
+
+
 def session(s: dict | None = None) -> None:
     """Runs at Sway start and after every change."""
     s = s or settings.load()
@@ -890,6 +919,7 @@ def session(s: dict | None = None) -> None:
         run(["gsettings", "set", "org.gnome.desktop.wm.preferences", "button-layout", button_layout(ctx)])
     restart_idle(s)
     set_primary_output(s)
+    apply_sounds(s, ctx)
 
 
 def set_primary_output(s: dict) -> None:

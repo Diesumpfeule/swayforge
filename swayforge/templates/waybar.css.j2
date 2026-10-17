@@ -16,7 +16,7 @@ tooltip {
 }
 tooltip label { color: {{ c.text }}; }
 
-{% set mods = "#workspaces, #mode, #window, #clock, #cpu, #memory, #temperature, #custom-gpu, #network, #pulseaudio, #bluetooth, #battery, #backlight, #idle_inhibitor, #mpris, #tray, #custom-power, #custom-taskmanager, #custom-gamemode" %}
+{% set mods = "#workspaces, #mode, #window, #clock, #cpu, #memory, #temperature, #custom-gpu, #network, #pulseaudio, #bluetooth, #battery, #backlight, #idle_inhibitor, #mpris, #tray, #custom-power, #custom-taskmanager, #custom-gamemode, #custom-osk, #custom-orn-l, #custom-orn-r, #custom-orn-c1, #custom-orn-c2" %}
 {% set raised = bv.hi ~ " " ~ bv.lo ~ " " ~ bv.lo ~ " " ~ bv.hi %}
 {% set sunken = bv.lo ~ " " ~ bv.hi ~ " " ~ bv.hi ~ " " ~ bv.lo %}
 
@@ -136,6 +136,53 @@ window#waybar {
 #status { padding: 0 6px; }
 #custom-power { padding: 0 12px; }
 
+{% elif layout == "win11" %}
+/* ── Modern 11: frosted bar, centered rounded start + task buttons ───── */
+window#waybar {
+    background: {{ rgba(c.mantle, 0.82) }};
+    border-top: 1px solid {{ rgba(c.text, 0.10) }};
+    color: {{ c.text }};
+}
+{{ mods }} { padding: 0 8px; margin: 0; background: transparent; }
+#custom-start {
+    min-width: 34px; margin: 6px 4px; padding: 0 10px;
+    border-radius: 6px; color: {{ c.accent }};
+    font-size: {{ s.theme.font_size + 4 }}px;
+}
+#custom-start:hover, #taskbar button:hover { background: {{ rgba(c.text, 0.10) }}; }
+#workspaces { margin: 6px 8px; }
+#workspaces button { padding: 0 10px; margin: 0 2px; border-radius: 6px; color: {{ c.subtext }}; }
+#workspaces button.focused { color: {{ c.text }}; background: {{ rgba(c.text, 0.12) }}; }
+#taskbar button {
+    padding: 0 12px; margin: 5px 2px; border-radius: 6px;
+    border-bottom: 3px solid transparent; background: transparent;
+}
+#taskbar button.active {
+    background: {{ rgba(c.text, 0.10) }};
+    border-bottom: 3px solid {{ c.accent }};
+}
+#status { padding: 0 8px; margin: 6px 4px; border-radius: 6px; }
+#status:hover { background: {{ rgba(c.text, 0.08) }}; }
+#custom-power { padding: 0 12px; }
+
+{% elif layout == "touch" %}
+/* ── Touch: tall bar, big rounded tap targets, no hover-only affordances ── */
+* { font-size: {{ s.theme.font_size + 6 }}px; }
+window#waybar {
+    background: {{ rgba(c.mantle, 0.97) }};
+    border-top: 2px solid {{ c.accent }};
+    color: {{ c.text }};
+}
+{{ mods }} { padding: 0 18px; margin: 6px 5px; border-radius: 14px; background: {{ c.surface }}; min-width: 28px; }
+#custom-start, #custom-osk { color: {{ c.crust }}; background: {{ c.accent }}; padding: 0 24px; font-size: {{ s.theme.font_size + 10 }}px; }
+#custom-osk { background: {{ c.accent2 }}; color: {{ c.text }}; }
+#workspaces { padding: 0; background: transparent; margin: 6px 5px; }
+#workspaces button { min-width: 56px; margin: 0 4px; padding: 0 16px; border-radius: 14px; background: {{ c.surface }}; color: {{ c.text }}; }
+#workspaces button.focused { background: {{ c.accent }}; color: {{ c.crust }}; }
+#status { background: transparent; padding: 0; margin: 0; }
+#custom-power { background: {{ c.red }}; color: {{ c.crust }}; padding: 0 24px; }
+#tray { min-width: 48px; }
+
 {% elif layout == "wired" %}
 /* ── Wired: text only, no frills ────────────────────────────────── */
 window#waybar {
@@ -171,6 +218,8 @@ window#waybar {
 #cpu, #memory, #temperature, #custom-gpu, #network, #pulseaudio, #bluetooth, #battery, #backlight, #mpris {
     color: {{ c.subtext }}; border-left: 1px solid {{ rgba(c.text, 0.12) }}; }
 #custom-power { font-size: {{ s.theme.font_size + 6 }}px; color: {{ c.accent }}; padding: 0 16px; }
+#custom-orn-l, #custom-orn-r, #custom-orn-c1, #custom-orn-c2 { padding: 0 10px; letter-spacing: 4px; border: none; }
+#custom-orn-c1, #custom-orn-c2 { padding: 0 4px; }
 #custom-power:hover { color: {{ c.text }}; text-shadow: 0 0 6px {{ c.accent }}; }
 
 {% elif layout == "sidebar" %}
@@ -186,7 +235,7 @@ window#waybar {
 {% endif %}
 
 /* ── Shared ─────────────────────────────────────────────────────── */
-{% if layout not in ("win98", "cathedral") %}
+{% if layout not in ("win98", "cathedral", "win11", "touch") %}
 #workspaces button {
     color: {{ c.subtext }};
     background: transparent;
@@ -206,7 +255,7 @@ window#waybar {
 #mode { background: {{ c.yellow }}; color: {{ c.crust }}; }
 #window { color: {{ c.subtext }}; }
 window#waybar.empty #window { background: transparent; border-color: transparent; }
-{% if layout not in ("win98", "win7", "wired", "cathedral") %}
+{% if layout not in ("win98", "win7", "win11", "touch", "wired", "cathedral") %}
 #clock { color: {{ c.accent }}; font-weight: bold; }
 #cpu { color: {{ c.blue }}; }
 #memory { color: {{ c.magenta }}; }

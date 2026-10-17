@@ -17,7 +17,7 @@ from textual.widgets import (Button, ContentSwitcher, Footer, Header, Input, Lab
 from textual.widgets.selection_list import Selection
 
 from .. import ascii as asc
-from .. import boot, layouts, paths, render, settings, themes
+from .. import boot, layouts, paths, render, settings, sounds, themes
 from ..system import detect, have, run
 from .common import (BASE_CSS, HOLD, AnimatedArt, Field, art_styles, coerce, field_row, hero_text, path_from_wid, section, swatch,
                      two_tone, use_layout, use_theme)
@@ -34,6 +34,7 @@ PAGES: list[tuple[str, str]] = [
     ("bar", "\U000f062e  Bar modules"),
     ("display", "\U000f0379  Displays"),
     ("audio", "\U000f057e  Audio"),
+    ("sound", "\U000f075a  System sounds"),
     ("bluetooth", "\U000f00af  Bluetooth"),
     ("network", "\U000f05a9  Network"),
     ("input", "\U000f030c  Keyboard & mouse"),
@@ -102,6 +103,18 @@ FIELDS: dict[str, list[Field | str]] = {
         Field("bar.backlight", "Brightness (laptops)", "bool"),
         Field("bar.idle_inhibitor", "Stay-awake toggle", "bool"),
         Field("bar.tray", "Tray icons (Discord, Steam …)", "bool"),
+    ],
+    "sound": [
+        "System sounds (generated – no sample files)",
+        Field("sound.enabled", "Play system sounds", "bool",
+              help="login chime, notifications, errors, plug/unplug – off by default"),
+        Field("sound.pack", "Sound pack", "choice",
+              [("Auto (follows theme / layout)", "auto")] + [(v, k) for k, v in sounds.PACKS.items()],
+              help="gothic = church bell & organ · classic = 98 bleeps · wired = digital blips"),
+        Field("sound.volume", "Volume", "float", help="0.1 – 1.0 (relative to the system volume)"),
+        Field("sound.login", "Chime at login", "bool"),
+        Field("sound.notify", "Sound for notifications", "bool"),
+        "Try it:  swayforge sound test   ·   swayforge sound play bell",
     ],
     "input": [
         "Keyboard",

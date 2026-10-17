@@ -59,6 +59,17 @@ button:hover { box-shadow: inset 0 0 6px {{ rgba(c.accent, 0.6) }}; }
 headerbar, .titlebar {
     background-image: linear-gradient(to bottom, {{ rgba(bv.hi, 0.9) }}, {{ c.base }});
 }
+{% elif layout == "win11" %}
+
+/* Modern 11: rounded, soft borders */
+button, .button, entry { border-radius: 6px; border: 1px solid {{ rgba(c.text, 0.14) }}; }
+button:hover { background-color: {{ rgba(c.text, 0.08) }}; }
+{% elif layout == "touch" %}
+
+/* Touch: big targets */
+button, .button, entry, spinbutton { min-height: 44px; min-width: 44px; border-radius: 12px; padding: 6px 14px; }
+menuitem, row, treeview.view { min-height: 44px; }
+scrollbar slider { min-width: 14px; min-height: 14px; }
 {% elif layout == "wired" %}
 
 /* Wired: flat, square, thin accent lines */

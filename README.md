@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <b>Fedora Sway</b> · AMD · keyboard-first · 17 themes × 8 layouts · 93 apps · reset-friendly
+  <b>Fedora Sway</b> · AMD · keyboard-first · 17 themes × 10 layouts · 93 apps · reset-friendly
 </p>
 
 > ⚠ **Proof of concept, written by Claude (AI) – no warranty, use at your own risk.** See [Disclaimer](#disclaimer).
@@ -13,11 +13,13 @@ System Settings but for Sway. Built for the Fedora Sway Spin on AMD graphics, wi
 gaming, IT tools, keyboard-driven use and **frequent resets**.
 
 - **Installer** – pick apps, clean-up, theme and layout, run once, reboot.
-- **Settings** (`Super+I`) – theme, layout, appearance, bar, displays, audio, Bluetooth,
+- **Settings** (`Super+I`) – theme, layout, appearance, bar, displays, audio, system sounds, Bluetooth,
   network, keyboard/mouse, terminal & prompt, shortcuts, power, boot & login, security,
   installed apps, cleanup & drive wiping, files.
+- **System sounds** – generated sound packs (gothic church bells, classic bleeps, glass chimes …),
+  off by default.
 - **Tiling only** by default – no floating windows, no tabs or stacking; workspaces do the rest.
-- **17 colour themes × 8 layouts** – every theme recolours Sway, Waybar, Rofi, kitty/Alacritty,
+- **17 colour themes × 10 layouts** (incl. *Modern 11* and a *Touch* layout with on-screen keyboard) – every theme recolours Sway, Waybar, Rofi, kitty/Alacritty,
   Spaceship, fastfetch, GTK apps, mako, swaylock, btop, cava, MangoHud, the boot screen and the
   login screen. One Nerd Font everywhere.
 - **Your tweaks always win** – every generated file has a companion file that belongs to you.
@@ -39,6 +41,14 @@ gaming, IT tools, keyboard-driven use and **frequent resets**.
   <tr>
     <td><img src="docs/img/phosphor_solid.png" alt="Phosphor"><br><sub><b>Phosphor</b> · Solid bar · CRT motif</sub></td>
     <td><img src="docs/img/catppuccin-mocha_modern.png" alt="Catppuccin Mocha"><br><sub><b>Catppuccin Mocha</b> · Modern islands · forge motif</sub></td>
+  </tr>
+  <tr>
+    <td><img src="docs/img/requiem_cathedral.png" alt="Requiem"><br><sub><b>Requiem</b> · Cathedral · black-death ASCII wallpaper</sub></td>
+    <td><img src="docs/img/catppuccin-mocha_win11.png" alt="Modern 11"><br><sub><b>Catppuccin Mocha</b> · Modern 11 · centered taskbar</sub></td>
+  </tr>
+  <tr>
+    <td><img src="docs/img/tokyo-night_touch.png" alt="Touch"><br><sub><b>Tokyo Night</b> · Touch · big tap targets + on-screen keyboard</sub></td>
+    <td></td>
   </tr>
 </table>
 
@@ -354,6 +364,7 @@ swayforge/
   tui/                     the installer and settings apps (Textual)
 scripts/make_art.py        regenerates the ASCII art (dev only)
 scripts/make_banner.py     regenerates docs/img/banner.svg
+scripts/make_screenshots.py renders README screenshots in a headless Sway (throw-away HOME)
 ```
 
 ## CS2 chat translator

@@ -53,6 +53,24 @@ def power() -> None:
     subprocess.Popen(opts[choice], start_new_session=True)
 
 
+def sound(action: str, event: str = "bell") -> None:
+    """swayforge sound test|play EVENT|build – the generated system sounds."""
+    import time
+    from . import render, sounds
+    s = settings.load()
+    pack = sounds.pack_for(s, s["theme"]["name"], s["bar"]["layout"])
+    sounds.install(pack, float(s["sound"]["volume"]), force=action == "build")
+    if action == "build":
+        print(f"sound pack '{pack}' written to {sounds.THEME_DIR}")
+    elif action == "play":
+        sounds.play(event)
+    else:
+        for ev in ("desktop-login", "message-new-instant", "dialog-warning", "dialog-error", "complete"):
+            print(ev)
+            sounds.play(ev)
+            time.sleep(2.2)
+
+
 def start() -> None:
     """Start menu for the Win98/Win7 layouts: rofi with the layout's start-menu look."""
     subprocess.Popen(["rofi", "-show", "drun"], start_new_session=True)

@@ -119,7 +119,7 @@ label = "Desktop"
   locked = true
   default = true
   dnf = [
-    "sway", "swaybg", "swayidle", "swaylock", "waybar", "rofi", "mako", "libnotify",
+    "sway", "swaybg", "swayidle", "swaylock", "waybar", "rofi", "mako", "wvkbd", "libnotify",
     "grim", "slurp", "swappy", "wl-clipboard", "cliphist", "brightnessctl", "playerctl",
     "pavucontrol", "pulseaudio-utils", "NetworkManager-tui", "network-manager-applet", "gammastep",
     "xdg-desktop-portal-wlr", "xdg-desktop-portal-gtk", "lxqt-policykit", "wlr-randr", "xrandr", "exfatprogs", "dosfstools",

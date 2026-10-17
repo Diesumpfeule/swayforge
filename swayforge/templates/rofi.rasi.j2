@@ -120,12 +120,12 @@ mainbox {
 }
 textbox-orn {
     expand: false; horizontal-align: 0.5;
-    content: "❦  ─────  ✠  ─────  ❦";
+    content: "☩ ❦ ───── ⚜ ───── ☠ ───── ⚜ ───── ❦ ☩";
     text-color: {{ c.accent }};
 }
 textbox-foot {
     expand: false; horizontal-align: 0.5;
-    content: "· · ·";
+    content: "† ❧ memento mori ❧ †";
     text-color: {{ c.overlay }};
 }
 inputbar {
@@ -143,6 +143,40 @@ element selected.normal {
     border: 0 0 0 3px; border-color: @accent;
     text-color: {{ c.text }};
 }
+
+{% elif layout == "win11" %}
+/* ── Modern 11 start menu: centered above the taskbar, rounded ───────── */
+window {
+    location: south; anchor: south; y-offset: -12px;
+    width: 600px;
+    background-color: {{ rgba(c.mantle, 0.94) }};
+    border: 1px; border-color: {{ rgba(c.text, 0.18) }};
+    border-radius: 12px; padding: 18px;
+}
+mainbox { spacing: 14px; children: [ inputbar, listview ]; }
+inputbar { background-color: @bg-alt; border-radius: 20px; border: 0 0 2px 0; border-color: @accent;
+    padding: 10px 16px; spacing: 10px; children: [ prompt, entry ]; }
+prompt { text-color: @accent; }
+entry  { placeholder: "Type here to search"; placeholder-color: @fg-dim; }
+listview { lines: 9; columns: 1; spacing: 2px; fixed-height: false; scrollbar: false; }
+element { padding: 9px 12px; spacing: 14px; border-radius: 8px; }
+element selected.normal { background-color: {{ rgba(c.text, 0.12) }}; text-color: @fg; border: 0 0 0 3px; border-color: @accent; }
+
+{% elif layout == "touch" %}
+/* ── Touch: full-width sheet, big rows, 3 columns of app tiles ───────── */
+* { font: "{{ font }} {{ s.theme.font_size + 6 }}"; }
+window {
+    location: south; anchor: south; width: 100%; height: 72%;
+    background-color: {{ rgba(c.mantle, 0.98) }};
+    border: 2px 0 0 0; border-color: @accent; padding: 24px;
+}
+mainbox { spacing: 20px; children: [ inputbar, listview ]; }
+inputbar { background-color: @bg-alt; border-radius: 18px; padding: 18px 22px; spacing: 14px; children: [ prompt, entry ]; }
+prompt { text-color: @accent; }
+entry  { placeholder: "Search …"; placeholder-color: @fg-dim; }
+listview { lines: 6; columns: 3; spacing: 12px; fixed-height: true; scrollbar: false; }
+element { padding: 22px 20px; spacing: 18px; border-radius: 18px; background-color: @bg-alt; }
+element selected.normal { background-color: @accent; text-color: @on-accent; }
 
 {% elif layout == "wired" %}
 /* ── Wired: a terminal prompt ────────────────────────────────────── */
