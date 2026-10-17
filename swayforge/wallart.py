@@ -194,143 +194,44 @@ def cathedral(c: dict) -> str:
     return "\n".join(p)
 
 
-# ── plague: ASCII-art wallpaper ──────────────────────────────────────
-COLS, ROWS, CW, LH, FS = 212, 62, 18.06, 34.5, 30
-_MIRROR = str.maketrans("/\\()[]{}<>", "\\/)(][}{><")
-
-
-def _piece(name: str) -> list[str]:
-    from . import ascii as asc
-    return asc.art(name)
-
-
-class _Grid:
-    def __init__(self) -> None:
-        self.g = [[(" ", "")] * COLS for _ in range(ROWS)]
-
-    def put(self, x: int, y: int, ch: str, key: str) -> None:
-        if 0 <= y < ROWS and 0 <= x < COLS and ch != " ":
-            self.g[y][x] = (ch, key)
-
-    def text(self, x: int, y: int, t: str, key: str) -> None:
-        for i, ch in enumerate(t):
-            self.put(x + i, y, ch, key)
-
-    def blit(self, lines: list[str], x: int, y: int, key: str, mirror: bool = False,
-             special: dict | None = None) -> None:
-        w = max(len(l) for l in lines)
-        for j, l in enumerate(lines):
-            l = l.ljust(w)
-            if mirror:
-                l = l[::-1].translate(_MIRROR)
-            for i, ch in enumerate(l):
-                self.put(x + i, y + j, ch, (special or {}).get(ch, key))
+# ── plague: shaded ASCII-art wallpaper ───────────────────────────────
+def _mix(a: str, b: str, t: float) -> str:
+    ca = [int(a[i:i + 2], 16) for i in (1, 3, 5)]
+    cb = [int(b[i:i + 2], 16) for i in (1, 3, 5)]
+    return "#" + "".join(f"{round(x + (y - x) * t):02x}" for x, y in zip(ca, cb))
 
 
 def plague(c: dict) -> str:
-    """Dark ASCII scene: a plague doctor under a gothic arch, skeletons fetching the dead."""
-    import random
-    rnd = random.Random(1348)
-    g = _Grid()
-    cx = COLS // 2
-    # dust and stars outside the arch, drifting miasma near the floor
-    for _ in range(420):
-        g.put(rnd.randrange(2, COLS - 2), rnd.randrange(2, 46), rnd.choice(".·,'`:"), "dim")
-    for _ in range(700):
-        g.put(rnd.randrange(2, COLS - 2), rnd.randrange(46, ROWS - 2), rnd.choice("░░▒~≈-"), "mist")
-    # pointed arch (double line) with spring at row 34
-    spring, hw = 34, 31
-    for off, key in ((0, "stone"), (3, "dim")):
-        h = hw - off
-        for r in range(2 + off, ROWS - 3):
-            if r >= spring:
-                lx, rx, chl, chr_ = cx - h, cx + h, "║", "║"
-            else:
-                dy = (spring - r) * LH
-                R = 2 * h * CW
-                d = R * R - dy * dy
-                if d < 0:
-                    continue
-                lx = round(cx + h - __import__("math").sqrt(d) / CW)
-                if lx > cx:
-                    continue
-                rx = 2 * cx - lx
-                chl, chr_ = ("/", "\\") if r < spring - 4 else ("║", "║")
-            g.put(lx, r, chl, key)
-            g.put(rx, r, chr_, key)
-    # rose window in the apex
-    import math
-    rcx, rcy = cx, 14
-    for a in range(0, 360, 4):
-        for rad, ch in ((6.2, "o"), (3.2, "·")):
-            g.put(round(rcx + math.cos(math.radians(a)) * rad * LH / CW), round(rcy + math.sin(math.radians(a)) * rad), ch, "glass")
-    for a in range(0, 360, 45):
-        for t in range(1, 6):
-            g.put(round(rcx + math.cos(math.radians(a)) * t * LH / CW), round(rcy + math.sin(math.radians(a)) * t), "+", "glass")
-    g.put(rcx, rcy, "✠", "blood")
-    # the cast
-    doc = _piece("plague_doctor")
-    g.blit(doc, cx - max(map(len, doc)) // 2, 22, "doc", special={"@": "blood"})
-    sk = _piece("plague_skeleton")
-    g.blit(sk, 14, 34, "bone")
-    g.blit(sk, COLS - 14 - max(map(len, sk)), 34, "bone", mirror=True)
-    g.blit(_piece("plague_cart"), 10, 37, "bone", special={"x": "blood"})
-    for x, y, m in ((26, 6, False), (166, 8, True), (50, 14, True), (150, 4, False)):
-        g.blit(_piece("plague_bat"), x, y, "dim", mirror=m)
-    for x, y in ((cx - 30, 3), (cx + 22, 5), (cx + 32, 19)):
-        g.blit(_piece("plague_crow"), x, y, "doc")
-    # candles
-    for x in (cx - 40, cx - 35, cx + 36, cx + 41):
-        h = 3 + (x % 3)
-        for j in range(h):
-            g.put(x, ROWS - 4 - j, "|", "bone")
-        g.put(x, ROWS - 4 - h, ")", "gold")
-        g.put(x, ROWS - 5 - h, ",", "gold")
-    # frame and lettering
-    orn = "✠ ❦ † ❦ " * (COLS // 8 + 1)
-    g.text(0, 0, orn[:COLS], "blood")
-    g.text(0, ROWS - 1, orn[:COLS], "blood")
-    for r in range(1, ROWS - 1):
-        g.put(0, r, "║", "blood")
-        g.put(COLS - 1, r, "║", "blood")
-        if r % 6 == 0:
-            g.put(0, r, "†", "gold")
-            g.put(COLS - 1, r, "†", "gold")
-    for t, y, key in (("M E M E N T O   M O R I", 2, "blood"),
-                      ("A N N O   D O M I N I   M C C C X L V I I I", ROWS - 3, "stone"),
-                      ("~ ~ ~  ex pestilentia libera nos  ~ ~ ~", ROWS - 2, "mist")):
-        g.text(cx - len(t) // 2, y, t, key)
-    col = {"dim": (c["overlay"], 0.55), "stone": (c["subtext"], 0.7), "bone": (c["text"], 0.78),
-           "doc": (c["subtext"], 0.95), "blood": (c["accent"], 0.95), "gold": (c["yellow"], 0.95),
-           "mist": (c["accent2"], 0.5), "glass": (c["accent"], 0.55)}
-    out = [f'<svg xmlns="http://www.w3.org/2000/svg" width="{W}" height="{H}" viewBox="0 0 {W} {H}">',
-           '<defs><radialGradient id="v" cx="0.5" cy="0.45" r="0.75"><stop offset="0.35" stop-color="#000" stop-opacity="0"/>'
-           '<stop offset="1" stop-color="#000" stop-opacity="0.92"/></radialGradient>',
-           f'<radialGradient id="glow" cx="0.5" cy="0.55" r="0.4"><stop offset="0" stop-color="{c["accent"]}" stop-opacity="0.22"/>'
-           '<stop offset="1" stop-color="#000" stop-opacity="0"/></radialGradient></defs>',
-           f'<rect width="{W}" height="{H}" fill="{c["crust"]}"/>',
-           f'<rect width="{W}" height="{H}" fill="url(#glow)"/>',
-           f'<g font-family="DejaVu Sans Mono, monospace" font-size="{FS}" xml:space="preserve">']
+    """The black-death scene (rose window, plague doctor, skeletons) as dense ASCII shading.
+
+    data/art/plague_scene.txt is generated by scripts/make_plague_art.py from a greyscale
+    drawing; the glyph's ink density carries the brightness, the theme supplies the colours.
+    """
+    from . import paths
+    head, *lines = (paths.DATA / "wallart/plague_scene.txt").read_text().split("\n")
+    asc_ramp = head[4:]
+    lines = lines[:-1] if lines and not lines[-1] else lines
+    cols = max(len(l) for l in lines)
+    ramp = asc_ramp
+    n = len(ramp)
+    bins = [(range(1, n // 4), _mix(c["crust"], c["accent"], 0.55)), (range(n // 4, n // 2), c["accent"]),
+            (range(n // 2, n * 3 // 4), _mix(c["accent"], c["text"], 0.5)), (range(n * 3 // 4, n), c["text"])]
+    lh = H / len(lines)
+    fs = round(W / cols / 0.6, 2)
     esc = {"&": "&amp;", "<": "&lt;", ">": "&gt;"}
-    for r, row in enumerate(g.g):
-        y = 30 + r * LH
-        spans, cur, buf = [], None, ""
-        for i, (ch, key) in enumerate(row):
-            if key != cur and buf:
-                spans.append((cur, buf)); buf = ""
-            cur = key
-            buf += esc.get(ch, ch)
-        spans.append((cur, buf))
-        x = 0
-        for key, txt in spans:
-            n = len(txt.replace("&amp;", "&").replace("&lt;", "<").replace("&gt;", ">"))
-            if key:
-                colr, op = col[key]
-                out.append(f'<text x="{_f(x * CW)}" y="{_f(y)}" fill="{colr}" fill-opacity="{op}">{txt}</text>')
-            x += n
-    out.append("</g>")
-    out.append(f'<rect width="{W}" height="{H}" fill="url(#v)"/>')
-    out.append("</svg>\n")
+    out = [f'<svg xmlns="http://www.w3.org/2000/svg" width="{W}" height="{H}" viewBox="0 0 {W} {H}">',
+           f'<rect width="{W}" height="{H}" fill="{c["crust"]}"/>',
+           f'<g font-family="JetBrainsMono Nerd Font, JetBrains Mono, DejaVu Sans Mono, monospace" '
+           f'font-size="{fs}" xml:space="preserve">']
+    for idx, color in bins:
+        out.append(f'<g fill="{color}"' + (' font-weight="700"' if idx.start >= n // 2 else "") + ">")
+        for r, line in enumerate(lines):
+            row = "".join(ch if ramp.find(ch) in idx else " " for ch in line.ljust(cols))
+            if row.strip():
+                out.append(f'<text x="0" y="{_f((r + 0.8) * lh)}" textLength="{W}" lengthAdjust="spacing">'
+                           f'{"".join(esc.get(ch, ch) for ch in row)}</text>')
+        out.append("</g>")
+    out += ["</g>", "</svg>", ""]
     return "\n".join(out)
 
 
