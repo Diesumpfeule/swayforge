@@ -222,6 +222,12 @@ name is forged left to right. Any key skips it; `SWAYFORGE_NO_INTRO=1` turns it 
 
 ## Mount drives
 
+**Steam downloads GBs before CS2?** That is Steam's *shader pre-caching*, not a lost cache: Valve
+republishes the game's pre-cache as one big file (CS2: ~7 GB, no delta), so Steam fetches it again
+whenever it changed. `swayforge steam` shows what was fetched and when; `swayforge steam window 03-06`
+limits auto-updates to that time window (Steam closed, `config.vdf` is backed up first). Per game you
+can also switch *Properties → Shader Pre-Caching* off in Steam.
+
 *Settings → Mount drives* (or `swayforge mount`): pick a partition, internal or external. Give it
 a name, press *Mount permanently*, and it shows up at `/mnt/NAME` and in Thunar's sidebar, now and
 after every reboot. swayforge adds a line to `/etc/fstab` using the partition's UUID:
@@ -313,6 +319,7 @@ swayforge hello               animated ASCII greeting, then fastfetch
 swayforge version / update    installed versions · update both from GitHub
 swayforge scan [TARGET]       malware scan: downloads | home | drives | PATH
 swayforge audit rootkit|system  rkhunter + chkrootkit / Lynis
+swayforge steam               why Steam downloads GBs before a game · `steam window 03-06` = auto-update only at night
 swayforge wipe [DEVICE]       wipe + format a USB stick / SD card / external SSD (no DEVICE = list)
 swayforge import-sway FILE    take over an existing Sway config
 swayforge export [FILE]       back up;  swayforge restore FILE
