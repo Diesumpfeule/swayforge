@@ -341,6 +341,7 @@ Install log: `~/.local/share/swayforge/install.log`
 install.sh                 entry point after a reset
 docs/CUSTOMIZING.md        how to change things (start here)
 extras/cs2/                CS2 chat translator + watcher (auto-starts with CS2)
+extras/opencode/           opencode installer + home-server (Ollama) setup script
 swayforge/
   data/catalog.toml        everything the installer can install
   data/themes/*.toml       colour themes

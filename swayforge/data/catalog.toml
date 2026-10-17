@@ -787,6 +787,14 @@ label = "Own tools"
   default = false
   post = ["bash {app}/extras/steam/install.sh"]
 
+  [[group.items]]
+  id = "opencode"
+  label = "opencode (AI coding agent)"
+  desc = "Terminal AI agent · afterwards run opencode-setup <server>.ts.net to connect it to your home server's Ollama (needs Tailscale)"
+  default = false
+  dnf = ["curl", "jq"]
+  post = ["bash {app}/extras/opencode/install.sh"]
+
 # Packages offered for clean-up – only shown when installed.
 # default = true means pre-selected.
 [[remove]]
