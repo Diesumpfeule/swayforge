@@ -13,6 +13,7 @@ from textual.widgets import Button, Checkbox, DataTable, Input, Label, Select, S
 
 from .. import apps, catalog, cleanup, mounts, render, update
 from ..system import have
+from .common import HOLD
 from .panels import Panel
 
 
@@ -128,7 +129,7 @@ class AppsPanel(Panel):
         elif ev.button.id == "ap_installer":
             self.app.spawn_term(f"{shlex.quote(render.LAUNCHER)} install")   # type: ignore[attr-defined]
         elif self.current and not self.current.locked:
-            hold = "echo; read -n1 -rsp 'Done – press any key to close'"
+            hold = HOLD
             self.app.spawn_term(f"{self.current.remove_cmd()}; {hold}")      # type: ignore[attr-defined]
             self.app.notify(f"Uninstalling {self.current.label} in a terminal – press ↻ afterwards")
 
@@ -303,7 +304,7 @@ class CleanupPanel(Panel):
         ev.stop()
         bid = ev.button.id
         app = self.app
-        hold = "echo; read -n1 -rsp 'Done – press any key to close'"
+        hold = HOLD
         if bid == "cl_run":
             chosen = [it for it in self.items if self.query_one(f"#cl_{it.id}", Checkbox).value]
             if not chosen:
@@ -446,7 +447,7 @@ class MountsPanel(Panel):
         ev.stop()
         app = self.app
         L = shlex.quote(render.LAUNCHER)
-        hold = "echo; read -n1 -rsp 'Done – press any key to close'"
+        hold = HOLD
         if bid == "mt_refresh":
             self.refresh_data()
         elif bid == "mt_add":
@@ -501,9 +502,13 @@ class AboutPanel(Panel):
         if bid == "ab_check":
             self.refresh_data()
         elif bid == "ab_update":
-            hold = "echo; read -n1 -rsp 'Done – press any key to close'"
-            self.app.spawn_term(f"{update.script()}; {hold}")          # type: ignore[attr-defined]
-            self.app.notify("Updating in a terminal – restart the settings app afterwards")
+            # success: open the settings app anew on the About page and close this one (it runs the old
+            # code); failure: keep the terminal so the error can be read
+            again = shlex.quote(render.settings_cmd(self.app.s, "about"))        # type: ignore[attr-defined]
+            restart = (f"if command -v swaymsg >/dev/null; then echo; echo 'Restarting the settings app …'; "
+                       f"swaymsg -q exec {again}; sleep 2; kill {os.getpid()}; else {HOLD}; fi")
+            self.app.spawn_term(f"{update.script()}; if [ $? -eq 0 ]; then {restart}; else {HOLD}; fi")  # type: ignore[attr-defined]
+            self.app.notify("Updating in a terminal – the settings app restarts by itself when it is done")
         else:
             import subprocess
             subprocess.Popen(["xdg-open", update.url("swayforge" if bid == "ab_gh_sf" else "wolfforge")],

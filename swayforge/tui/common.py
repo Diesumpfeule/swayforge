@@ -162,6 +162,12 @@ def coerce(f: Field, raw: Any) -> Any:
     return raw
 
 
+# Ends every task terminal. Line mode (Enter) instead of raw "any key": it doesn't depend on the tty
+# state a finished installer/dnf leaves behind (stty sane), and it closes by itself after 3 minutes,
+# so a window that lost keyboard focus never hangs around.
+HOLD = "stty sane 2>/dev/null; echo; read -t 180 -rp 'Done – press Enter to close (closes itself after 3 min) '"
+
+
 def section(title: str) -> Static:
     return Static(title, classes="section")
 

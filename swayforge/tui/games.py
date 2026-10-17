@@ -12,6 +12,7 @@ from textual.containers import Horizontal
 from textual.widgets import Button, Checkbox, Input, Label, Static
 
 from .. import paths
+from .common import HOLD
 from .panels import Panel
 
 CS2_DIR = paths.XDG_DATA / "cs2translate"
@@ -178,7 +179,7 @@ class GamesPanel(Panel):
         if not bid.startswith("gm_"):
             return
         ev.stop()
-        hold = 'echo; read -rp "Press Enter to close …"'
+        hold = HOLD
         if bid == "gm_cs2_save":
             vals = {k: self.query_one(f"#gm_cs2_{k}", Input).value.strip() for k in CS2_FIELDS}
             cs2_save(vals, self.query_one("#gm_cs2_no-original", Checkbox).value)

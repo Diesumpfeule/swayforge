@@ -19,7 +19,7 @@ from textual.widgets.selection_list import Selection
 from .. import ascii as asc
 from .. import boot, layouts, paths, render, settings, themes
 from ..system import detect, have, run
-from .common import (BASE_CSS, AnimatedArt, Field, art_styles, coerce, field_row, hero_text, path_from_wid, section, swatch,
+from .common import (BASE_CSS, HOLD, AnimatedArt, Field, art_styles, coerce, field_row, hero_text, path_from_wid, section, swatch,
                      two_tone, use_layout, use_theme)
 from .games import GamesPanel
 from .maintenance import AboutPanel, AppsPanel, CleanupPanel, MountsPanel
@@ -947,7 +947,7 @@ class SettingsApp(App):
     def button(self, ev: Button.Pressed) -> None:
         bid = ev.button.id or ""
         name = ev.button.name or ""
-        hold = 'echo; read -rp "Press Enter to close …"'
+        hold = HOLD
         if name.startswith("edit:"):
             path = name[5:]
             key = "sway" if path == "general.keys" else render.file_for(path, self.s)
