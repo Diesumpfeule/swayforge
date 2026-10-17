@@ -224,9 +224,17 @@ name is forged left to right. Any key skips it; `SWAYFORGE_NO_INTRO=1` turns it 
 
 **Steam downloads GBs before CS2?** That is Steam's *shader pre-caching*, not a lost cache: Valve
 republishes the game's pre-cache as one big file (CS2: ~7 GB, no delta), so Steam fetches it again
-whenever it changed. `swayforge steam` shows what was fetched and when; `swayforge steam window 03-06`
-limits auto-updates to that time window (Steam closed, `config.vdf` is backed up first). Per game you
-can also switch *Properties → Shader Pre-Caching* off in Steam.
+whenever it changed. The optional add-on **steamtune** (installer → *Own tools*, off by default) explains
+it for your system and helps (`swayforge steam` or `steamtune`, also under Settings):
+
+- `steamtune` – what Steam downloaded and when, shader cache size per drive
+- `steamtune limit 1 30G` – cap the cache on library 1 (Steam has no limit of its own); `steamtune prune`
+  drops the cache of the longest-unplayed games until it fits – also done at every login
+- `steamtune move 1 /mnt/games/sc` – keep that library's cache on another drive (`... back` undoes it)
+- `steamtune window 03-06` – Steam auto-updates only at night
+
+Everything that changes files needs Steam closed; `config.vdf` is backed up first. You can also switch
+*Properties → Shader Pre-Caching* off per game in Steam. Dropped caches are fetched again if pre-caching is on.
 
 *Settings → Mount drives* (or `swayforge mount`): pick a partition, internal or external. Give it
 a name, press *Mount permanently*, and it shows up at `/mnt/NAME` and in Thunar's sidebar, now and
@@ -319,7 +327,7 @@ swayforge hello               animated ASCII greeting, then fastfetch
 swayforge version / update    installed versions · update both from GitHub
 swayforge scan [TARGET]       malware scan: downloads | home | drives | PATH
 swayforge audit rootkit|system  rkhunter + chkrootkit / Lynis
-swayforge steam               why Steam downloads GBs before a game · `steam window 03-06` = auto-update only at night
+swayforge steam [...]         Steam shader-cache helper (optional add-on steamtune)
 swayforge wipe [DEVICE]       wipe + format a USB stick / SD card / external SSD (no DEVICE = list)
 swayforge import-sway FILE    take over an existing Sway config
 swayforge export [FILE]       back up;  swayforge restore FILE

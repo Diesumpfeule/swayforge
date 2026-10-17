@@ -513,6 +513,7 @@ class SettingsApp(App):
             Static("One command per line, e.g. discord --start-minimized or steam -silent", classes="hint"),
             TextArea("\n".join(self.s["autostart"]["extra"]), id="autostart"),
             *self.cs2_section(),
+            *self.steam_section(),
         )
 
     def cs2_section(self) -> list:
@@ -537,6 +538,18 @@ class SettingsApp(App):
                        Button("Test in terminal", id="cs2_test"),
                        Button("Options ✎", id="cs2_args"),
                        Button("Log", id="cs2_log"), classes="btnrow"),
+        ]
+
+    def steam_section(self) -> list:
+        if not (paths.HOME / ".local/bin/steamtune").exists():
+            return []
+        return [
+            section("Steam shader cache (steamtune)"),
+            Static("Why Steam downloads GBs before a game, the cache per drive, limits and moving it: "
+                   "`steamtune limit N 30G`, `steamtune move N DIR`, `steamtune window 03-06`.", classes="hint"),
+            Horizontal(Button("Status", id="steam_status", variant="primary"),
+                       Button("Prune (preview)", id="steam_dry"),
+                       Button("Prune now", id="steam_prune"), classes="btnrow"),
         ]
 
     def page_power(self) -> VerticalScroll:
@@ -1018,6 +1031,9 @@ class SettingsApp(App):
             self.spawn_term(f"{shlex.quote(str(paths.HOME / '.local/bin/cs2translate'))} --terminal --debug; {hold}")
         elif bid == "cs2_args":
             self.open_file(paths.CONFIG_DIR / "cs2.args")
+        elif bid in ("steam_status", "steam_dry", "steam_prune"):
+            sub = {"steam_status": "", "steam_dry": "prune --dry", "steam_prune": "prune"}[bid]
+            self.spawn_term(f"{shlex.quote(str(paths.HOME / '.local/bin/steamtune'))} {sub}; {hold}")
         elif bid == "cs2_log":
             self.spawn_term(f"less +F {shlex.quote(str(paths.HOME / '.cache/cs2translate.log'))}")
         elif bid.startswith("sec_"):

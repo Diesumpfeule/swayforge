@@ -780,6 +780,13 @@ label = "Own tools"
   dnf = ["python3-tkinter", "gtk-layer-shell", "python3-gobject", "python3-cairo"]
   post = ["bash {app}/extras/cs2/install.sh"]
 
+  [[group.items]]
+  id = "steamtune"
+  label = "steamtune (Steam shader-cache helper)"
+  desc = "Why Steam downloads GBs before a game · cache size limit per drive · move the cache to another drive · auto-update window"
+  default = false
+  post = ["bash {app}/extras/steam/install.sh"]
+
 # Packages offered for clean-up – only shown when installed.
 # default = true means pre-selected.
 [[remove]]

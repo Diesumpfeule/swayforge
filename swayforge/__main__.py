@@ -10,7 +10,7 @@
   swayforge login              install the tuigreet login screen
   swayforge import-sway FILE   take over an existing Sway config into custom.conf
   swayforge mount [add|remove]  mount drives permanently at /mnt/NAME (fstab)
-  swayforge steam [window 03-06]  why Steam downloads GBs before games · auto-update window
+  swayforge steam [...]        Steam shader-cache helper (add-on steamtune: limits, move cache, update window)
   swayforge wipe DEVICE        wipe + format a USB stick / SD card / external SSD (asks first)
   swayforge version / update    installed version · get the newest from GitHub
   swayforge export FILE        back up settings + your tweaks
@@ -87,9 +87,8 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("action", nargs="?", default="list", choices=["list", "add", "remove"])
     p.add_argument("device", nargs="?", help="add: partition, e.g. nvme1n1p1 · remove: NAME or /mnt/NAME")
     p.add_argument("name", nargs="?", help="add: folder name under /mnt")
-    p = sub.add_parser("steam", help="why Steam downloads GBs (shader pre-cache) · limit auto-updates to a time window")
-    p.add_argument("action", nargs="?", default="status", choices=["status", "window"])
-    p.add_argument("arg", nargs="?", default="", help="window: HH-HH (e.g. 03-06) or off")
+    p = sub.add_parser("steam", help="Steam shader-cache helper (optional add-on: steamtune)")
+    p.add_argument("rest", nargs=argparse.REMAINDER, help="passed on to steamtune")
     p = sub.add_parser("wipe", help="wipe + format a removable drive (USB, SD, external SSD)")
     p.add_argument("device", nargs="?", help="e.g. sdb or mmcblk0 – without it: list the drives")
     p.add_argument("--mode", default="quick", choices=["quick", "zero", "discard"])
@@ -204,8 +203,11 @@ def main(argv: list[str] | None = None) -> int:
         return anim.hello()
 
     if a.cmd == "steam":
-        from . import steamtune
-        return steamtune.main(a.action, a.arg)
+        exe = Path.home() / ".local/bin/steamtune"
+        if not exe.exists():
+            print("steamtune is an optional add-on – select it in the installer (swayforge install → Own tools).")
+            return 1
+        return subprocess.call([str(exe), *a.rest])
     if a.cmd == "wipe":
         from . import cleanup
         if not a.device:
