@@ -21,6 +21,7 @@ from .. import boot, layouts, paths, render, settings, themes
 from ..system import detect, have, run
 from .common import (BASE_CSS, AnimatedArt, Field, art_styles, coerce, field_row, hero_text, path_from_wid, section, swatch,
                      two_tone, use_layout, use_theme)
+from .games import GamesPanel
 from .maintenance import AboutPanel, AppsPanel, CleanupPanel, MountsPanel
 from .panels import AudioPanel, BluetoothPanel, NetworkPanel
 
@@ -38,6 +39,7 @@ PAGES: list[tuple[str, str]] = [
     ("input", "\U000f030c  Keyboard & mouse"),
     ("shell", "\U000f018d  Terminal & prompt"),
     ("keys", "\U000f003b  Apps & shortcuts"),
+    ("games", "\U000f0297  Games"),
     ("power", "\U000f06a5  Power & lock"),
     ("boot", "\U000f07b7  Boot & login"),
     ("security", "\U000f0483  Security"),
@@ -299,6 +301,7 @@ class SettingsApp(App):
                 yield self.page_fields("input")
                 yield self.page_shell()
                 yield self.page_keys()
+                yield GamesPanel(id="page-games", classes="page")
                 yield self.page_power()
                 yield self.page_boot()
                 yield self.page_security()
@@ -512,45 +515,7 @@ class SettingsApp(App):
             section("Autostart"),
             Static("One command per line, e.g. discord --start-minimized or steam -silent", classes="hint"),
             TextArea("\n".join(self.s["autostart"]["extra"]), id="autostart"),
-            *self.cs2_section(),
-            *self.steam_section(),
         )
-
-    def cs2_section(self) -> list:
-        if not (paths.XDG_DATA / "cs2translate").is_dir():
-            return []
-        watcher = run(["pgrep", "-f", "swayforge-cs2-watcher"]).returncode == 0 if have("pgrep") else False
-        cond = False
-        for lc in (paths.HOME / ".local/share/Steam/userdata").glob("*/config/localconfig.vdf"):
-            try:
-                cond = cond or "-condebug" in lc.read_text(errors="replace")
-            except OSError:
-                pass
-        ok, no = "[green]✓[/]", "[yellow]✗[/]"
-        return [
-            section("CS2 chat translator"),
-            Static(f"{ok if watcher else no} watcher {'running' if watcher else 'not running (starts with Sway)'}"
-                   f"    {ok if cond else no} Steam launch option -condebug"
-                   f"{'' if cond else ' – set it in Steam → CS2 → Properties'}", classes="hint"),
-            Static("Overlay colours follow the theme. Position it once while CS2 runs "
-                   "(drag, then Esc).", classes="hint"),
-            Horizontal(Button("Position overlay", id="cs2_move", variant="primary"),
-                       Button("Test in terminal", id="cs2_test"),
-                       Button("Options ✎", id="cs2_args"),
-                       Button("Log", id="cs2_log"), classes="btnrow"),
-        ]
-
-    def steam_section(self) -> list:
-        if not (paths.HOME / ".local/bin/steamtune").exists():
-            return []
-        return [
-            section("Steam shader cache (steamtune)"),
-            Static("Why Steam downloads GBs before a game, the cache per drive, limits and moving it: "
-                   "`steamtune limit N 30G`, `steamtune move N DIR`, `steamtune window 03-06`.", classes="hint"),
-            Horizontal(Button("Status", id="steam_status", variant="primary"),
-                       Button("Prune (preview)", id="steam_dry"),
-                       Button("Prune now", id="steam_prune"), classes="btnrow"),
-        ]
 
     def page_power(self) -> VerticalScroll:
         children = self.fields("power")
@@ -1023,19 +988,6 @@ class SettingsApp(App):
             script = {"boot_apply": "apply-boot.sh", "login_apply": "apply-login.sh",
                       "login_restore": "restore-sddm.sh"}[bid]
             self.spawn_term(f"bash {shlex.quote(str(boot.BOOT_DIR / script))}; {hold}")
-        elif bid == "cs2_move":
-            subprocess.Popen([str(paths.HOME / ".local/bin/cs2translate"), "--move"],
-                             start_new_session=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-            self.notify("Drag the overlay over the CS2 chat, then press Esc", timeout=6)
-        elif bid == "cs2_test":
-            self.spawn_term(f"{shlex.quote(str(paths.HOME / '.local/bin/cs2translate'))} --terminal --debug; {hold}")
-        elif bid == "cs2_args":
-            self.open_file(paths.CONFIG_DIR / "cs2.args")
-        elif bid in ("steam_status", "steam_dry", "steam_prune"):
-            sub = {"steam_status": "", "steam_dry": "prune --dry", "steam_prune": "prune"}[bid]
-            self.spawn_term(f"{shlex.quote(str(paths.HOME / '.local/bin/steamtune'))} {sub}; {hold}")
-        elif bid == "cs2_log":
-            self.spawn_term(f"less +F {shlex.quote(str(paths.HOME / '.cache/cs2translate.log'))}")
         elif bid.startswith("sec_"):
             self.security_button(bid, hold)
         elif bid == "sys_update":

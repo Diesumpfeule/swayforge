@@ -225,7 +225,7 @@ name is forged left to right. Any key skips it; `SWAYFORGE_NO_INTRO=1` turns it 
 **Steam downloads GBs before CS2?** That is Steam's *shader pre-caching*, not a lost cache: Valve
 republishes the game's pre-cache as one big file (CS2: ~7 GB, no delta), so Steam fetches it again
 whenever it changed. The optional add-on **steamtune** (installer → *Own tools*, off by default) explains
-it for your system and helps (`swayforge steam` or `steamtune`, also under Settings):
+it for your system and helps – in **Settings → Games** (limit and move fields per drive) or on the command line (`swayforge steam` / `steamtune`):
 
 - `steamtune` – what Steam downloaded and when, shader cache size per drive
 - `steamtune limit 1 30G` – cap the cache on library 1 (Steam has no limit of its own); `steamtune prune`

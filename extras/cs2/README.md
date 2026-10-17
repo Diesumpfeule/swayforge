@@ -22,8 +22,8 @@ The installer item **Own tools → cs2translate** (on by default):
 - colours the overlay in your **theme** (CT = theme blue, T = theme yellow, all chat = theme
   green, background, text and logo colour) using your Nerd Font – re-done on every theme change
 
-Settings app → **Apps & shortcuts → CS2 chat translator** has buttons for positioning,
-a test run, the options file and the log.
+Settings app → **Games** has the options (font size, opacity, how long messages stay, lines, language,
+hide original) plus buttons for positioning, a test run and your own options file.
 
 ## Once per reset
 
