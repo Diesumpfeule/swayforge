@@ -363,4 +363,68 @@ def plague(c: dict) -> str:
 '''
 
 
-ART = {"cathedral": cathedral, "plague": plague}
+def crypt(c: dict) -> str:
+    import random
+    rnd = random.Random(1492)
+    ink, gold = c["crust"], c["yellow"]
+    bone = c["text"]
+    sky = _mix(ink, "#000000", 0.2)
+    floor = _mix(ink, "#1a171a", 0.3)
+    stone = _mix(ink, "#2a262a", 0.3)
+    return f"""<svg xmlns="http://www.w3.org/2000/svg" width="{W}" height="{H}" viewBox="0 0 1920 1080">
+<defs>
+  <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="{sky}"/><stop offset="1" stop-color="{ink}"/></linearGradient>
+  <radialGradient id="cand" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="{gold}" stop-opacity="0.22"/><stop offset="1" stop-color="{gold}" stop-opacity="0"/></radialGradient>
+  <linearGradient id="floor" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="{_mix(floor, stone, .5)}"/><stop offset="1" stop-color="{floor}"/></linearGradient>
+  <filter id="grain" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="2" seed="7"/><feColorMatrix values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.4 -0.12"/></filter>
+</defs>
+<rect width="1920" height="1080" fill="url(#sky)"/>
+<rect y="600" width="1920" height="480" fill="url(#floor)"/>
+<g stroke="{_mix(stone, ink, .5)}" stroke-width="12" fill="none">
+  <path d="M0 600 L320 320 L640 600"/>
+  <path d="M320 600 L640 320 L960 600"/>
+  <path d="M640 600 L960 320 L1280 600"/>
+  <path d="M960 600 L1280 320 L1600 600"/>
+  <path d="M1280 600 L1600 320 L1920 600"/>
+</g>
+<g fill="{_mix(stone, ink, .4)}">
+  <rect x="310" y="320" width="20" height="280"/>
+  <rect x="630" y="320" width="20" height="280"/>
+  <rect x="950" y="320" width="20" height="280"/>
+  <rect x="1270" y="320" width="20" height="280"/>
+  <rect x="1590" y="320" width="20" height="280"/>
+</g>
+<g stroke="{_mix(stone, ink, .6)}" stroke-width="6" fill="none" opacity="0.6">
+  <line x1="320" y1="320" x2="320" y2="220"/>
+  <line x1="640" y1="320" x2="640" y2="220"/>
+  <line x1="960" y1="320" x2="960" y2="220"/>
+  <line x1="1280" y1="320" x2="1280" y2="220"/>
+  <line x1="1600" y1="320" x2="1600" y2="220"/>
+  <path d="M0 220 H1920 M0 140 H1920" opacity="0.4"/>
+</g>
+<g stroke="{_mix(gold, ink, .6)}" stroke-width="4" fill="none" opacity="0.5">
+  <rect x="840" y="80" width="240" height="160" rx="6"/>
+  <line x1="960" y1="80" x2="960" y2="240"/>
+  <line x1="840" y1="160" x2="1080" y2="160"/>
+  <path d="M900 80 A60 60 0 0 1 960 140 A60 60 0 0 0 1020 80"/>
+  <path d="M900 240 A60 60 0 0 0 960 180 A60 60 0 0 1 1020 240"/>
+</g>
+<g>
+  <ellipse cx="400" cy="580" rx="14" ry="6" fill="{_mix(gold, ink, .8)}"/>
+  <path d="M394 580 L394 540 Q400 530 406 540 L406 580z" fill="{_mix(bone, ink, .4)}"/>
+  <circle cx="400" cy="538" r="4" fill="{gold}" opacity="0.7"/>
+  <circle cx="400" cy="520" r="60" fill="url(#cand)"/>
+  <ellipse cx="1520" cy="580" rx="14" ry="6" fill="{_mix(gold, ink, .8)}"/>
+  <path d="M1514 580 L1514 540 Q1520 530 1526 540 L1526 580z" fill="{_mix(bone, ink, .4)}"/>
+  <circle cx="1520" cy="538" r="4" fill="{gold}" opacity="0.7"/>
+  <circle cx="1520" cy="520" r="60" fill="url(#cand)"/>
+</g>
+<rect x="820" y="620" width="280" height="60" rx="4" fill="{_mix(stone, ink, .3)}" stroke="{_mix(stone, ink, .7)}" stroke-width="4"/>
+<rect x="840" y="600" width="240" height="30" rx="2" fill="{_mix(stone, ink, .25)}" stroke="{_mix(stone, ink, .7)}" stroke-width="3"/>
+<rect width="1920" height="1080" filter="url(#grain)" opacity="0.22"/>
+<rect width="1920" height="1080" fill="url(#vig)" transform="rotate(180 960 540)" opacity="0.5"/>
+<rect width="1920" height="1080" fill="url(#vig)" opacity="0.4"/>
+</svg>
+"""
+
+ART = {"cathedral": cathedral, "plague": plague, "crypt": crypt}

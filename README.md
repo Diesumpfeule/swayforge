@@ -43,7 +43,7 @@ gaming, IT tools, keyboard-driven use and **frequent resets**.
     <td><img src="docs/img/catppuccin-mocha_modern.png" alt="Catppuccin Mocha"><br><sub><b>Catppuccin Mocha</b> · Modern islands · forge motif</sub></td>
   </tr>
   <tr>
-    <td><img src="docs/img/requiem_cathedral.png" alt="Requiem"><br><sub><b>Requiem</b> · Cathedral · black-death ASCII wallpaper</sub></td>
+    <td><img src="docs/img/requiem_cathedral.png" alt="Requiem"><br><sub><b>Requiem</b> · Cathedral · crypt · candlelit vault</sub></td>
     <td><img src="docs/img/catppuccin-mocha_win11.png" alt="Modern 11"><br><sub><b>Catppuccin Mocha</b> · Modern 11 · centered taskbar</sub></td>
   </tr>
   <tr>

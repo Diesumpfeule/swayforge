@@ -23,7 +23,7 @@ ACCENT_CHOICES = ["accent", "accent2", "blue", "cyan", "green", "yellow", "orang
 # Style a theme may bring along (applied when you pick it, reverted when you switch away)
 STYLE_KEYS = {"radius": ("look", "radius"), "layout": ("bar", "layout"),
               "font": ("theme", "font"), "font_size": ("theme", "font_size")}
-WALLPAPER_STYLES = ["gradient", "gothic", "crt", "plain", "rust", "night", "wired", "cathedral", "plague"]
+WALLPAPER_STYLES = ["gradient", "gothic", "crt", "plain", "rust", "night", "wired", "cathedral", "plague", "crypt"]
 HEX = re.compile(r"^#[0-9a-fA-F]{6}$")
 
 
