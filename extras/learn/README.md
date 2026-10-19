@@ -1,5 +1,7 @@
 # Learning projects
 
+Step-by-step guide in German: [ANLEITUNG.md](ANLEITUNG.md).
+
 Two small Textual apps with only the skeleton written. You do the rest, one tiny step at a time.
 Run them from the swayforge folder. Stuck? Read the error message first, then ask.
 
