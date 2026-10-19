@@ -61,6 +61,12 @@ alias sf='swayforge'
 
 ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE="fg={{ c.overlay }}"
 [[ -f /usr/share/zsh-autosuggestions/zsh-autosuggestions.zsh ]] && source /usr/share/zsh-autosuggestions/zsh-autosuggestions.zsh
+# Tab accepts the grey suggestion (like →); with no suggestion it completes as usual
+_sf_tab_accept() {
+  if [[ -n "$POSTDISPLAY" ]]; then zle autosuggest-accept; else zle expand-or-complete; fi
+}
+zle -N _sf_tab_accept
+bindkey '^I' _sf_tab_accept
 {% endif %}
 {% if s.shell.spaceship %}
 
