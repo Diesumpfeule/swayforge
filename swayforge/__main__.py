@@ -100,6 +100,9 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--confirm", default="", help=argparse.SUPPRESS)
     p = sub.add_parser("find", help="find an app and show the install command (Fedora → COPR → RPM Fusion → Flathub)")
     p.add_argument("term", nargs="+", help="e.g. fastfetch, steam, discord")
+    p = sub.add_parser("wallpapers", help="wallpaper collections: list | install PACK[/FOLDER] …")
+    p.add_argument("action", choices=["list", "install"], nargs="?", default="list")
+    p.add_argument("what", nargs="*", help="dharmx/nord  dharmx/anime  aesthetic (= whole pack)")
     p = sub.add_parser("shot", help="screenshot")
     p.add_argument("mode", choices=["area", "output", "edit"], nargs="?", default="area")
 
@@ -204,6 +207,29 @@ def main(argv: list[str] | None = None) -> int:
         finder.mark_installed(res.hits, set(apps.rpm_db()), set(apps.flatpak_db()))
         print(finder.describe(res))
         return 0 if res.hits else 1
+
+    if a.cmd == "wallpapers":
+        from . import wallpacks
+        if a.action == "list":
+            for p in wallpacks.load():
+                print(f"{p.name}  [{p.id}]  {p.total_files} files, {p.total_mb} MB  –  {p.license}")
+                print(f"  {p.blurb}")
+                print("  " + ", ".join(f"{c.id}({c.mb}MB{'*' if wallpacks.is_installed(p, c) else ''})"
+                                      for c in p.categories))
+            return 0
+        keys = []
+        for w in a.what:
+            pid, _, cid = w.partition("/")
+            pk = wallpacks.get(pid)
+            if not pk:
+                print(f"unknown collection: {pid}", file=sys.stderr)
+                return 2
+            keys += [wallpacks.key(pid, cid)] if cid else [wallpacks.key(pid, c.id) for c in pk.categories]
+        if not wallpacks.resolve(keys):
+            print("nothing to install – see: swayforge wallpapers list", file=sys.stderr)
+            return 2
+        print(f"about {wallpacks.total_mb(keys)} MB")
+        return subprocess.call(["bash", "-o", "pipefail", "-c", wallpacks.script(keys)])
 
     if a.cmd == "hello":
         from . import anim

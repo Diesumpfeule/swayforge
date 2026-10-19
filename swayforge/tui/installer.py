@@ -193,6 +193,7 @@ class Welcome(Step):
             self.app.selected = set(prof.selected)
             self.app.remove = set(prof.remove)
             self.app.update_first = prof.update_first
+            self.app.wallpacks = set(prof.wallpacks)
             self.notify("Profile loaded")
         self.next()
 
@@ -346,6 +347,58 @@ class Look(Step):
         s["bar"]["layout"] = self.query_one("#layout", Select).value
         s["shell"]["spaceship"] = self.query_one("#spaceship", Switch).value
         s["input"]["kb_layout"] = self.query_one("#kb", Input).value.strip() or "us"
+        self.app.push_screen(Wallpapers())
+
+
+# ── 4b. Wallpapers (optional) ─────────────────────────────────────────
+class Wallpapers(Step):
+    def compose(self) -> ComposeResult:
+        from .. import wallpacks
+        yield Header()
+        yield Static("Wallpapers (optional)", classes="steptitle")
+        with VerticalScroll(classes="page"):
+            yield Static(
+                "Want ready-made wallpaper collections? Tick the folders you like – they are downloaded at the end "
+                "of the install straight into [b]~/Pictures/Wallpapers[/b] (original GitHub repos, only the chosen "
+                "folders). Nothing is ticked by default; skip this if you don't want any. Afterwards you can "
+                "browse them with a preview in swayforge → Wallpapers (needs the kitty terminal) and add more "
+                "there any time.\n[dim]dharmx/walls: no stated licence, images belong to their authors – fine as a "
+                "private wallpaper. D3Ext/aesthetic-wallpapers: MIT.[/]", classes="hint")
+            yield Horizontal(Button("None", id="wp_none"),
+                             Button("Small starter set", id="wp_starter"), classes="btnrow")
+            yield SelectionList[str](
+                *[Selection((f"{p.name} › {c.id}" if c.id != "all" else f"{p.name} (everything)")
+                            + f"   {c.files} files, {c.mb} MB", wallpacks.key(p.id, c.id),
+                            wallpacks.key(p.id, c.id) in self.app.wallpacks)
+                  for p in wallpacks.load() for c in p.categories], id="wp_list")
+            yield Static("", id="wp_sum", classes="hint")
+        yield Nav()
+
+    def on_mount(self) -> None:
+        self.sum()
+
+    def sum(self) -> None:
+        from .. import wallpacks
+        sel = self.query_one("#wp_list", SelectionList).selected
+        mbs = wallpacks.total_mb(sel)
+        self.query_one("#wp_sum", Static).update(
+            f"{len(sel)} folder(s) selected – about {mbs / 1000:.1f} GB to download." if sel else "Nothing selected.")
+
+    @on(SelectionList.SelectedChanged)
+    def picked(self) -> None:
+        self.sum()
+
+    @on(Button.Pressed, "#wp_none, #wp_starter")
+    def quick(self, ev: Button.Pressed) -> None:
+        from .. import wallpacks
+        sl = self.query_one("#wp_list", SelectionList)
+        sl.deselect_all()
+        if ev.button.id == "wp_starter":
+            for k in wallpacks.STARTER:
+                sl.select(k)
+
+    def next(self) -> None:
+        self.app.wallpacks = set(self.query_one("#wp_list", SelectionList).selected)
         self.app.push_screen(Summary())
 
 
@@ -510,9 +563,10 @@ class InstallerApp(App):
         self.selected = self.catalog.defaults(self.si)
         self.remove: set[str] = set()
         self.update_first = True
+        self.wallpacks: set[str] = set()
 
     def build_steps(self) -> list[plan.Step]:
-        prof = plan.Profile(set(self.selected), set(self.remove), self.update_first)
+        prof = plan.Profile(set(self.selected), set(self.remove), self.update_first, set(self.wallpacks))
         return plan.build(prof, self.s, self.si, self.catalog)
 
     def on_mount(self) -> None:

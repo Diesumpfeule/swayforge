@@ -65,7 +65,7 @@ gaming, IT tools, keyboard-driven use and **frequent resets**.
    ```
 
 The installer asks for your sudo password once and walks you through
-**Apps → Clean-up → Look → Summary → Install**. Reboot when it's done.
+**Apps → Clean-up → Look → Wallpapers (optional) → Summary → Install**. Reboot when it's done.
 
 ### The fast way from the second time on
 
@@ -245,6 +245,33 @@ name is forged left to right. Any key skips it; `SWAYFORGE_NO_INTRO=1` turns it 
   right before it starts. `swayforge wipe` does the same from the command line. Note that flash
   wear levelling can keep stray old blocks – for secrets, use encryption from the start.
 
+## Wallpapers
+
+**Settings → Wallpapers** lists every picture in `~/Pictures/Wallpapers` (sub-folders included) with a
+filter box and a **real preview** next to it. The preview is drawn by the [kitty](https://sw.kovidgoyal.net/kitty/)
+terminal through its graphics protocol (`kitten icat` with Unicode placeholders – no image library of our
+own, the picture scrolls and redraws with the rest of the interface). Outside kitty (another terminal, tmux,
+SSH) the page still works, it just shows a note instead of the picture. Buttons: *Set as wallpaper*,
+*Theme from wallpaper* (colours of the picture → whole theme), *Open folder*.
+
+**Collections you can download** (at the bottom of the same page, or in the installer's optional
+*Wallpapers* step – nothing is ticked by default):
+
+| Collection | Size | Licence |
+|---|---|---|
+| [dharmx/walls](https://github.com/dharmx/walls) – 47 folders (anime, nature, minimal, nord, gruvbox, architecture, …) | about 3 GB of pictures, folders from 2 MB to 535 MB, sizes shown per folder | none stated – the images belong to their authors, fine as a private wallpaper |
+| [D3Ext/aesthetic-wallpapers](https://github.com/D3Ext/aesthetic-wallpapers) – one flat folder, 378 pictures | about 610 MB | MIT |
+
+swayforge does **not** ship these pictures. Your computer downloads only the folders you tick from the
+original repository (git sparse checkout, no history; the temporary clone is deleted afterwards) into
+`~/Pictures/Wallpapers/<collection>/<folder>/`. Videos and GIFs are skipped. The choice is saved in your
+profile, so a reset-and-reinstall fetches the same folders again.
+
+```
+swayforge wallpapers list                       what exists, sizes, which folders you already have (*)
+swayforge wallpapers install dharmx/nord aesthetic
+```
+
 ## Mount drives
 
 **Steam downloads GBs before CS2?** That is Steam's *shader pre-caching*, not a lost cache: Valve
@@ -352,6 +379,8 @@ swayforge version / update    installed versions · update both from GitHub
 swayforge scan [TARGET]       malware scan: downloads | home | drives | PATH
 swayforge audit rootkit|system  rkhunter + chkrootkit / Lynis
 swayforge steam [...]         Steam shader-cache helper (optional add-on steamtune)
+swayforge find TERM            find an app: Fedora → COPR → RPM Fusion → Flathub
+swayforge wallpapers [list|install …]  wallpaper collections
 swayforge wipe [DEVICE]       wipe + format a USB stick / SD card / external SSD (no DEVICE = list)
 swayforge import-sway FILE    take over an existing Sway config
 swayforge export [FILE]       back up;  swayforge restore FILE
@@ -374,6 +403,8 @@ swayforge/
   layouts.py               bar/UI layouts
   ascii.py                 shaded banner font + ASCII motifs (data/art/)
   apps.py / cleanup.py     installed-apps overview, cleanup, drive wiper
+  finder.py                app search across Fedora, COPR, RPM Fusion, Flathub
+  kittyimg.py / wallpacks.py  kitty image preview · downloadable wallpaper collections (data/wallpapers.toml)
   boot.py                  Plymouth boot screens + tuigreet login
   tui/                     the installer and settings apps (Textual)
 scripts/make_art.py        regenerates the ASCII art (dev only)

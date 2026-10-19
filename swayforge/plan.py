@@ -24,6 +24,7 @@ class Profile:
     selected: set[str] = field(default_factory=set)
     remove: set[str] = field(default_factory=set)
     update_first: bool = True
+    wallpacks: set[str] = field(default_factory=set)   # 'pack/folder' keys, see wallpacks.py
 
     @classmethod
     def load(cls, path=None) -> "Profile | None":
@@ -32,7 +33,7 @@ class Profile:
             return None
         d = tomllib.loads(p.read_text())
         return cls(set(d.get("selected", [])), set(d.get("remove", [])),
-                   bool(d.get("update_first", True)))
+                   bool(d.get("update_first", True)), set(d.get("wallpapers", [])))
 
     def save(self, path=None) -> None:
         paths.ensure_dirs()
@@ -42,7 +43,8 @@ class Profile:
             "#   ./install.sh --yes\n\n"
             + tomlw.dumps({"update_first": self.update_first,
                            "selected": sorted(self.selected),
-                           "remove": sorted(self.remove)}))
+                           "remove": sorted(self.remove),
+                           "wallpapers": sorted(self.wallpacks)}))
 
 
 @dataclass
@@ -92,6 +94,8 @@ def build(profile: Profile, s: dict, si: SysInfo | None = None,
     pkgs: list[str] = []
     for i in items:
         pkgs += [p for p in i.dnf if p not in pkgs]
+    if profile.wallpacks and "git" not in pkgs:
+        pkgs.append("git")                      # the wallpaper download uses git
     term = s["general"]["terminal"]
     if term not in pkgs:
         pkgs.append(term)
@@ -122,6 +126,12 @@ def build(profile: Profile, s: dict, si: SysInfo | None = None,
     if s["shell"]["zsh"]:
         steps.append(Step("Make zsh the default shell", [
             f"[ \"$(getent passwd {si.user} | cut -d: -f7)\" = /usr/bin/zsh ] || sudo usermod -s /usr/bin/zsh {si.user}"]))
+
+    if profile.wallpacks:
+        from . import wallpacks
+        keys = sorted(profile.wallpacks)
+        steps.append(Step(f"Download wallpapers (about {wallpacks.total_mb(keys)} MB)",
+                          [wallpacks.script(keys)]))
 
     def write_configs() -> list[str]:
         detect.cache_clear()          # re-detect SwayFX, sensors … after installing

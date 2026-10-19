@@ -23,12 +23,14 @@ from .common import (BASE_CSS, HOLD, AnimatedArt, Field, art_styles, coerce, fie
                      two_tone, use_layout, use_theme)
 from .games import GamesPanel
 from .maintenance import AboutPanel, AppsPanel, CleanupPanel, MountsPanel
+from .wallpapers import WallpapersPanel
 from .panels import AudioPanel, BluetoothPanel, NetworkPanel
 
 ON_OFF = [("always", "always"), ("only via SSH/root", "needed"), ("never", "false")]
 
 PAGES: list[tuple[str, str]] = [
     ("theme", "\U000f03d8  Theme"),
+    ("wallpapers", "\U000f02e9  Wallpapers"),
     ("layout", "\U000f056e  Layout"),
     ("look", "\U000f00e3  Appearance"),
     ("bar", "\U000f062e  Bar modules"),
@@ -304,6 +306,7 @@ class SettingsApp(App):
                            id="sidebar", initial_index=[p for p, _ in PAGES].index(self.start_page))
             with ContentSwitcher(initial=f"page-{self.start_page}", id="pages"):
                 yield self.page_theme()
+                yield WallpapersPanel(id="page-wallpapers", classes="page")
                 yield self.page_layout()
                 yield self.page_fields("look")
                 yield self.page_fields("bar")

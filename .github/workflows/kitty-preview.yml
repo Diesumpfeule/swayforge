@@ -1,0 +1,78 @@
+# Manual check of the kitty image preview with a REAL kitty (Xvfb + software OpenGL), plus a real
+# download of one small wallpaper folder. Screenshots go to the branch ci-screenshots-swayforge.
+name: Kitty preview check
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  preview:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install kitty, Xvfb, Textual
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -yq kitty xvfb imagemagick fonts-dejavu fonts-noto-core mesa-utils libgl1-mesa-dri \
+            python3-pip python3-jinja2 python3-pil xdotool
+          pip install --break-system-packages textual
+          kitty --version; kitten --version
+      - name: Real wallpaper download (one small folder)
+        run: |
+          export HOME=$RUNNER_TEMP/home; mkdir -p $HOME
+          python3 -m swayforge wallpapers list | head -5
+          python3 -m swayforge wallpapers install dharmx/paper dharmx/wave
+          find $HOME/Pictures/Wallpapers -type f | tee downloaded.txt | head -20
+          test "$(wc -l < downloaded.txt)" -ge 5
+          ls -A $HOME/.cache | grep -c swayforge-walls || true
+      - name: Settings app → Wallpapers page inside real kitty
+        run: |
+          export HOME=$RUNNER_TEMP/home2; mkdir -p $HOME/Pictures/Wallpapers/demo
+          i=0; for c in "red-blue" "green-black" "yellow-purple" "white-teal"; do
+            i=$((i+1)); convert -size 1920x1080 gradient:$c -swirl 120 $HOME/Pictures/Wallpapers/demo/pic$i.png
+          done
+          Xvfb :97 -screen 0 1400x800x24 & sleep 2
+          export DISPLAY=:97 LIBGL_ALWAYS_SOFTWARE=1 SWAYFORGE_ROOT=$PWD
+          cat > demo.py <<'PY'
+          import os, sys
+          sys.path.insert(0, os.environ["SWAYFORGE_ROOT"])
+          from textual.widgets import OptionList
+          from swayforge import kittyimg
+          import swayforge.tui.settings_app as sa
+          open("/tmp/status.txt", "w").write(repr(kittyimg.status()) + "\n")
+          app = sa.SettingsApp(page="wallpapers")
+          def pick():
+              ol = app.query_one("#wp_files", OptionList)
+              ol.focus()
+              ol.highlighted = 1
+              p = app.query_one("#wp_prev")
+              open("/tmp/status.txt", "a").write("picked; preview=%r\n" % (p.message,))
+          app.set_timer(4, pick)
+          app.set_timer(9, lambda: open("/tmp/status.txt", "a").write(
+              "placed=%r msg=%r\n" % (bool(app.query_one("#wp_prev").placement), app.query_one("#wp_prev").message)))
+          app.run()
+          PY
+          kitty --config NONE -o initial_window_width=150c -o initial_window_height=45c \
+                -o remember_window_size=no -o font_size=10 -o confirm_os_window_close=0 \
+                python3 demo.py > kitty.log 2>&1 &
+          KPID=$!
+          sleep 6; import -window root 1-start.png
+          sleep 8
+          cat /tmp/status.txt; cp /tmp/status.txt status.txt
+          import -window root 2-after.png
+          kill $KPID || true
+          cat kitty.log | tail -20
+      - name: Share screenshots
+        run: |
+          mkdir /tmp/shots && cp *.png *.log *.txt /tmp/shots/ 2>/dev/null || true
+          git config user.name ci; git config user.email ci@users.noreply.github.com
+          git checkout -q --orphan shots
+          git rm -rfq --cached . >/dev/null
+          git clean -fdxq
+          cp /tmp/shots/* .
+          git add -A
+          git commit -qm "kitty preview screenshots"
+          git push -qf origin HEAD:refs/heads/ci-screenshots-swayforge

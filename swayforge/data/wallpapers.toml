@@ -1,0 +1,262 @@
+# Wallpaper collections swayforge can download on request.
+# Nothing here is bundled with swayforge: the pictures are fetched from the original GitHub
+# repository onto *your* computer (git sparse checkout – only the folders you choose), straight
+# into your Wallpapers folder. Sizes are measured (files / MB), 2026-10.
+
+[[pack]]
+id = "dharmx"
+name = "dharmx/walls"
+repo = "https://github.com/dharmx/walls"
+branch = "main"
+subdir = ""                 # categories are top-level folders
+license = "none stated – images belong to their authors; personal use as wallpaper"
+blurb = "Large, well sorted collection: anime, nature, minimal, nord, gruvbox, architecture …"
+
+[[pack.category]]
+id = "anime"
+files = 299
+mb = 535
+
+[[pack.category]]
+id = "nord"
+files = 159
+mb = 261
+
+[[pack.category]]
+id = "unsorted"
+files = 96
+mb = 230
+
+[[pack.category]]
+id = "flowers"
+files = 100
+mb = 224
+
+[[pack.category]]
+id = "minimal"
+files = 50
+mb = 217
+
+[[pack.category]]
+id = "nature"
+files = 66
+mb = 182
+
+[[pack.category]]
+id = "architecture"
+files = 68
+mb = 159
+
+[[pack.category]]
+id = "digital"
+files = 54
+mb = 105
+
+[[pack.category]]
+id = "mountain"
+files = 48
+mb = 102
+
+[[pack.category]]
+id = "monochrome"
+files = 52
+mb = 94
+
+[[pack.category]]
+id = "manga"
+files = 55
+mb = 92
+
+[[pack.category]]
+id = "gruvbox"
+files = 37
+mb = 82
+
+[[pack.category]]
+id = "apeiros"
+files = 14
+mb = 68
+
+[[pack.category]]
+id = "abstract"
+files = 44
+mb = 55
+
+[[pack.category]]
+id = "m-26.jp"
+files = 34
+mb = 53
+
+[[pack.category]]
+id = "aerial"
+files = 25
+mb = 47
+
+[[pack.category]]
+id = "fogsmoke"
+files = 28
+mb = 45
+
+[[pack.category]]
+id = "painting"
+files = 16
+mb = 43
+
+[[pack.category]]
+id = "chillop"
+files = 18
+mb = 41
+
+[[pack.category]]
+id = "dreamcore"
+files = 19
+mb = 41
+
+[[pack.category]]
+id = "decay"
+files = 12
+mb = 37
+
+[[pack.category]]
+id = "cold"
+files = 17
+mb = 36
+
+[[pack.category]]
+id = "calm"
+files = 15
+mb = 35
+
+[[pack.category]]
+id = "fauna"
+files = 19
+mb = 35
+
+[[pack.category]]
+id = "centered"
+files = 73
+mb = 26
+
+[[pack.category]]
+id = "solarized"
+files = 14
+mb = 26
+
+[[pack.category]]
+id = "interior"
+files = 8
+mb = 24
+
+[[pack.category]]
+id = "lightbulb"
+files = 13
+mb = 22
+
+[[pack.category]]
+id = "outrun"
+files = 12
+mb = 22
+
+[[pack.category]]
+id = "basalt"
+files = 7
+mb = 21
+
+[[pack.category]]
+id = "cherry"
+files = 11
+mb = 18
+
+[[pack.category]]
+id = "girl"
+files = 9
+mb = 18
+
+[[pack.category]]
+id = "apocalypse"
+files = 15
+mb = 17
+
+[[pack.category]]
+id = "evangelion"
+files = 20
+mb = 16
+
+[[pack.category]]
+id = "poly"
+files = 9
+mb = 16
+
+[[pack.category]]
+id = "tile"
+files = 23
+mb = 9
+
+[[pack.category]]
+id = "stalenhag"
+files = 6
+mb = 8
+
+[[pack.category]]
+id = "pixel"
+files = 7
+mb = 6
+
+[[pack.category]]
+id = "wave"
+files = 3
+mb = 6
+
+[[pack.category]]
+id = "radium"
+files = 11
+mb = 5
+
+[[pack.category]]
+id = "weirdcore"
+files = 4
+mb = 5
+
+[[pack.category]]
+id = "industrial"
+files = 2
+mb = 5
+
+[[pack.category]]
+id = "jackb"
+files = 11
+mb = 4
+
+[[pack.category]]
+id = "halloween"
+files = 3
+mb = 3
+
+[[pack.category]]
+id = "paper"
+files = 5
+mb = 2
+
+[[pack.category]]
+id = "retro"
+files = 28
+mb = 2
+
+[[pack.category]]
+id = "geometry"
+files = 3
+mb = 2
+
+[[pack]]
+id = "aesthetic"
+name = "D3Ext/aesthetic-wallpapers"
+repo = "https://github.com/D3Ext/aesthetic-wallpapers"
+branch = "main"
+subdir = "images"           # one flat folder
+license = "MIT"
+blurb = "Aesthetic, mostly dark and colourful pictures in a single folder."
+
+[[pack.category]]
+id = "all"
+files = 378
+mb = 610
