@@ -18,7 +18,7 @@ jobs:
           sudo apt-get update -q
           sudo apt-get install -yq kitty xvfb imagemagick fonts-dejavu fonts-noto-core mesa-utils libgl1-mesa-dri \
             python3-pip python3-jinja2 python3-pil xdotool
-          sudo python3 -m pip install --break-system-packages textual
+          pip install --break-system-packages textual
           kitty --version; kitten --version
       - name: Real wallpaper download (one small folder)
         run: |
@@ -32,6 +32,7 @@ jobs:
         continue-on-error: true
         run: |
           exec > >(tee step5.log) 2>&1
+          export PYTHONUSERBASE=$HOME/.local
           export HOME=$RUNNER_TEMP/home2; mkdir -p $HOME/Pictures/Wallpapers/demo
           i=0; for c in "red-blue" "green-black" "yellow-purple" "white-teal"; do
             i=$((i+1)); convert -size 1920x1080 gradient:$c -swirl 120 $HOME/Pictures/Wallpapers/demo/pic$i.png
