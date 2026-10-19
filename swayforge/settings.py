@@ -169,7 +169,6 @@ KEY_ACTIONS: list[tuple[str, str, str, str]] = [
     ("clipboard", "Clipboard history", "$mod+v", "exec {sf} clip"),
     ("keys", "Show all shortcuts", "$mod+F1", "exec {sf} keys"),
     ("kill", "Close window", "$mod+q", "kill"),
-    ("maximize", "Maximise (bar stays visible)", "$mod+f", "exec {sf} max"),
     ("fullscreen", "Real fullscreen (hides the bar – games, video)", "$mod+Shift+f", "fullscreen toggle"),
     ("focus_parent", "Focus parent container", "$mod+a", "focus parent"),
     ("focus_mode", "Focus tiling/floating", "$mod+space", "focus mode_toggle"),

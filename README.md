@@ -294,7 +294,7 @@ read the report before acting.
 | `Super+R` | app launcher + run (Rofi combi) |
 | `Super+W` / `Super+D` | browser / file manager |
 | `Super+Q` | close window |
-| `Super+F` / `Super+Shift+F` | maximise (bar stays) / real fullscreen (games, video) |
+| `Super+Shift+F` | real fullscreen (games, video – hides the bar) |
 | `Super+H J K L` or arrows / `+Shift` | move focus / move window |
 | `Super+1…0` / `+Shift` | workspace / move window to workspace |
 | `Super+A` | focus parent container |
@@ -310,8 +310,7 @@ read the report before acting.
 | `Super+Shift+T` / `Super+Shift+B` | next theme / next bar layout |
 
 **Tiling only (default):** every window tiles – dialogs too – and there are no floating, tabbed
-or stacked layouts; use workspaces instead. `Super+F` maximises the focused window but keeps the bar
-(press it again to get the split back). Splits, resize mode, floating, tabs and the scratchpad
+or stacked layouts; use workspaces instead. Splits, resize mode, floating, tabs and the scratchpad
 are still in *Settings → Shortcuts* without a key – give them one if you want them, or switch
 *Appearance → Tiling only* off.
 
