@@ -75,6 +75,10 @@ jobs:
           cat /tmp/status.txt; cp /tmp/status.txt status.txt
           grim 2-after.png
           kill $KPID || true
+          kitty --config NONE -o remember_window_size=no -o confirm_os_window_close=0 \
+            python3 scripts/check_kitty_graphics.py $HOME/Pictures/Wallpapers/demo/pic1.png $PWD/accept.txt > accept-run.log 2>&1 &
+          for i in $(seq 1 20); do test -s accept.txt && break; sleep 1; done
+          cat accept.txt
           tail -20 kitty.log demo-err.log
       - name: Share screenshots
         if: always()
