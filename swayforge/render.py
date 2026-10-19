@@ -375,13 +375,13 @@ def waybar_config(ctx: Ctx) -> dict:
         cfg["width"] = max(44, b["height"] + 10)
     else:
         cfg["height"] = (max(b["height"], 56) if lay == "touch"
-                         else b["height"] + {"win7": 6, "winxp": 6, "win11": 10}.get(lay, 0))
+                         else b["height"] + {"win7": 6, "winxp": 2, "win11": 10}.get(lay, 0))
     if si.gpu_busy:
         cfg["custom/gpu"] = {"exec": f"cat {si.gpu_busy}", "interval": 3, "on-click": btop_cmd(s),
                              "format": f(I["gpu"], "{}%", "gpu"), "tooltip-format": "GPU load"}
     if lay in ("win98", "winxp", "win7", "win11", "touch"):
         cfg["custom/start"] = {"format": (f"{I['fedora']}  Start" if lay == "win98" else
-                                          "\U000f05b3  start" if lay == "winxp" else I["fedora"]),
+                                          "\uf17a  start" if lay == "winxp" else I["fedora"]),
                                "tooltip-format": "Start menu – apps (Super+D)",
                                "on-click": f"{LAUNCHER} start", "on-click-right": f"{LAUNCHER} power"}
         cfg["wlr/taskbar"] = {"format": "{icon}  {title:.22}" if lay in ("win98", "winxp") else "{icon}",

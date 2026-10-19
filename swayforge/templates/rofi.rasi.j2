@@ -86,12 +86,12 @@ mainbox { spacing: 0; padding: 0; children: [ textbox-head, inputbar, listview, 
 textbox-head {
     expand: false;
     padding: 12px 14px;
-    content: "󰀄  {{ user }}";
+    content: "  {{ user }}";
     font: "{{ font }} Bold {{ s.theme.font_size + 4 }}";
     text-color: #ffffff;
     border-radius: 7px 7px 0 0;
     background-color: {{ c.accent }};
-    background-image: linear-gradient(to bottom, {{ mix(c.accent, "#ffffff", 0.35) }}, {{ c.accent }} 55%, {{ mix(c.accent, "#000000", 0.12) }});
+    background-image: linear-gradient(to bottom, {{ mix(c.accent, "#ffffff", 0.3) }}, {{ mix(c.accent, "#000000", 0.08) }});
 }
 inputbar {
     margin: 8px 10px 4px 10px;
@@ -108,7 +108,7 @@ element selected.normal { background-color: {{ c.accent2 }}; text-color: #ffffff
 textbox-foot {
     expand: false;
     padding: 8px 14px;
-    content: "󰐥  Turn off: right-click the Start button";
+    content: "  Turn off: right-click the Start button";
     text-color: #ffffff;
     background-color: {{ c.accent }};
     background-image: linear-gradient(to bottom, {{ c.accent }}, {{ mix(c.accent, "#000000", 0.2) }});
