@@ -18,7 +18,7 @@ jobs:
           sudo apt-get update -q
           sudo apt-get install -yq kitty xvfb imagemagick fonts-dejavu fonts-noto-core mesa-utils libgl1-mesa-dri \
             python3-pip python3-jinja2 python3-pil xdotool
-          pip install --break-system-packages textual
+          sudo pip install --break-system-packages textual
           kitty --version; kitten --version
       - name: Real wallpaper download (one small folder)
         run: |
