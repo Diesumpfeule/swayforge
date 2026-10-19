@@ -114,6 +114,52 @@ textbox-foot {
     background-image: linear-gradient(to bottom, {{ c.accent }}, {{ mix(c.accent, "#000000", 0.2) }});
 }
 
+{% elif layout == "dread" %}
+/* ── Dread: an item box – dark, rust-framed, list with a red marker, key hints at the bottom ── */
+window {
+    location: center;
+    anchor: center;
+    width: 540px;
+    background-color: {{ c.crust }};
+    border: 2px;
+    border-color: {{ mix(c.accent, c.crust, 0.45) }};
+    padding: 3px;
+}
+mainbox {
+    border: 1px;
+    border-color: {{ c.surface2 }};
+    padding: 14px 16px;
+    spacing: 10px;
+    background-color: {{ c.base }};
+    children: [ textbox-head, inputbar, listview, textbox-foot ];
+}
+textbox-head {
+    expand: false; horizontal-align: 0.5;
+    content: "▌ ITEM BOX ▐";
+    text-color: {{ c.accent }};
+}
+inputbar {
+    padding: 6px 8px; spacing: 8px;
+    background-color: {{ c.crust }};
+    border: 0 0 1px 0; border-color: {{ c.surface2 }};
+    children: [ prompt, entry ];
+}
+prompt { text-color: {{ c.accent }}; }
+entry  { placeholder: "…"; placeholder-color: @fg-dim; }
+listview { lines: 10; columns: 1; spacing: 2px; fixed-height: false; scrollbar: false; }
+element { padding: 6px 10px; spacing: 10px; border: 0 0 0 3px; border-color: transparent; }
+element selected.normal {
+    background-color: {{ rgba(c.accent, 0.20) }};
+    border-color: {{ c.accent }};
+    text-color: {{ c.text }};
+}
+element normal.normal { text-color: @fg-dim; }
+textbox-foot {
+    expand: false; horizontal-align: 0.5;
+    content: "[ Enter ] use     [ Esc ] close";
+    text-color: {{ c.overlay }};
+}
+
 {% elif layout == "win7" %}
 /* ── Glass 7 start menu ──────────────────────────────────────────── */
 window {

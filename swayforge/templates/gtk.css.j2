@@ -80,6 +80,26 @@ headerbar, .titlebar {
 headerbar button { color: #ffffff; background-image: none; border-color: {{ rgba("#ffffff", 0.6) }}; }
 menu, popover contents, .menu { border-radius: 0; border: 1px solid {{ c.surface2 }}; }
 menuitem:hover, row:selected { background-color: {{ c.accent2 }}; color: #ffffff; }
+{% elif layout == "dread" %}
+
+/* Dread: flat, square, dark, thin rust lines */
+* { border-radius: 0; }
+button, .button, combobox button, spinbutton button {
+    border: 1px solid {{ c.surface2 }};
+    background-image: linear-gradient(to bottom, {{ c.surface }}, {{ c.base }});
+    box-shadow: inset 0 0 6px {{ rgba("#000000", 0.7) }};
+}
+button:hover, .button:hover { border-color: {{ c.accent }}; }
+button:active, button:checked, .button:active { background-image: none; background-color: {{ rgba(c.accent, 0.3) }}; }
+entry, spinbutton, textview, treeview.view { border: 1px solid {{ c.surface2 }}; box-shadow: inset 0 0 8px {{ rgba("#000000", 0.8) }}; }
+entry:focus, spinbutton:focus { border-color: {{ c.accent }}; }
+headerbar, .titlebar {
+    background-image: linear-gradient(to bottom, {{ c.mantle }}, {{ c.crust }});
+    border-bottom: 2px solid {{ mix(c.accent, c.crust, 0.45) }};
+    color: {{ c.text }};
+}
+menu, popover contents, .menu { border: 1px solid {{ mix(c.accent, c.crust, 0.5) }}; }
+menuitem:hover, row:selected { background-color: {{ rgba(c.accent, 0.35) }}; }
 {% elif layout == "win7" %}
 
 /* Glass 7: soft gradients, small radius */

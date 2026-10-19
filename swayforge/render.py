@@ -364,7 +364,7 @@ def waybar_config(ctx: Ctx) -> dict:
         "mpris": {"format": f(I["music"], "{title}", "play"), "format-paused": f(I["music"], "⏸ {title}", "pause"),
                   "max-length": 40},
         "tray": {"spacing": 10, "icon-size": 16},
-        "custom/power": {"format": "[off]" if text_only else ("☠" if lay == "cathedral" else I["power"]),
+        "custom/power": {"format": "[off]" if text_only else ("☠" if lay in ("cathedral", "dread") else I["power"]),
                          "tooltip-format": "Power menu",
                          "on-click": f"{LAUNCHER} power"},
     }

@@ -28,7 +28,7 @@ EVENTS = ["desktop-login", "desktop-logout", "message-new-instant", "message", "
           "device-removed", "bell", "complete", "battery-low", "screen-capture",
           "audio-volume-change"]
 LAYOUT_PACK = {"win98": "classic", "winxp": "glass", "win7": "glass", "win11": "modern", "touch": "touch",
-               "wired": "wired", "cathedral": "gothic"}
+               "wired": "wired", "cathedral": "gothic", "dread": "gothic"}
 
 
 def pack_for(s: dict, theme_id: str, layout: str) -> str:

@@ -36,6 +36,11 @@ LAYOUTS: dict[str, Layout] = {l.id: l for l in [
            "┌─────────╮┌─────────────┐┌─────────────┐              ┌──────────────────┐\n"
            "│ ❖ start ││ kitty       ││ firefox     │              │ ♪  ⇅  ▤   21:30  │\n"
            "└─────────╯└─────────────┘└─────────────┘              └──────────────────┘"),
+    Layout("dread", "Dread (survival horror)",
+           "Dark top bar of worn inventory slots, rust rule, blood-red focus glow, item-box launcher, grim notifications",
+           "top",
+           "▕▓ 1 ▓│░ 2 ░│░ 3 ░▏  ▸ kitty                    ▕ cpu 12% ▏▕ vol 40% ▏▕ 21:30 ▏▕ ⏻ ▏\n"
+           "▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔"),
     Layout("win11", "Modern 11", "Centered rounded taskbar with start button and icon tasks, widgets on the left",
            "bottom",
            "  1 2 3                  ( ❖ ) ╭───╮ ╭───╮ ╭───╮                  ♪ ⇅ 21:30\n"

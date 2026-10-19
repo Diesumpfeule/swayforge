@@ -45,7 +45,7 @@ DEFAULTS: dict[str, Any] = {
         "fx_dim_inactive": 0.0,       # SwayFX only, 0.0–0.5
     },
     "bar": {
-        "layout": "modern",           # modern | solid | win98 | winxp | win7 | win11 | touch | wired | minimal | sidebar
+        "layout": "modern",           # modern | solid | win98 | winxp | dread | win7 | win11 | touch | wired | minimal | sidebar
         "height": 34,
         "window_title": True,
         "taskmanager": True,          # button: btop in a terminal
