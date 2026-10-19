@@ -1,28 +1,42 @@
-"""Installed apps, cleanup and the drive wiper – pages of the settings app."""
+"""Apps (installed + find & install), cleanup and the drive wiper – pages of the settings app."""
 from __future__ import annotations
 
 import os
 import shlex
 
+from rich.markup import escape
 from rich.text import Text
 from textual import on, work
 from textual.app import ComposeResult
 from textual.containers import Horizontal, Vertical
 from textual.screen import ModalScreen
-from textual.widgets import Button, Checkbox, DataTable, Input, Label, Select, Static
+from textual.widgets import Button, Checkbox, ContentSwitcher, DataTable, Input, Label, Select, Static
 
-from .. import apps, catalog, cleanup, mounts, render, update
+from .. import apps, catalog, cleanup, finder, mounts, render, update
 from ..system import have
 from .common import HOLD
 from .panels import Panel
 
 
-# ── Installed apps ───────────────────────────────────────────────────
+# ── Apps: what's installed + find & install ─────────────────────────
 class AppsPanel(Panel):
-    TITLE = "Installed apps"
+    TITLE = "Apps"
     NEEDS = ("rpm",)
+    DEFAULT_CSS = """
+    AppsPanel #ap_views, AppsPanel #ap_view_inst, AppsPanel #ap_view_find { height: auto; }
+    AppsPanel #fd_detail { margin-top: 1; }
+    """
 
     def body(self) -> ComposeResult:
+        yield Horizontal(Button("Installed", id="ap_tab_inst", variant="primary"),
+                         Button("Find & install", id="ap_tab_find"), classes="btnrow")
+        with ContentSwitcher(initial="ap_view_inst", id="ap_views"):
+            with Vertical(id="ap_view_inst"):
+                yield from self.installed_body()
+            with Vertical(id="ap_view_find"):
+                yield from self.find_body()
+
+    def installed_body(self) -> ComposeResult:
         yield Static("Grouped like the installer. [b]Other[/b] = what you installed yourself (dnf/Flatpak). "
                      "Size = the app's own packages, shared libraries not counted. Uninstalling opens a "
                      "terminal and dnf/flatpak ask once more.", classes="hint")
@@ -36,6 +50,19 @@ class AppsPanel(Panel):
         yield Horizontal(Button("Uninstall …", id="ap_remove", disabled=True),
                          Button("Install more (installer)", id="ap_installer"), classes="btnrow")
 
+    def find_body(self) -> ComposeResult:
+        yield Static("Type a name (steam, fastfetch, discord …) or a few words and press Enter. Results follow the "
+                     "repo order [b]Fedora → COPR → RPM Fusion → Flathub[/b] – take the topmost one that has it, "
+                     "native packages fit the system best. The exact command is shown before anything runs; "
+                     "installing opens a terminal where dnf/flatpak ask once more.", classes="hint")
+        yield Horizontal(Input(placeholder="what do you want to install?", id="fd_term"),
+                         Button("Search", id="fd_go", variant="primary"), classes="btnrow")
+        yield Static("", id="fd_status", classes="hint")
+        yield DataTable(id="fd_table", cursor_type="row", zebra_stripes=True)
+        yield Static("", id="fd_detail", classes="hint")
+        yield Horizontal(Button("Install in terminal", id="fd_install", disabled=True),
+                         Button("Copy command", id="fd_copy", disabled=True), classes="btnrow")
+
     def on_mount(self) -> None:
         t = self.query_one("#ap_table", DataTable)
         t.add_column("App", key="app", width=34)
@@ -45,6 +72,15 @@ class AppsPanel(Panel):
         self.loaded = False
         self.cat = catalog.load()
         self.labels = {g.id: g.label for g in self.cat.groups} | {apps.OTHER: "Other (yours)"}
+        f = self.query_one("#fd_table", DataTable)
+        f.add_column("App", key="app", width=30)
+        f.add_column("Source", key="src", width=18)
+        f.add_column("What it is", key="desc", width=54)
+        self.hits: list[finder.Hit] = []
+        self.hit: finder.Hit | None = None
+        self.search_id = 0
+        self.partial: dict[str, list[finder.Hit]] = {}
+        self.installed_sets: tuple[set[str], set[str]] = (set(), set())
 
     def on_show(self) -> None:
         if not self.loaded:
@@ -132,6 +168,138 @@ class AppsPanel(Panel):
             hold = HOLD
             self.app.spawn_term(f"{self.current.remove_cmd()}; {hold}")      # type: ignore[attr-defined]
             self.app.notify(f"Uninstalling {self.current.label} in a terminal – press ↻ afterwards")
+
+    # ── tabs ──
+    @on(Button.Pressed, "#ap_tab_inst, #ap_tab_find")
+    def switch_tab(self, ev: Button.Pressed) -> None:
+        ev.stop()
+        find = ev.button.id == "ap_tab_find"
+        self.query_one("#ap_views", ContentSwitcher).current = "ap_view_find" if find else "ap_view_inst"
+        self.query_one("#ap_tab_find", Button).variant = "primary" if find else "default"
+        self.query_one("#ap_tab_inst", Button).variant = "default" if find else "primary"
+        if find:
+            self.query_one("#fd_term", Input).focus()
+        elif not self.loaded:
+            self.refresh_data()
+
+    # ── find & install ──
+    @on(Button.Pressed, "#fd_go")
+    @on(Input.Submitted, "#fd_term")
+    def start_search(self, ev) -> None:
+        ev.stop()
+        term = self.query_one("#fd_term", Input).value.strip()
+        if len(term) < 2:
+            self.query_one("#fd_status", Static).update("Type at least two letters.")
+            return
+        self.search_id += 1
+        self.partial = {}
+        self.hits, self.hit = [], None
+        self.fill_find([], {})
+        self._find_status({}, set(src for src, _l, _f in finder.STEPS))
+        self.run_search(term, self.search_id)
+
+    @work(thread=True, exclusive=True, group="find")
+    def run_search(self, term: str, sid: int) -> None:
+        rpms, flats = set(apps.rpm_db()), set(apps.flatpak_db())
+        errors: dict[str, str] = {}
+        waiting = set(src for src, _l, _f in finder.STEPS)
+
+        def done(source: str, hits: list[finder.Hit], err: str) -> None:
+            finder.mark_installed(hits, rpms, flats)
+            waiting.discard(source)
+            if err:
+                errors[source] = err
+            self.app.call_from_thread(self._partial, sid, source, hits, dict(errors), set(waiting))
+
+        res = finder.search_all(term, on_done=done)
+        finder.mark_installed(res.hits, rpms, flats)
+        self.app.call_from_thread(self._finished, sid, res)
+
+    def _find_status(self, errors: dict[str, str], waiting: set[str], count: int | None = None) -> None:
+        marks = []
+        for src, label, _f in finder.STEPS:
+            if src in waiting:
+                marks.append(f"{label} …")
+            elif src in errors:
+                marks.append(f"[red]{label} ✗[/]")
+            else:
+                marks.append(f"[green]{label} ✓[/]")
+        tail = "" if count is None else f"   ·   {count} found" if count else "   ·   nothing found"
+        self.query_one("#fd_status", Static).update("  ".join(marks) + tail)
+
+    def _partial(self, sid: int, source: str, hits: list[finder.Hit], errors: dict, waiting: set) -> None:
+        if sid != self.search_id:
+            return
+        self.partial[source] = hits
+        merged = sorted((h for hs in self.partial.values() for h in hs), key=lambda h: h.key)
+        self.fill_find(merged, errors)
+        self._find_status(errors, waiting)
+
+    def _finished(self, sid: int, res: finder.Result) -> None:
+        if sid != self.search_id:
+            return
+        self.fill_find(res.hits, res.errors)
+        self._find_status(res.errors, set(), len(res.hits))
+        if res.errors:
+            detail = "  ".join(f"{k}: {v}" for k, v in res.errors.items())
+            self.query_one("#fd_detail", Static).update(f"[yellow]Not everything answered – {escape(detail)}[/]")
+
+    def fill_find(self, hits: list[finder.Hit], errors: dict) -> None:
+        t = self.query_one("#fd_table", DataTable)
+        t.clear()
+        self.hits = hits
+        last = None
+        for i, h in enumerate(hits):
+            if h.source != last:
+                n = sum(1 for x in hits if x.source == h.source)
+                t.add_row(Text(f"▾ {h.source}  ({n})", style="bold"), "", "", key=f"hdr:{h.source}")
+                last = h.source
+            name = Text("  " + h.name) + (Text("  installed", style="green") if h.installed else Text(""))
+            t.add_row(name, Text(h.source, style="yellow" if h.source == "Flathub" else
+                                 "cyan" if h.tier else ""), h.summary, key=f"hit:{i}")
+        self.hit = None
+        self._show_hit(None)
+
+    def _show_hit(self, h: finder.Hit | None) -> None:
+        det = self.query_one("#fd_detail", Static)
+        inst, cp = self.query_one("#fd_install", Button), self.query_one("#fd_copy", Button)
+        inst.disabled = cp.disabled = h is None
+        if h is None:
+            if not self.hits:
+                det.update("")
+            return
+        extra = f"\n[dim]{escape(h.note)}[/]" if h.note and h.source != "Flathub" else ""
+        state = "[green]already installed[/] · " if h.installed else ""
+        det.update(f"[b]{escape(h.name)}[/b] · {state}{escape(h.source)}\n[b]$[/b] {escape(h.cmd)}{extra}")
+        inst.label = "Reinstall in terminal" if h.installed else "Install in terminal"
+
+    @on(DataTable.RowHighlighted, "#fd_table")
+    def hit_highlighted(self, ev: DataTable.RowHighlighted) -> None:
+        key = ev.row_key.value if ev.row_key else ""
+        if key and key.startswith("hit:") and key[4:].isdigit() and int(key[4:]) < len(self.hits):
+            self.hit = self.hits[int(key[4:])]
+        else:
+            self.hit = None
+        self._show_hit(self.hit)
+
+    @on(Button.Pressed, "#fd_install, #fd_copy")
+    def hit_action(self, ev: Button.Pressed) -> None:
+        ev.stop()
+        h = self.hit
+        if not h:
+            return
+        if ev.button.id == "fd_copy":
+            tool = next((c for c in (["wl-copy"], ["xclip", "-selection", "clipboard"]) if have(c[0])), None)
+            if tool:
+                import subprocess
+                subprocess.run(tool, input=h.cmd, text=True)
+                self.app.notify("Command copied")
+            else:
+                self.app.notify(h.cmd, timeout=15)
+            return
+        self.app.spawn_term(f"{h.cmd}; {HOLD}")                          # type: ignore[attr-defined]
+        self.loaded = False                                               # Installed tab reloads next time
+        self.app.notify(f"Installing {h.name} in a terminal – check the Installed tab afterwards")
 
 
 class ClCheck(Checkbox):

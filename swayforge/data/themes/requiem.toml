@@ -24,6 +24,6 @@ cyan = "#74a49e"
 [style]
 radius = 0
 layout = "cathedral"
-wallpaper = "crypt"
+wallpaper = "plain"
 ascii = "rosewindow"
 boot = "ascii"

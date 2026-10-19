@@ -98,6 +98,8 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--label", default="USB")
     p.add_argument("--size", type=int, default=0, help=argparse.SUPPRESS)
     p.add_argument("--confirm", default="", help=argparse.SUPPRESS)
+    p = sub.add_parser("find", help="find an app and show the install command (Fedora → COPR → RPM Fusion → Flathub)")
+    p.add_argument("term", nargs="+", help="e.g. fastfetch, steam, discord")
     p = sub.add_parser("shot", help="screenshot")
     p.add_argument("mode", choices=["area", "output", "edit"], nargs="?", default="area")
 
@@ -195,6 +197,13 @@ def main(argv: list[str] | None = None) -> int:
             print(update.describe(n, *update.status(n)).replace("[green]", "").replace("[yellow]", "")
                   .replace("[dim]", "").replace("[/]", ""))
         return 0
+
+    if a.cmd == "find":
+        from . import apps, finder
+        res = finder.search_all(" ".join(a.term))
+        finder.mark_installed(res.hits, set(apps.rpm_db()), set(apps.flatpak_db()))
+        print(finder.describe(res))
+        return 0 if res.hits else 1
 
     if a.cmd == "hello":
         from . import anim

@@ -44,7 +44,7 @@ PAGES: list[tuple[str, str]] = [
     ("power", "\U000f06a5  Power & lock"),
     ("boot", "\U000f07b7  Boot & login"),
     ("security", "\U000f0483  Security"),
-    ("apps", "\U000f03d6  Installed apps"),
+    ("apps", "\U000f03d6  Apps"),
     ("cleanup", "\U000f00e2  Cleanup & drives"),
     ("mounts", "\U000f02ca  Mount drives"),
     ("system", "\U000f0493  System & files"),

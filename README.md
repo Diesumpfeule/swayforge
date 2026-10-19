@@ -15,7 +15,7 @@ gaming, IT tools, keyboard-driven use and **frequent resets**.
 - **Installer** – pick apps, clean-up, theme and layout, run once, reboot.
 - **Settings** (`Super+I`) – theme, layout, appearance, bar, displays, audio, system sounds, Bluetooth,
   network, keyboard/mouse, terminal & prompt, shortcuts, power, boot & login, security,
-  installed apps, cleanup & drive wiping, files.
+  apps (installed + find & install), cleanup & drive wiping, files.
 - **System sounds** – generated sound packs (gothic church bells, classic bleeps, glass chimes …),
   off by default.
 - **Tiling only** by default – no floating windows, no tabs or stacking; workspaces do the rest.
@@ -43,12 +43,8 @@ gaming, IT tools, keyboard-driven use and **frequent resets**.
     <td><img src="docs/img/catppuccin-mocha_modern.png" alt="Catppuccin Mocha"><br><sub><b>Catppuccin Mocha</b> · Modern islands · forge motif</sub></td>
   </tr>
   <tr>
-    <td><img src="docs/img/requiem_cathedral.png" alt="Requiem"><br><sub><b>Requiem</b> · Cathedral · crypt · candlelit vault</sub></td>
     <td><img src="docs/img/catppuccin-mocha_win11.png" alt="Modern 11"><br><sub><b>Catppuccin Mocha</b> · Modern 11 · centered taskbar</sub></td>
-  </tr>
-  <tr>
     <td><img src="docs/img/tokyo-night_touch.png" alt="Touch"><br><sub><b>Tokyo Night</b> · Touch · big tap targets + on-screen keyboard</sub></td>
-    <td></td>
   </tr>
 </table>
 
@@ -143,7 +139,7 @@ swayforge also switches dnf to **Enter = yes** (`[Y/n]` instead of `[y/N]`). Tha
 | **Phosphor** / **Amber** | green / amber CRT · Terminus font · BIOS wallpaper |
 | **Wired** | full-on hacker: black, red, static, network nodes · Wired layout |
 | **Onyx** | pure black & white, square, no colour at all |
-| **Requiem** | gothic cathedral: black, bone white, crimson, a touch of deep green · Cathedral layout · rose-window wallpaper with stained glass, lancet windows, candles and a wrought-iron fence |
+| **Requiem** | gothic cathedral: black, bone white, crimson, a touch of deep green · Cathedral layout · plain dark wallpaper – drop your own into the wallpaper folder |
 
 Retro themes bring their own style (square corners, retro font, layout). Switch to another theme
 and your own values come back. **Make your own:** `Theme → Edit colours → Save as my theme`.
@@ -217,12 +213,25 @@ it. Turn it off under *Theme → Animate the ASCII art*.
 The installer opens with a short animation (about 1.5 s): the motif ignites out of sparks, then the
 name is forged left to right. Any key skips it; `SWAYFORGE_NO_INTRO=1` turns it off.
 
-## Installed apps, cleanup & drives
+## Apps, cleanup & drives
 
-- **Settings → Installed apps** – everything installed, grouped like the installer, plus
+- **Settings → Apps → Installed** – everything installed, grouped like the installer, plus
   **Other** for what you installed yourself (dnf or Flatpak). Shows source (Fedora, RPM Fusion,
   COPR, Flatpak, vendor repo) and size; *Uninstall* opens a terminal where dnf/flatpak ask once more.
   The Sway base can't be removed from here.
+- **Settings → Apps → Find & install** – type a name (`steam`, `fastfetch`, `discord` …) and get
+  the exact install command. The sources are asked in the order of the repo hierarchy, and the list
+  keeps that order, so take the topmost entry that has what you want:
+  1. **Fedora** – your enabled repos (`dnf`), including RPM Fusion/COPR repos you already enabled
+  2. **COPR** – community builds, searched online (only projects built for your Fedora version)
+  3. **RPM Fusion** – free + nonfree, searched online even if you haven't enabled it yet (the
+     command then enables it first)
+  4. **Flathub** – searched online
+
+  Only dnf and the COPR/Flathub APIs are used, never an arbitrary web page, and every name that
+  comes back is checked before it can reach a shell command. Nothing runs by itself: you see the
+  command, *Install in terminal* runs it, and dnf/flatpak ask once more. Already installed apps are
+  marked. From a terminal: `swayforge find fastfetch`.
 - **Settings → Cleanup & drives** – frees space with plain, well-known commands, each with its size:
   package cache, unneeded packages, old logs (keeps 2 weeks), crash dumps, trash, thumbnails,
   unused Flatpak runtimes. Plus ncdu and BleachBit if installed (installer → System → Cleanup tools).

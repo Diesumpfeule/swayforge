@@ -673,10 +673,8 @@ def wallpaper(ctx: Ctx, w: Writer) -> None:
     # the rendered picture lives in the wallpaper folder (visible, pickable, yours to keep),
     # one file per theme; only the SVG source stays in the generated folder
     png = paths.WALLPAPER_DIR / f"swayforge-{ctx.theme.id}.png"
-    from . import wallart
     style = ctx.theme.wallpaper_style
-    content = (wallart.ART[style](ctx.c) if style in wallart.ART
-               else tpl(f"wallpaper-{style}.svg.j2", ctx.as_dict()))
+    content = tpl(f"wallpaper-{style}.svg.j2", ctx.as_dict())
     changed = not svg.exists() or svg.read_text() != content or not png.exists()
     if not w.dry:
         svg.parent.mkdir(parents=True, exist_ok=True)
