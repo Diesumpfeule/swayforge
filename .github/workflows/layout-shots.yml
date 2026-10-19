@@ -21,7 +21,7 @@ jobs:
         run: |
           sudo apt-get update -q
           sudo apt-get install -yq dbus-x11 sway waybar grim foot xvfb rofi imagemagick librsvg2-bin python3-jinja2 python3-pil \
-            gtk-3-examples fonts-dejavu fonts-noto-core fonts-font-awesome papirus-icon-theme
+            gtk-3-examples fonts-dejavu fonts-noto-core fonts-font-awesome fonts-jetbrains-mono papirus-icon-theme
           mkdir -p ~/.local/share/fonts && cd ~/.local/share/fonts \
             && curl -fsSL https://github.com/ryanoasis/nerd-fonts/releases/latest/download/NerdFontsSymbolsOnly.tar.xz | tar -xJ && fc-cache -f
       - name: Render and shoot
