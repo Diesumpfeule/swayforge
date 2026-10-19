@@ -27,9 +27,11 @@ jobs:
       - name: Render and shoot
         run: |
           mkdir -p $PWD/shots
+          ORIG=$HOME
           for pair in ${{ inputs.themes }}; do
             T=${pair%%:*}; L=${pair##*:}
-            export HOME=$RUNNER_TEMP/h-$T; rm -rf $HOME; mkdir -p $HOME
+            export HOME=$RUNNER_TEMP/h-$T; rm -rf $HOME; mkdir -p $HOME/.local/share
+            cp -r $ORIG/.local/share/fonts $HOME/.local/share/fonts; fc-cache -f
             export XDG_CONFIG_HOME=$HOME/.config XDG_RUNTIME_DIR=$RUNNER_TEMP/r-$T
             mkdir -p -m 700 $XDG_RUNTIME_DIR
             python3 - "$T" "$L" <<'PY'
