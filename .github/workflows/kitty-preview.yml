@@ -53,12 +53,15 @@ jobs:
               ol.highlighted = 1
               p = app.query_one("#wp_prev")
               open("/tmp/status.txt", "a").write("picked; preview=%r\n" % (p.message,))
-          app.set_timer(4, pick)
-          app.set_timer(9, lambda: open("/tmp/status.txt", "a").write(
-              "placed=%r msg=%r\n" % (bool(app.query_one("#wp_prev").placement), app.query_one("#wp_prev").message)))
+          def report():
+              pv = app.query_one("#wp_prev")
+              open("/tmp/status.txt", "a").write("placed=%r msg=%r\n" % (bool(pv.placement), pv.message))
+          import threading
+          threading.Timer(4, lambda: app.call_from_thread(pick)).start()
+          threading.Timer(9, lambda: app.call_from_thread(report)).start()
           app.run()
           PY
-          kitty --config NONE -o initial_window_width=150c -o initial_window_height=45c \
+          kitty --hold --config NONE -o initial_window_width=150c -o initial_window_height=45c \
                 -o remember_window_size=no -o font_size=10 -o confirm_os_window_close=0 \
                 sh -c 'python3 demo.py 2> demo-err.log' > kitty.log 2>&1 &
           KPID=$!
