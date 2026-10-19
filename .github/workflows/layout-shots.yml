@@ -57,7 +57,7 @@ jobs:
             # start menu (rofi is X11 here)
             Xvfb :95 -screen 0 1600x900x24 & XV=$!; sleep 2
             DISPLAY=:95 convert $WP -resize 1600x900! /tmp/bg.png 2>/dev/null; DISPLAY=:95 display -window root /tmp/bg.png 2>/dev/null || true
-            DISPLAY=:95 timeout 8 rofi -show drun -theme $HOME/.config/rofi/themes/swayforge.rasi > rofi-$T.log 2>&1 &
+            DISPLAY=:95 timeout 8 rofi -no-config -modi drun -show drun -show-icons -theme $HOME/.config/rofi/themes/swayforge.rasi > rofi-$T.log 2>&1 &
             sleep 4; DISPLAY=:95 import -window root shots/$T-$L-menu.png
             kill $XV || true; pkill rofi || true
             cp $HOME/.config/waybar/swayforge.css shots/$T-waybar.css
