@@ -274,6 +274,15 @@ swayforge wallpapers list                       what exists, sizes, which folder
 swayforge wallpapers install dharmx/nord aesthetic
 ```
 
+## VPN
+
+**Settings → Network → VPN** manages VPNs through NetworkManager: import the file your provider gave you
+(OpenVPN `.ovpn` or WireGuard `.conf` – files in Downloads and your home folder are found automatically),
+then **Connect / Disconnect**, toggle **Auto-connect** or **Delete** (asks twice). Passwords are never stored by
+swayforge: if a VPN needs one, a terminal opens and `nmcli` asks for it. OpenVPN needs the
+`NetworkManager-openvpn` package (swayforge tells you if it's missing); WireGuard works out of the box.
+If Tailscale is installed, up/down/status buttons appear as well.
+
 ## Mount drives
 
 **Steam downloads GBs before CS2?** That is Steam's *shader pre-caching*, not a lost cache: Valve

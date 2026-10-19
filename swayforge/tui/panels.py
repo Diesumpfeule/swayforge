@@ -4,6 +4,7 @@ from __future__ import annotations
 import json
 import re
 import subprocess
+from pathlib import Path
 
 from textual import on, work
 from textual.app import ComposeResult
@@ -11,7 +12,11 @@ from textual.containers import Horizontal, Vertical, VerticalScroll
 from textual.widgets import (Button, Input, Label, ListItem, ListView, ProgressBar, Select,
                              Static, Switch)
 
+from rich.markup import escape
+
+from .. import paths
 from ..system import have, run
+from .common import HOLD
 
 
 def _sh(*cmd: str, timeout: float = 15) -> subprocess.CompletedProcess:
@@ -235,6 +240,8 @@ def _fields(line: str) -> list[str]:
 class NetworkPanel(Panel):
     TITLE = "Network"
     NEEDS = ("nmcli",)
+    _del_armed = ""
+    vpns: dict = {}
 
     def body(self) -> ComposeResult:
         yield Static("Connected", classes="section")
@@ -248,7 +255,26 @@ class NetworkPanel(Panel):
                          Button("Disconnect", id="net_disconnect"),
                          Button("nmtui", id="net_nmtui"),
                          Button("Connection editor", id="net_editor"), classes="btnrow")
-        yield Static("Ethernet, VPN, static IP etc.: via nmtui or the connection editor.", classes="hint")
+        yield Static("Ethernet, static IP etc.: via nmtui or the connection editor.", classes="hint")
+        yield Static("VPN", classes="section")
+        yield Static("Import the file your VPN provider gave you (OpenVPN [b].ovpn[/b] or WireGuard [b].conf[/b]), "
+                     "then connect with one click. Passwords are never stored by swayforge – if the VPN needs "
+                     "one, a terminal asks for it.", classes="hint")
+        yield ListView(id="vpn_list")
+        yield Horizontal(Button("Connect", id="vpn_up", variant="success"),
+                         Button("Disconnect", id="vpn_down"),
+                         Button("Auto-connect on/off", id="vpn_auto"),
+                         Button("Delete", id="vpn_del", variant="error"), classes="btnrow")
+        yield Static("Add a VPN", classes="section")
+        yield Horizontal(Select([], prompt="config files found in Downloads / home …", id="vpn_found",
+                                allow_blank=True),
+                         Button("↻", id="vpn_rescan", classes="small"), classes="btnrow")
+        yield Horizontal(Input(placeholder="or path to a .ovpn / .conf file", id="vpn_path"),
+                         Input(placeholder="username (OpenVPN, optional)", id="vpn_user"),
+                         Button("Import", id="vpn_import", variant="primary"), classes="btnrow")
+        yield Static("", id="vpn_tail", classes="hint")
+        yield Horizontal(Button("Tailscale up", id="ts_up"), Button("Tailscale down", id="ts_down"),
+                         Button("Tailscale status", id="ts_status"), id="ts_row", classes="btnrow")
 
     @work(thread=True, exclusive=True, group="net")
     def refresh_data(self, rescan: bool = False) -> None:
@@ -274,7 +300,11 @@ class NetworkPanel(Panel):
                     seen.add(f[1])
                     nets.append((f[0] == "*", f[1], int(f[2] or 0), f[3]))
             nets.sort(key=lambda n: (not n[0], -n[2]))
+        from .. import vpn
+        vpns = vpn.list_vpns()
+        found = vpn.find_configs(paths.HOME)
         self.app.call_from_thread(self._show, active, ips, wifi_on, nets)
+        self.app.call_from_thread(self._show_vpn, vpns, found)
 
     def _show(self, active, ips, wifi_on, nets) -> None:
         lines = [f"[b]{name}[/b]  [dim]{typ.replace('802-11-wireless', 'Wi-Fi').replace('802-3-ethernet', 'Ethernet')}"
@@ -289,6 +319,69 @@ class NetworkPanel(Panel):
             lock = "🔒" if sec and sec != "--" else "  "
             mark = "[green]●[/] " if inuse else "  "
             lv.append(ListItem(Label(f"{mark}{ssid:<32} {bars:<4} {sig:>3}%  {lock}"), name=ssid))
+
+    def _show_vpn(self, vpns, found) -> None:
+        self.vpns = {v.uuid: v for v in vpns}
+        lv = self.query_one("#vpn_list", ListView)
+        keep = lv.highlighted_child.name if lv.highlighted_child else ""
+        lv.clear()
+        for v in vpns:
+            mark = "[green]●[/] " if v.active else "  "
+            auto = "  [dim]auto[/]" if v.autoconnect else ""
+            lv.append(ListItem(Label(f"{mark}{escape(v.name):<30} [dim]{v.kind}[/]{auto}"), name=v.uuid))
+        if not vpns:
+            lv.append(ListItem(Label("[dim]no VPN yet – add one below[/]"), name=""))
+        if keep:
+            for i, v in enumerate(vpns):
+                if v.uuid == keep:
+                    lv.index = i
+        sel = self.query_one("#vpn_found", Select)
+        with self.prevent(Select.Changed):
+            sel.set_options([(str(f).replace(str(paths.HOME), "~"), str(f)) for f in found])
+        from .. import vpn
+        ts = vpn.have_tailscale()
+        self.query_one("#ts_row").display = ts
+        self.query_one("#vpn_tail", Static).display = ts
+        self.query_one("#vpn_tail", Static).update("Tailscale is installed:" if ts else "")
+
+    @on(Select.Changed, "#vpn_found")
+    def vpn_pick(self, ev: Select.Changed) -> None:
+        ev.stop()
+        if isinstance(ev.value, str):
+            self.query_one("#vpn_path", Input).value = ev.value
+
+    @work(thread=True, group="vpn-action")
+    def vpn_task(self, what: str, uuid: str = "", path: str = "", user: str = "") -> None:
+        from .. import vpn
+        n = self.app.call_from_thread
+        try:
+            if what == "up":
+                n(self.app.notify, "Connecting …")
+                r = vpn.connect(uuid)
+                msg, ok = vpn.message(r, "VPN connected")
+                if not ok and vpn.needs_secret(msg):
+                    n(self.app.spawn_term, f"nmcli --ask connection up uuid {uuid}")       # type: ignore[attr-defined]
+                    msg, ok = "The VPN needs a password – a terminal asks for it", True
+            elif what == "down":
+                msg, ok = vpn.message(vpn.disconnect(uuid), "VPN disconnected")
+            elif what == "del":
+                msg, ok = vpn.message(vpn.delete(uuid), "VPN removed")
+            elif what == "auto":
+                cur = self.vpns.get(uuid)
+                msg, ok = vpn.message(vpn.set_autoconnect(uuid, not (cur and cur.autoconnect)), "saved")
+            else:
+                msg, ok = vpn.import_file(Path(path).expanduser(), user)
+        except ValueError as e:
+            msg, ok = str(e), False
+        n(self.app.notify, msg, severity="information" if ok else "error", timeout=10)
+        self.refresh_data()
+
+    def _vpn_uuid(self) -> str:
+        item = self.query_one("#vpn_list", ListView).highlighted_child
+        if not item or not item.name:
+            self.app.notify("Select a VPN first", severity="warning")
+            return ""
+        return item.name
 
     @on(Switch.Changed, "#net_wifi")
     def wifi(self, ev: Switch.Changed) -> None:
@@ -326,6 +419,32 @@ class NetworkPanel(Panel):
                 if len(f) >= 3 and f[1] == "wifi" and f[2] == "connected":
                     _sh("nmcli", "device", "disconnect", f[0])
             self.refresh_data()
+        elif bid in ("vpn_up", "vpn_down", "vpn_auto"):
+            u = self._vpn_uuid()
+            if u:
+                self.vpn_task(bid[4:], u)
+        elif bid == "vpn_del":
+            u = self._vpn_uuid()
+            if u:
+                if self._del_armed == u:
+                    self._del_armed = ""
+                    ev.button.label = "Delete"
+                    self.vpn_task("del", u)
+                else:
+                    self._del_armed = u
+                    ev.button.label = "Really delete?"
+                    self.set_timer(5, lambda b=ev.button: (setattr(self, "_del_armed", ""), setattr(b, "label", "Delete")))
+        elif bid == "vpn_rescan":
+            self.refresh_data()
+        elif bid == "vpn_import":
+            path = self.query_one("#vpn_path", Input).value.strip()
+            if not path:
+                self.app.notify("Pick a file above or type its path", severity="warning")
+            else:
+                self.vpn_task("import", path=path, user=self.query_one("#vpn_user", Input).value.strip())
+        elif bid in ("ts_up", "ts_down", "ts_status"):
+            self.app.spawn_term({"ts_up": "sudo tailscale up", "ts_down": "sudo tailscale down",   # type: ignore[attr-defined]
+                                 "ts_status": "tailscale status"}[bid] + "; " + HOLD)
         elif bid == "net_nmtui":
             self.app.spawn_term("nmtui")             # type: ignore[attr-defined]
         elif bid == "net_editor":
