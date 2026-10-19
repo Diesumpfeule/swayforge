@@ -16,7 +16,7 @@ jobs:
       - name: Install kitty, Xvfb, Textual
         run: |
           sudo apt-get update -q
-          sudo apt-get install -yq kitty xvfb imagemagick fonts-dejavu fonts-noto-core mesa-utils libgl1-mesa-dri \
+          sudo apt-get install -yq kitty sway grim xvfb imagemagick fonts-dejavu fonts-noto-core mesa-utils libgl1-mesa-dri \
             python3-pip python3-jinja2 python3-pil xdotool
           pip install --break-system-packages textual
           kitty --version; kitten --version
@@ -37,8 +37,13 @@ jobs:
           i=0; for c in "red-blue" "green-black" "yellow-purple" "white-teal"; do
             i=$((i+1)); convert -size 1920x1080 gradient:$c -swirl 120 $HOME/Pictures/Wallpapers/demo/pic$i.png
           done
-          Xvfb :97 -screen 0 1400x800x24 & sleep 2
-          export DISPLAY=:97 LIBGL_ALWAYS_SOFTWARE=1 SWAYFORGE_ROOT=$PWD
+          export XDG_RUNTIME_DIR=$RUNNER_TEMP/run; mkdir -p -m 700 $XDG_RUNTIME_DIR
+          printf 'output HEADLESS-1 resolution 1400x800\noutput * bg #202030 solid_color\n' > sway.cfg
+          WLR_BACKENDS=headless WLR_RENDERER=pixman WLR_LIBINPUT_NO_DEVICES=1 sway -c sway.cfg > sway.log 2>&1 &
+          sleep 4
+          export WAYLAND_DISPLAY=$(ls $XDG_RUNTIME_DIR | grep -m1 '^wayland-[0-9]$')
+          export LIBGL_ALWAYS_SOFTWARE=1 SWAYFORGE_ROOT=$PWD
+          unset DISPLAY
           cat > demo.py <<'PY'
           import os, sys
           sys.path.insert(0, os.environ["SWAYFORGE_ROOT"])
@@ -61,14 +66,14 @@ jobs:
           threading.Timer(9, lambda: app.call_from_thread(report)).start()
           app.run()
           PY
-          kitty --hold --config NONE -o initial_window_width=150c -o initial_window_height=45c \
+          kitty --hold --config NONE -o linux_display_server=wayland -o initial_window_width=150c -o initial_window_height=45c \
                 -o remember_window_size=no -o font_size=10 -o confirm_os_window_close=0 \
                 sh -c 'python3 demo.py 2> demo-err.log' > kitty.log 2>&1 &
           KPID=$!
-          sleep 6; import -window root 1-start.png
+          sleep 6; grim 1-start.png
           sleep 8
           cat /tmp/status.txt; cp /tmp/status.txt status.txt
-          import -window root 2-after.png
+          grim 2-after.png
           kill $KPID || true
           tail -20 kitty.log demo-err.log
       - name: Share screenshots
