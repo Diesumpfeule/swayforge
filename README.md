@@ -262,6 +262,8 @@ SSH) the page still works, it just shows a note instead of the picture. Buttons:
 | [dharmx/walls](https://github.com/dharmx/walls) – 47 folders (anime, nature, minimal, nord, gruvbox, architecture, …) | about 3 GB of pictures, folders from 2 MB to 535 MB, sizes shown per folder | none stated – the images belong to their authors, fine as a private wallpaper |
 | [D3Ext/aesthetic-wallpapers](https://github.com/D3Ext/aesthetic-wallpapers) – one flat folder, 378 pictures | about 610 MB | MIT |
 
+**Both collections are by other people and are not mine.** I did not make, host or curate any of these pictures; all credit goes to the repository owners and the original artists: [github.com/dharmx/walls](https://github.com/dharmx/walls) and [github.com/D3Ext/aesthetic-wallpapers](https://github.com/D3Ext/aesthetic-wallpapers).
+
 swayforge does **not** ship these pictures. Your computer downloads only the folders you tick from the
 original repository (git sparse checkout, no history; the temporary clone is deleted afterwards) into
 `~/Pictures/Wallpapers/<collection>/<folder>/`. Videos and GIFs are skipped. The choice is saved in your
@@ -442,6 +444,7 @@ anyone.
 Built on great free software: [Sway](https://swaywm.org), [Waybar](https://github.com/Alexays/Waybar),
 [Rofi](https://github.com/davatorium/rofi), [Spaceship](https://spaceship-prompt.sh),
 [Nerd Fonts](https://www.nerdfonts.com), [Textual](https://textual.textualize.io) and Fedora.
+- Wallpaper collections (optional download, **not mine**, not part of this repository): [dharmx/walls](https://github.com/dharmx/walls) and [D3Ext/aesthetic-wallpapers](https://github.com/D3Ext/aesthetic-wallpapers) – all pictures belong to their respective authors.
 
 ## Disclaimer
 

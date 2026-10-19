@@ -362,7 +362,7 @@ class Wallpapers(Step):
                 "of the install straight into [b]~/Pictures/Wallpapers[/b] (original GitHub repos, only the chosen "
                 "folders). Nothing is ticked by default; skip this if you don't want any. Afterwards you can "
                 "browse them with a preview in swayforge → Wallpapers (needs the kitty terminal) and add more "
-                "there any time.\n[dim]dharmx/walls: no stated licence, images belong to their authors – fine as a "
+                "there any time.\n[dim]Collections by other people, not mine: github.com/dharmx/walls and github.com/D3Ext/aesthetic-wallpapers. dharmx/walls: no stated licence, images belong to their authors – fine as a "
                 "private wallpaper. D3Ext/aesthetic-wallpapers: MIT.[/]", classes="hint")
             yield Horizontal(Button("None", id="wp_none"),
                              Button("Small starter set", id="wp_starter"), classes="btnrow")

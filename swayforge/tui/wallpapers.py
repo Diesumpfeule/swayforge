@@ -79,7 +79,8 @@ class WallpapersPanel(Panel):
         yield Static("Collections", classes="section")
         yield Static("Optional downloads – swayforge does not ship these pictures. They come from the original "
                      "GitHub repositories (only the folders you tick) straight into your Wallpapers folder, "
-                     "and show up above afterwards. [b]dharmx/walls[/b] has no stated licence (images belong to "
+                     "and show up above afterwards. Not my pictures: collections by other people – github.com/dharmx/walls and "
+                     "github.com/D3Ext/aesthetic-wallpapers. [b]dharmx/walls[/b] has no stated licence (images belong to "
                      "their authors – fine as a private wallpaper); [b]D3Ext/aesthetic-wallpapers[/b] is MIT.",
                      classes="hint")
         yield SelectionList[str](id="wp_packs")
