@@ -106,20 +106,50 @@ def parse(output: str) -> tuple[str, list[str], int]:
     return transmit, lines, image_id
 
 
+_flags: set[str] | None = None
+
+
+def supported_flags() -> set[str]:
+    """Long options this kitten understands (older kitty versions lack some of the newer ones)."""
+    global _flags
+    if _flags is None:
+        try:
+            out = subprocess.run(["kitten", "icat", "--help"], capture_output=True, text=True, timeout=10,
+                                 stdin=subprocess.DEVNULL).stdout
+        except (OSError, subprocess.SubprocessError):
+            out = ""
+        _flags = set(re.findall(r"--([a-z][a-z-]+)", out))
+    return _flags
+
+
+def build_cmd(path: str, cols: int, rows: int, image_id: int, flags: set[str] | None = None) -> list[str]:
+    """The kitten icat command line, using only options this kitten knows."""
+    flags = supported_flags() if flags is None else flags
+    cmd = ["kitten", "icat", "--unicode-placeholder", "--transfer-mode", "file", "--align", "left",
+           "--place", f"{cols}x{rows}@0x0"]
+    if "scale-up" in flags:
+        cmd.append("--scale-up")
+    if "stdin" in flags:
+        cmd += ["--stdin", "no"]
+    if "passthrough" in flags:
+        cmd += ["--passthrough", "none"]
+    if "image-id" in flags:
+        cmd += ["--image-id", str(image_id)]
+    if "use-window-size" in flags:
+        wc, wr, wx, wy = window_size()
+        cmd += ["--use-window-size", f"{wc},{wr},{wx},{wy}"]
+    return cmd + ["--", path]
+
+
 def render(path: str, cols: int, rows: int, timeout: float = 20,
            proc_holder: list | None = None) -> Placement:
     """Let kitten icat prepare <path> to fit into cols×rows cells. Raises RuntimeError on failure.
     proc_holder: a list that receives the running process (so a newer request can kill this one)."""
     if cols < 2 or rows < 1:
         raise RuntimeError("no room for a picture")
-    wc, wr, wx, wy = window_size()
     with _lock:
         image_id = next(_ids)
-    mode = "file"
-    cmd = ["kitten", "icat", "--unicode-placeholder", "--transfer-mode", mode, "--stdin", "no",
-           "--align", "left", "--passthrough", "none", "--scale-up", "--image-id", str(image_id),
-           "--use-window-size", f"{wc},{wr},{wx},{wy}",
-           "--place", f"{cols}x{rows}@0x0", "--", path]
+    cmd = build_cmd(path, cols, rows, image_id)
     try:
         p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.DEVNULL)
     except OSError as e:
