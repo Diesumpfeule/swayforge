@@ -146,7 +146,7 @@ In `~/.config/sway/custom.conf` (siehe `docs/CUSTOMIZING.md`):
 bindsym $mod+Shift+t exec kitty --class themeswitcher python3 /PFAD/ZU/swayforge/extras/learn/themeswitcher.py
 for_window [app_id="themeswitcher"] floating enable, resize set 700 450
 ```
-Danach `Super+Shift+C` bzw. Sway neu laden (siehe deine Tasten mit `swayforge keys`).
+Danach Sway neu laden (die Taste dafür zeigt dir `swayforge keys`).
 Statt `kitty` nimm dein Terminal (`foot` braucht `--app-id`).
 
 ### Schritt 6: Extras, wenn du Lust hast
