@@ -47,6 +47,39 @@ headerbar, .titlebar {
     color: {{ c.crust }};
 }
 menu, popover contents, .menu { border-radius: 0; border: 2px solid {{ bv.hi }}; }
+{% elif layout == "winxp" %}
+
+/* Luna XP: beige buttons with an orange hover / blue focus ring, blue gradient title bars */
+button, .button, combobox button, spinbutton button {
+    border-radius: 3px;
+    border: 1px solid {{ mix(c.accent, "#000000", 0.45) }};
+    background-image: linear-gradient(to bottom, #ffffff, {{ c.base }} 70%, {{ c.mantle }});
+    color: {{ c.text }};
+    box-shadow: none;
+}
+button:hover, .button:hover { box-shadow: inset 0 0 0 2px {{ c.orange }}; }
+button:focus, .button:focus { box-shadow: inset 0 0 0 2px {{ c.accent2 }}; }
+button:active, button:checked, .button:active {
+    background-image: linear-gradient(to bottom, {{ c.mantle }}, {{ c.base }});
+    box-shadow: inset 1px 1px 3px {{ rgba("#000000", 0.35) }};
+}
+entry, spinbutton, textview, treeview.view {
+    border-radius: 2px;
+    border: 1px solid {{ mix(c.accent, c.surface2, 0.4) }};
+    background-color: {{ c.surface }};
+    box-shadow: none;
+}
+headerbar, .titlebar {
+    border-radius: 8px 8px 0 0;
+    border: none;
+    color: #ffffff;
+    font-weight: bold;
+    text-shadow: 1px 1px 1px {{ mix(c.accent, "#000000", 0.6) }};
+    background-image: linear-gradient(to bottom, {{ mix(c.accent, "#ffffff", 0.35) }}, {{ c.accent }} 12%, {{ c.accent }} 80%, {{ mix(c.accent, "#000000", 0.2) }});
+}
+headerbar button { color: #ffffff; background-image: none; border-color: {{ rgba("#ffffff", 0.6) }}; }
+menu, popover contents, .menu { border-radius: 0; border: 1px solid {{ c.surface2 }}; }
+menuitem:hover, row:selected { background-color: {{ c.accent2 }}; color: #ffffff; }
 {% elif layout == "win7" %}
 
 /* Glass 7: soft gradients, small radius */

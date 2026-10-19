@@ -31,6 +31,11 @@ LAYOUTS: dict[str, Layout] = {l.id: l for l in [
            "  ( ◉ )  ╭───╮ ╭───╮ ╭───╮                              ♪  ⇅  21:30\n"
            "         │ ▣ │ │ ◈ │ │ ✉ │                              Fri 16.10.\n"
            "         ╰───╯ ╰───╯ ╰───╯"),
+    Layout("winxp", "Luna XP", "Bottom taskbar in blue with a big green Start button, rounded task buttons, tray with clock, balloon notifications",
+           "bottom",
+           "┌─────────╮┌─────────────┐┌─────────────┐              ┌──────────────────┐\n"
+           "│ ❖ start ││ kitty       ││ firefox     │              │ ♪  ⇅  ▤   21:30  │\n"
+           "└─────────╯└─────────────┘└─────────────┘              └──────────────────┘"),
     Layout("win11", "Modern 11", "Centered rounded taskbar with start button and icon tasks, widgets on the left",
            "bottom",
            "  1 2 3                  ( ❖ ) ╭───╮ ╭───╮ ╭───╮                  ♪ ⇅ 21:30\n"

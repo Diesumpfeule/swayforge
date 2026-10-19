@@ -32,7 +32,7 @@ def use_theme(app, theme_id: str, accent: str = "", layout: str = "") -> None:
         use_layout(app, layout)
 
 
-UI_STYLES = ("win98", "win7", "wired")
+UI_STYLES = ("win98", "winxp", "win7", "wired")
 
 
 def use_layout(app, layout: str) -> None:
@@ -204,6 +204,9 @@ App.-ui-win98 Button { height: 3; border: outer $panel-lighten-2; background: $p
 App.-ui-win98 Button.-active, App.-ui-win98 Button:focus { border: inner $panel-lighten-2; }
 App.-ui-win98 Button.-primary, App.-ui-win98 Button.-success { background: $accent; color: $background;
          border: outer $accent-lighten-2; }
+App.-ui-winxp Button { height: 3; border: round $accent 70%; background: $panel; color: $text; }
+App.-ui-winxp Button:hover, App.-ui-winxp Button:focus { border: round $warning; }
+App.-ui-winxp Button.-primary, App.-ui-winxp Button.-success { background: $success; color: $background; border: round $success-darken-2; }
 App.-ui-win7 Button { height: 3; border: round $accent 50%; background: $panel; }
 App.-ui-win7 Button:hover { border: round $accent; }
 App.-ui-wired Button { background: transparent; color: $accent; padding: 0 1; }
@@ -211,8 +214,8 @@ App.-ui-wired Button:hover, App.-ui-wired Button:focus { background: $accent; co
 App.-ui-wired Button.-primary, App.-ui-wired Button.-success { background: transparent; color: $accent;
          text-style: bold underline; }
 .editbtn { min-width: 5; width: 5; margin-left: 1; margin-top: 1; background: $panel; padding: 0 1; }
-App.-ui-win98 .editbtn, App.-ui-win7 .editbtn { height: 1; border: none; margin-top: 1; }
-App.-ui-win98 .small, App.-ui-win7 .small { height: 1; border: none; }
+App.-ui-win98 .editbtn, App.-ui-winxp .editbtn, App.-ui-win7 .editbtn { height: 1; border: none; margin-top: 1; }
+App.-ui-win98 .small, App.-ui-winxp .small, App.-ui-win7 .small { height: 1; border: none; }
 .editbtn:hover { background: $accent; color: $background; }
 .small { min-width: 5; width: 5; }
 .volval { width: 7; padding: 1 1; }

@@ -27,7 +27,7 @@ EVENTS = ["desktop-login", "desktop-logout", "message-new-instant", "message", "
           "dialog-warning", "dialog-information", "power-plug", "power-unplug", "device-added",
           "device-removed", "bell", "complete", "battery-low", "screen-capture",
           "audio-volume-change"]
-LAYOUT_PACK = {"win98": "classic", "win7": "glass", "win11": "modern", "touch": "touch",
+LAYOUT_PACK = {"win98": "classic", "winxp": "glass", "win7": "glass", "win11": "modern", "touch": "touch",
                "wired": "wired", "cathedral": "gothic"}
 
 

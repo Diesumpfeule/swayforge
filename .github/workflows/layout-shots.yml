@@ -1,0 +1,74 @@
+# Manual: renders a theme + layout with the real swayforge code into a throw-away HOME, shows the bar
+# (Waybar in headless Sway), a GTK app and the start menu, and pushes screenshots to ci-screenshots-swayforge.
+name: Layout screenshots
+
+on:
+  workflow_dispatch:
+    inputs:
+      themes:
+        description: "theme:layout pairs, space separated"
+        default: "luna:winxp luna-olive:winxp luna-silver:winxp"
+
+permissions:
+  contents: write
+
+jobs:
+  shots:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -yq sway waybar grim foot xvfb rofi imagemagick librsvg2-bin python3-jinja2 python3-pil \
+            gtk-3-examples fonts-dejavu fonts-noto-core fonts-font-awesome papirus-icon-theme
+          mkdir -p ~/.local/share/fonts && cd ~/.local/share/fonts \
+            && curl -fsSL https://github.com/ryanoasis/nerd-fonts/releases/latest/download/NerdFontsSymbolsOnly.tar.xz | tar -xJ && fc-cache -f
+      - name: Render and shoot
+        run: |
+          mkdir -p $PWD/shots
+          for pair in ${{ inputs.themes }}; do
+            T=${pair%%:*}; L=${pair##*:}
+            export HOME=$RUNNER_TEMP/h-$T; rm -rf $HOME; mkdir -p $HOME
+            export XDG_CONFIG_HOME=$HOME/.config XDG_RUNTIME_DIR=$RUNNER_TEMP/r-$T
+            mkdir -p -m 700 $XDG_RUNTIME_DIR
+            python3 - "$T" "$L" <<'PY'
+          import sys
+          sys.path.insert(0, ".")
+          from swayforge import render, settings
+          s = settings.load(); s["theme"]["name"] = sys.argv[1]; s["bar"]["layout"] = sys.argv[2]; s["theme"]["wallpaper"] = "theme"
+          r = render.render_all(s); print(len(r.written), "files", r.errors)
+          PY
+            WP=$(ls $HOME/Pictures/Wallpapers/*.png | head -1)
+            printf 'output HEADLESS-1 resolution 1600x900\noutput * bg %s fill\nfor_window [app_id=".*"] floating enable\n' "$WP" > $RUNNER_TEMP/sway-$T.cfg
+            WLR_BACKENDS=headless WLR_RENDERER=pixman WLR_LIBINPUT_NO_DEVICES=1 sway -c $RUNNER_TEMP/sway-$T.cfg > sway-$T.log 2>&1 &
+            SW=$!; sleep 4
+            export WAYLAND_DISPLAY=$(ls $XDG_RUNTIME_DIR | grep -m1 '^wayland-[0-9]$') GDK_BACKEND=wayland
+            waybar > waybar-$T.log 2>&1 &
+            sleep 2
+            for t in "Terminal" "Firefox" "Files"; do foot -T "$t" -e sleep 60 & sleep 1; done
+            gtk3-widget-factory > /dev/null 2>&1 &
+            sleep 5
+            grim shots/$T-$L-bar.png
+            kill $SW || true; pkill waybar || true; pkill foot || true; pkill gtk3-widget || true; sleep 1
+            # start menu (rofi is X11 here)
+            Xvfb :95 -screen 0 1600x900x24 & XV=$!; sleep 2
+            DISPLAY=:95 convert $WP -resize 1600x900! /tmp/bg.png 2>/dev/null; DISPLAY=:95 display -window root /tmp/bg.png 2>/dev/null || true
+            DISPLAY=:95 timeout 8 rofi -show drun -config $HOME/.config/rofi/config.rasi > rofi-$T.log 2>&1 &
+            sleep 4; DISPLAY=:95 import -window root shots/$T-$L-menu.png
+            kill $XV || true; pkill rofi || true
+            cp $HOME/.config/waybar/swayforge.css shots/$T-waybar.css
+          done
+          cp *.log shots/ 2>/dev/null || true
+      - name: Share screenshots
+        if: always()
+        run: |
+          mkdir -p /tmp/shots && cp shots/* /tmp/shots/ 2>/dev/null || true
+          git config user.name ci; git config user.email ci@users.noreply.github.com
+          git checkout -q --orphan shots2
+          git rm -rfq --cached . >/dev/null
+          git clean -fdxq
+          cp /tmp/shots/* .
+          git add -A
+          git commit -qm "layout screenshots"
+          git push -qf origin HEAD:refs/heads/ci-screenshots-swayforge

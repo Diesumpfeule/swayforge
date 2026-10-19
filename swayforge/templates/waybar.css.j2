@@ -101,6 +101,80 @@ window#waybar {
 }
 #custom-power:hover { border-color: {{ sunken }}; }
 
+{% elif layout == "winxp" %}
+/* ── Luna XP: blue taskbar, big green Start button, rounded task buttons, tray with clock ── */
+{% set hi = mix(c.accent, "#ffffff", 0.32) %}
+{% set mid = mix(c.accent, "#ffffff", 0.08) %}
+{% set lo = mix(c.accent, "#000000", 0.18) %}
+window#waybar {
+    background: linear-gradient(to bottom, {{ hi }} 0%, {{ mid }} 9%, {{ c.accent }} 45%, {{ lo }} 100%);
+    border-top: 1px solid {{ mix(c.accent, "#ffffff", 0.5) }};
+    color: #ffffff;
+}
+{{ mods }} { padding: 0 6px; margin: 0; background: transparent; color: #ffffff; }
+#custom-start {
+    margin: 0 10px 0 0;
+    padding: 0 26px 0 16px;
+    font-size: {{ s.theme.font_size + 5 }}px;
+    font-weight: bold;
+    font-style: italic;
+    color: #ffffff;
+    text-shadow: 1px 1px 2px rgba(0, 40, 0, 0.75);
+    background: linear-gradient(to bottom, {{ mix(c.green, "#ffffff", 0.45) }} 0%, {{ mix(c.green, "#ffffff", 0.1) }} 14%, {{ c.green }} 55%, {{ mix(c.green, "#000000", 0.22) }} 100%);
+    border: 1px solid {{ mix(c.green, "#000000", 0.5) }};
+    border-left: none;
+    border-radius: 0 18px 18px 0;
+    box-shadow: 2px 0 5px rgba(0, 0, 0, 0.45), inset 0 1px 0 {{ rgba("#ffffff", 0.45) }};
+}
+#custom-start:hover {
+    background: linear-gradient(to bottom, {{ mix(c.green, "#ffffff", 0.6) }} 0%, {{ mix(c.green, "#ffffff", 0.25) }} 14%, {{ mix(c.green, "#ffffff", 0.1) }} 55%, {{ c.green }} 100%);
+}
+#custom-start:active { background: {{ mix(c.green, "#000000", 0.2) }}; }
+#workspaces { margin: 4px 6px 4px 0; padding: 0; }
+#workspaces button {
+    padding: 0 8px; margin: 0 2px;
+    color: #ffffff;
+    background: {{ rgba("#ffffff", 0.14) }};
+    border: 1px solid {{ rgba("#000000", 0.28) }};
+    border-radius: 3px;
+}
+#workspaces button:hover { background: {{ rgba("#ffffff", 0.28) }}; }
+#workspaces button.focused { background: {{ rgba("#000000", 0.28) }}; box-shadow: inset 1px 1px 3px {{ rgba("#000000", 0.5) }}; font-weight: bold; }
+#workspaces button.urgent { background: {{ c.orange }}; }
+#taskbar { margin: 3px 2px; }
+#taskbar button {
+    min-width: 170px;
+    padding: 0 10px; margin: 0 2px;
+    color: #ffffff;
+    background: linear-gradient(to bottom, {{ mix(c.accent, "#ffffff", 0.42) }}, {{ mix(c.accent, "#ffffff", 0.22) }} 50%, {{ mix(c.accent, "#ffffff", 0.14) }});
+    border: 1px solid {{ mix(c.accent, "#000000", 0.4) }};
+    border-radius: 3px;
+    text-shadow: 1px 1px 1px {{ rgba("#000000", 0.35) }};
+}
+#taskbar button:hover { background: linear-gradient(to bottom, {{ mix(c.accent, "#ffffff", 0.55) }}, {{ mix(c.accent, "#ffffff", 0.35) }}); }
+#taskbar button.active {
+    background: linear-gradient(to bottom, {{ mix(c.accent, "#000000", 0.28) }}, {{ mix(c.accent, "#000000", 0.12) }});
+    box-shadow: inset 1px 1px 4px {{ rgba("#000000", 0.55) }};
+    font-weight: bold;
+}
+#status {
+    margin: 0 0 0 6px;
+    padding: 0 12px 0 10px;
+    background: linear-gradient(to bottom, {{ mix(c.accent, "#7fd0ff", 0.55) }}, {{ mix(c.accent, "#2aa0f0", 0.45) }} 12%, {{ mix(c.accent, "#1590e8", 0.4) }} 85%, {{ mix(c.accent, "#000000", 0.1) }});
+    border-left: 1px solid {{ mix(c.accent, "#000000", 0.45) }};
+    box-shadow: inset 1px 0 0 {{ rgba("#ffffff", 0.35) }}, inset 0 1px 0 {{ rgba("#ffffff", 0.3) }};
+}
+#status #clock { padding: 0 6px; }
+#custom-power {
+    margin: 4px 6px 4px 6px;
+    padding: 0 9px;
+    color: #ffffff;
+    background: linear-gradient(to bottom, {{ mix(c.red, "#ffffff", 0.35) }}, {{ c.red }} 60%, {{ mix(c.red, "#000000", 0.2) }});
+    border: 1px solid {{ mix(c.red, "#000000", 0.5) }};
+    border-radius: 3px;
+}
+#custom-power:hover { background: {{ mix(c.red, "#ffffff", 0.2) }}; }
+
 {% elif layout == "win7" %}
 /* ── Glass 7: translucent gradient, start orb, icon task buttons ──── */
 window#waybar {
@@ -235,7 +309,7 @@ window#waybar {
 {% endif %}
 
 /* ── Shared ─────────────────────────────────────────────────────── */
-{% if layout not in ("win98", "cathedral", "win11", "touch") %}
+{% if layout not in ("win98", "winxp", "cathedral", "win11", "touch") %}
 #workspaces button {
     color: {{ c.subtext }};
     background: transparent;
@@ -255,7 +329,7 @@ window#waybar {
 #mode { background: {{ c.yellow }}; color: {{ c.crust }}; }
 #window { color: {{ c.subtext }}; }
 window#waybar.empty #window { background: transparent; border-color: transparent; }
-{% if layout not in ("win98", "win7", "win11", "touch", "wired", "cathedral") %}
+{% if layout not in ("win98", "winxp", "win7", "win11", "touch", "wired", "cathedral") %}
 #clock { color: {{ c.accent }}; font-weight: bold; }
 #cpu { color: {{ c.blue }}; }
 #memory { color: {{ c.magenta }}; }

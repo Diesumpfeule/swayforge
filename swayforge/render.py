@@ -190,7 +190,7 @@ class Ctx:
             custom_conf=str(paths.SWAY_CUSTOM), gen_dir=str(paths.GEN_DIR),
             spaceship_dir=str(paths.SPACESHIP_DIR), p=self.s["prompt"], sections=sections,
             hx=hx, rgba=rgba, mix=mix, mark=MARK, cs2_watcher=cs2_watcher(),
-            layout=self.layout.id, bv=bevel(self.c), font=self.s["theme"]["font"],
+            layout=self.layout.id, bv=bevel(self.c), user=os.environ.get("USER", "user"), font=self.s["theme"]["font"],
             art=asc.art(self.art_name), banner=asc.banner, extras=art_svg.extras(),
         )
 
@@ -250,7 +250,7 @@ def waybar_config(ctx: Ctx) -> dict:
         status = [m for m in status if m in ("tray",)]
 
     ws = "sway/workspaces"
-    if lay in ("win98", "win7"):
+    if lay in ("win98", "winxp", "win7"):
         left = ["custom/start", ws, "wlr/taskbar"]
         center: list[str] = []
         right = ["group/status", "custom/power"]
@@ -282,7 +282,7 @@ def waybar_config(ctx: Ctx) -> dict:
         clock = {"format": "[{:%H:%M:%S}]", "interval": 1, "format-alt": f"[{{:{clock_fmt}}}]"}
     elif icons_only:
         clock = {"format": "{:%H\n%M}", "format-alt": "{:%d\n%m}"}
-    elif lay in ("win98", "win7", "win11", "touch"):
+    elif lay in ("win98", "winxp", "win7", "win11", "touch"):
         clock = {"format": f"{{:{b['clock_format']}}}", "format-alt": f"{{:{clock_fmt}}}"}
     else:
         clock = {"format": f"{I['clock']}  {{:{clock_fmt}}}", "format-alt": f"{I['clock']}  {{:{b['clock_format']}}}"}
@@ -375,16 +375,17 @@ def waybar_config(ctx: Ctx) -> dict:
         cfg["width"] = max(44, b["height"] + 10)
     else:
         cfg["height"] = (max(b["height"], 56) if lay == "touch"
-                         else b["height"] + {"win7": 6, "win11": 10}.get(lay, 0))
+                         else b["height"] + {"win7": 6, "winxp": 6, "win11": 10}.get(lay, 0))
     if si.gpu_busy:
         cfg["custom/gpu"] = {"exec": f"cat {si.gpu_busy}", "interval": 3, "on-click": btop_cmd(s),
                              "format": f(I["gpu"], "{}%", "gpu"), "tooltip-format": "GPU load"}
-    if lay in ("win98", "win7", "win11", "touch"):
-        cfg["custom/start"] = {"format": f"{I['fedora']}  Start" if lay == "win98" else I["fedora"],
+    if lay in ("win98", "winxp", "win7", "win11", "touch"):
+        cfg["custom/start"] = {"format": (f"{I['fedora']}  Start" if lay == "win98" else
+                                          "\U000f05b3  start" if lay == "winxp" else I["fedora"]),
                                "tooltip-format": "Start menu – apps (Super+D)",
                                "on-click": f"{LAUNCHER} start", "on-click-right": f"{LAUNCHER} power"}
-        cfg["wlr/taskbar"] = {"format": "{icon}  {title:.22}" if lay == "win98" else "{icon}",
-                              "icon-size": 16 if lay == "win98" else 32 if lay == "touch" else 24,
+        cfg["wlr/taskbar"] = {"format": "{icon}  {title:.22}" if lay in ("win98", "winxp") else "{icon}",
+                              "icon-size": 16 if lay in ("win98", "winxp") else 32 if lay == "touch" else 24,
                               "tooltip-format": "{title}", "on-click": "activate",
                               "on-click-middle": "close", "on-click-right": "fullscreen"}
         cfg[ws]["persistent-workspaces"] = {}
