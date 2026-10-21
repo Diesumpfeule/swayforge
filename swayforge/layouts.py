@@ -19,6 +19,10 @@ class Layout:
 LAYOUTS: dict[str, Layout] = {l.id: l for l in [
     Layout("modern", "Modern islands", "Floating rounded islands at the top", "top",
            "(  1  2  3  )        (  Fri 16.10.  21:30  )        ( cpu 12%  vol 40%  ⏻ )"),
+    Layout("glass", "Glass islands",
+           "Translucent floating islands with hairline borders, accent outline on the focused workspace, compact centred launcher",
+           "top",
+           "(  1  2  3  )        (  Fri 16.10.  21:30  )        ( cpu 12%  vol 40%  ⏻ )"),
     Layout("solid", "Solid bar", "One continuous bar at the top", "top",
            "▕ 1  2  3 │ kitty              Fri 16.10. 21:30           cpu 12% │ vol 40% │ ⏻ ▏"),
     Layout("win98", "Classic 98", "Bottom taskbar, Start button, 3D bevelled buttons, sunken tray",

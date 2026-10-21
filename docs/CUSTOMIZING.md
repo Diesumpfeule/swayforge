@@ -63,7 +63,7 @@ It's stored as `~/.config/swayforge/themes/<name>.toml`. You can also copy any f
 ```toml
 [style]
 radius = 0             # square corners
-layout = "win98"       # modern | solid | win98 | winxp | dread | win7 | wired | minimal | sidebar
+layout = "win98"       # modern | glass | solid | win98 | winxp | dread | win7 | wired | minimal | sidebar
 font = "Terminess Nerd Font"
 font_size = 13
 wallpaper = "crt"      # gradient | plain | crt | gothic | rust | night | wired

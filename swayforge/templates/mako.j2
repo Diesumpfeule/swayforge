@@ -9,9 +9,9 @@ format=<span color="{{ c.accent }}">▌</span> <b>%s</b>\n<span color="{{ c.subt
 format=<span color="{{ c.accent }}">☩ ❦ ✠ ❦ ☩</span>\n<b>%s</b>\n%b\n<span color="{{ c.accent }}">· · † · ·</span>
 {% endif %}
 text-color={{ '#000000' if layout == 'winxp' else c.text }}
-border-color={{ c.surface2 if layout == 'dread' else '#000000' if layout == 'winxp' else bv.hi if layout == 'win98' else c.accent }}
+border-color={{ c.surface2 if layout in ('dread', 'glass') else '#000000' if layout == 'winxp' else bv.hi if layout == 'win98' else c.accent }}
 progress-color=over {{ c.surface2 }}
-border-size={{ 1 if layout in ('wired', 'win7', 'winxp', 'dread') else 3 if layout == 'cathedral' else 2 }}
+border-size={{ 1 if layout in ('wired', 'win7', 'winxp', 'dread', 'glass') else 3 if layout == 'cathedral' else 2 }}
 border-radius={{ 8 if layout == 'winxp' else 6 if layout in ('win7', 'win11') else 16 if layout == 'touch' else s.look.radius }}
 padding={{ '22,26' if layout == 'touch' else '12,16' }}
 margin={{ s.look.gaps_inner + s.look.gaps_outer }}

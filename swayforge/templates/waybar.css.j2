@@ -33,6 +33,20 @@ window#waybar { background: transparent; color: {{ c.text }}; }
 .modules-left > widget:first-child > * { margin-left: {{ s.look.gaps_outer + s.look.gaps_inner }}px; }
 .modules-right > widget:last-child > * { margin-right: {{ s.look.gaps_outer + s.look.gaps_inner }}px; }
 
+{% elif layout == "glass" %}
+/* ── Glass islands: see-through, hairline edge ──────────────────── */
+window#waybar { background: transparent; color: {{ c.text }}; }
+{{ mods }} {
+    background: {{ rgba(c.base, 0.55) }};
+    border: 1px solid {{ rgba(c.text, 0.14) }};
+    border-radius: {{ s.look.radius }}px;
+    margin: 6px 3px;
+    padding: 0 14px;
+}
+#workspaces { padding: 0 4px; }
+.modules-left > widget:first-child > * { margin-left: {{ s.look.gaps_outer + s.look.gaps_inner }}px; }
+.modules-right > widget:last-child > * { margin-right: {{ s.look.gaps_outer + s.look.gaps_inner }}px; }
+
 {% elif layout == "solid" %}
 /* ── Solid bar ──────────────────────────────────────────────────── */
 window#waybar {
@@ -373,6 +387,9 @@ window#waybar {
 {% endif %}
 {% endif %}
 #workspaces button.urgent { background: {{ c.red }}; color: {{ c.crust }}; }
+{% if layout == "glass" %}
+#workspaces button.focused { background: {{ rgba(c.accent, 0.16) }}; color: {{ c.accent }}; box-shadow: inset 0 0 0 1px {{ c.accent }}; }
+{% endif %}
 {% endif %}
 
 #mode { background: {{ c.yellow }}; color: {{ c.crust }}; }
