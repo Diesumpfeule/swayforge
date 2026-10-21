@@ -51,6 +51,10 @@ gaming, IT tools, keyboard-driven use and **frequent resets**.
     <td><img src="docs/img/blood-ward_dread.png" alt="Blood Ward"><br><sub><b>Blood Ward</b> · Dread · black &amp; oxblood</sub></td>
   </tr>
   <tr>
+    <td><img src="docs/img/noir_glass.png" alt="Noir"><br><sub><b>Noir</b> · Glass islands · black &amp; white, compact launcher</sub></td>
+    <td><img src="docs/img/noir-blue_glass.png" alt="Noir Blue"><br><sub><b>Noir Blue</b> · Glass islands · same with a blue accent</sub></td>
+  </tr>
+  <tr>
     <td><img src="docs/img/catppuccin-mocha_win11.png" alt="Modern 11"><br><sub><b>Catppuccin Mocha</b> · Modern 11 · centered taskbar</sub></td>
     <td><img src="docs/img/tokyo-night_touch.png" alt="Touch"><br><sub><b>Tokyo Night</b> · Touch · big tap targets + on-screen keyboard</sub></td>
   </tr>
@@ -146,6 +150,7 @@ swayforge also switches dnf to **Enter = yes** (`[Y/n]` instead of `[y/N]`). Tha
 | **Type O** | gothic black & deep green · pointed-arch wallpaper |
 | **Phosphor** / **Amber** | green / amber CRT · Terminus font · BIOS wallpaper |
 | **Luna** / **Luna Olive** / **Luna Silver** | the Windows XP look: blue, olive or silver taskbar, big green Start button, beige windows · Luna XP layout · "Bliss" hill wallpaper |
+| **Noir** / **Noir Blue** | black and white with a white or blue accent, rounded corners · Glass islands layout · inspired by the look of [43PR's dotfiles](https://github.com/43PR/dotfiles) (MIT; colours and the idea only, no code or images taken) |
 | **Hollow Fog** / **Blood Ward** | survival-horror mood: fog-grey and rust, or black and oxblood · Dread layout · foggy dead-tree wallpaper with a lone street lamp |
 | **Wired** | full-on hacker: black, red, static, network nodes · Wired layout |
 | **Onyx** | pure black & white, square, no colour at all |
@@ -174,6 +179,7 @@ theme*, or use `--save "NAME"` on the command line.
 | Solid bar | one continuous bar at the top |
 | **Classic 98** | bottom taskbar, Start button, 3D bevelled buttons, sunken tray (GTK apps too) |
 | **Luna XP** | bottom taskbar in blue with a big green *start* button, rounded task buttons, light-blue tray with the clock, red power button, XP-style start menu with a blue header, yellow balloon notifications, beige GTK buttons with orange hover rings and blue title bars |
+| **Glass islands** | see-through floating islands with a hairline edge, the focused workspace outlined in the accent, compact centred launcher with a rounded search and outlined selection, hairline notifications |
 | **Dread** | dark survival-horror: top bar of worn inventory slots, rust rule, blood-red glow on the focused workspace, ☠ power button, centred inventory-style launcher with key hints, grim notifications, flat square GTK |
 | **Glass 7** | bottom glass taskbar, round start orb, icon-only task buttons |
 | **Wired** | text only, `[brackets]`, no icons, seconds ticking, terminal-style launcher |
