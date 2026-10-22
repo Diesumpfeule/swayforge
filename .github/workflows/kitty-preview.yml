@@ -94,7 +94,7 @@ jobs:
             -fill yellow -draw 'rectangle 1880,1039 1919,1079' $HOME/Pictures/Wallpapers/demo/corner.png
           export LIBGL_ALWAYS_SOFTWARE=1 SWAYFORGE_ROOT=$PWD
           unset WAYLAND_DISPLAY
-          Xvfb :99 -screen 0 1500x900x24 +extension GLX +render -noreset > xvfb.log 2>&1 &
+          Xvfb :99 -screen 0 1500x900x24 +extension GLX +render -noreset > xvfb.log 2>&1 < /dev/null &
           sleep 3; export DISPLAY=:99
           cat > demo2.py <<'PY'
           import os, sys, threading
@@ -112,11 +112,12 @@ jobs:
           PY
           kitty --hold --config NONE -o linux_display_server=x11 -o initial_window_width=150c -o initial_window_height=45c \
                 -o remember_window_size=no -o font_size=11 -o confirm_os_window_close=0 \
-                sh -c 'python3 demo2.py 2> demo2-err.log' > kitty-x11.log 2>&1 &
+                sh -c 'python3 demo2.py 2> demo2-err.log' > kitty-x11.log 2>&1 < /dev/null &
           sleep 14
           import -window root x11-shot.png || true
           identify x11-shot.png || true
           tail -5 kitty-x11.log demo2-err.log || true
+          pkill -x kitty || true; pkill -x Xvfb || true
       - name: Share screenshots
         if: always()
         run: |

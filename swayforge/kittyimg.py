@@ -31,7 +31,7 @@ from dataclasses import dataclass, field
 PLACEHOLDER = "\U0010EEEE"
 APC_RE = re.compile(r"\x1b_G.*?\x1b\\", re.S)
 SGR_ID_RE = re.compile(r"\x1b\[38:2:(\d+):(\d+):(\d+)m")
-ANY_ESC_RE = re.compile(r"\x1b\[[0-9;:]*[A-Za-z]")
+ANY_ESC_RE = re.compile(r"\x1b(?:\[[0-9;:?<=>]*[ -/]*[@-~]|[78=>cDEHM])")   # CSI (colours, cursor moves) and ESC 7/8 (save/restore cursor)
 FIRST_ID = 1000                       # our image ids: 1000, 1001, … (unique inside this process)
 _ids = itertools.count(FIRST_ID)
 _lock = threading.Lock()
