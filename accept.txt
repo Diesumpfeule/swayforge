@@ -1,0 +1,3 @@
+render ok: id=1000 cells=40x12 lines=12
+terminal reply: b'\x1b_Gi=1000;OK\x1b\\'
+ACCEPTED

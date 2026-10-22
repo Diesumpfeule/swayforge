@@ -1,0 +1,3 @@
+Status(ok=True, reason='')
+picked; preview='Select a picture to preview it.'
+placed=True msg='Loading preview …'

@@ -1,0 +1,1 @@
+[295 18:40:54.298997] [glfw error 65544]: Failed to connect to DBUS session bus. DBUS error: Unable to autolaunch a dbus-daemon without a $DISPLAY for X11
