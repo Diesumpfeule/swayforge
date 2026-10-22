@@ -351,10 +351,6 @@ class SettingsApp(App):
         ids = list(self.all_themes)
         current = ids.index(self.s["theme"]["name"]) if self.s["theme"]["name"] in ids else 0
         accent_opts = [("Theme default", "")] + [(k, k) for k in themes.ACCENT_CHOICES[1:]]
-        wps = self.wallpaper_options()
-        wp_val = self.s["theme"]["wallpaper"]
-        if wp_val not in [v for _, v in wps]:
-            wps.append((Path(wp_val).name, wp_val))
         t = themes.get(self.s["theme"]["name"])
         rows = [Horizontal(Label(themes.COLOR_LABELS[k]), Static(" ", classes="sw", id=f"sw__{k}"),
                            Input(t.colors[k], id=f"col__{k}", max_length=7), classes="colrow")
@@ -379,19 +375,6 @@ class SettingsApp(App):
                       self.s),
             field_row(Field("theme.animate", "Animate the ASCII art", "bool",
                             help="glint + twinkling sparks · terminal greeting · LibreWolf"), self.s),
-            section("Wallpaper"),
-            Static(f"Drop your images into [b]{str(paths.WALLPAPER_DIR).replace(str(paths.HOME), '~')}[/b] "
-                   "(Open folder, drag them in), then ↻ – they show up in the list.", classes="hint"),
-            field_row(Field("theme.wallpaper", "Wallpaper", "choice", wps), self.s),
-            Horizontal(Button("Open wallpaper folder", id="wp_folder"),
-                       Button("↻", id="wp_refresh", classes="small"), classes="btnrow"),
-            Static("[b]Theme from wallpaper[/b] – builds a whole theme from the picture's colours "
-                   "(everything follows: bar, terminal, Rofi, GTK, LibreWolf …). It replaces the last "
-                   "“From wallpaper” theme; to keep one, name it below and press “Save as my theme”.",
-                   classes="hint"),
-            Horizontal(Select([("Dark or light: from the picture", "auto"), ("Always dark", "dark"),
-                               ("Always light", "light")], value="auto", allow_blank=False, id="wpt_mode"),
-                       Button("Theme from wallpaper", id="wp_theme", variant="primary"), classes="btnrow"),
             section("Edit colours → your own theme"),
             Static("Everything else (gaps, font, bar, shortcuts …) stays when you switch themes. "
                    "Colours are changed here: edit, give it a name, save – it then shows up above as "
@@ -418,30 +401,6 @@ class SettingsApp(App):
             Static("Turn individual modules on/off under “Bar modules”. Per-module tweaks: ✎ there.",
                    classes="hint"),
         )
-
-    def wallpaper_options(self) -> list[tuple[str, str]]:
-        opts = [("Theme motif (follows the theme)", "theme"), ("Solid colour", "solid")]
-        seen: set[str] = set()
-        for d in (paths.WALLPAPER_DIR, paths.HOME / "Pictures/Wallpapers", paths.HOME / "Pictures/wallpapers",
-                  paths.HOME / "Bilder/Hintergründe", paths.HOME / "Wallpapers"):
-            if d.is_dir() and d.resolve() not in seen:
-                seen.add(d.resolve())
-                for f in sorted(d.iterdir(), key=lambda f: f.name.lower())[:200]:
-                    if f.suffix.lower() in paths.WALLPAPER_EXT and f.is_file():
-                        opts.append((f.name, str(f)))
-        return opts
-
-    def refresh_wallpapers(self, quiet: bool = True) -> None:
-        opts = self.wallpaper_options()
-        cur = self.s["theme"]["wallpaper"]
-        if cur not in [v for _, v in opts]:
-            opts.append((Path(cur).name, cur))
-        for sel in self.query("#f__theme__wallpaper").results(Select):
-            with self.prevent(Select.Changed):
-                sel.set_options(opts)
-                sel.value = cur
-        if not quiet:
-            self.notify(f"{len(opts) - 2} wallpaper(s) in {str(paths.WALLPAPER_DIR).replace(str(paths.HOME), '~')}")
 
     def page_display(self) -> VerticalScroll:
         children: list = [field_row(Field("display.allow_tearing", "Allow tearing in games", "bool",
@@ -716,8 +675,6 @@ class SettingsApp(App):
         if ev.item and ev.item.id:
             pid = ev.item.id[4:]
             self.query_one("#pages", ContentSwitcher).current = "page-" + pid
-            if pid == "theme" and not self._loading:
-                self.refresh_wallpapers()
             if pid in ("audio", "bluetooth", "network") and not self._loading:
                 self.query_one(f"#page-{pid}").refresh_data()   # type: ignore[attr-defined]
 
@@ -914,21 +871,14 @@ class SettingsApp(App):
         self.live_apply()
 
     def show_wallpaper(self, img: str) -> None:
-        """Set an image as wallpaper and show it in the wallpaper list."""
+        """Remember an image (or "theme" / "solid") as the wallpaper."""
         self.s["theme"]["wallpaper"] = img
-        opts = self.wallpaper_options()
-        if img not in [v for _, v in opts]:
-            opts.append((Path(img).name, img))
-        for sel in self.query("#f__theme__wallpaper").results(Select):
-            with self.prevent(Select.Changed):
-                sel.set_options(opts)
-                sel.value = img
 
     def theme_from_wallpaper(self) -> None:
         from .. import wallpalette
         img = self.s["theme"]["wallpaper"]
         if not img or not Path(img).is_file():
-            self.notify("Pick an image in the wallpaper list first", severity="warning")
+            self.notify("Pick a picture on the Wallpapers page first", severity="warning")
             return
         mode = str(self.query_one("#wpt_mode", Select).value)
         try:
@@ -1005,18 +955,9 @@ class SettingsApp(App):
                             "then open it.", severity="warning", timeout=8)
                 return
             self.open_file(t.path)  # type: ignore[arg-type]
-        elif bid == "wp_folder":
-            paths.WALLPAPER_DIR.mkdir(parents=True, exist_ok=True)
-            subprocess.Popen(["xdg-open", str(paths.WALLPAPER_DIR)], start_new_session=True,
-                             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-            self.notify("Drag your images into the folder, then press ↻")
-        elif bid == "wp_refresh":
-            self.refresh_wallpapers(quiet=False)
         elif bid == "sys_selfupdate":
             self.start_update()
             self.notify("Updating swayforge + wolfforge in a terminal – restart this app afterwards")
-        elif bid == "wp_theme":
-            self.theme_from_wallpaper()
         elif bid == "keys_reset":
             self.s["keys"] = {}
             for aid, _l, key, _c in settings.KEY_ACTIONS:

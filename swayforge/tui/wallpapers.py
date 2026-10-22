@@ -9,7 +9,7 @@ from rich.markup import escape
 from textual import on
 from textual.app import ComposeResult
 from textual.containers import Horizontal, Vertical
-from textual.widgets import Button, Input, OptionList, SelectionList, Static
+from textual.widgets import Button, Input, OptionList, Select, SelectionList, Static
 from textual.widgets.option_list import Option
 from textual.widgets.selection_list import Selection
 
@@ -65,6 +65,7 @@ class WallpapersPanel(Panel):
                      + ("" if st.ok else f"\n[b]Preview is off:[/b] {escape(st.reason)}. "
                         "Everything else works."), classes="hint")
         yield Static("", id="wp_where", classes="hint")
+        yield Static("", id="wp_current", classes="hint")
         with Horizontal(id="wp_row"):
             with Vertical(id="wp_left"):
                 yield Input(placeholder="filter …", id="wpl_filter")
@@ -76,6 +77,14 @@ class WallpapersPanel(Panel):
                          Button("Theme from wallpaper", id="wpl_theme", disabled=True),
                          Button("Open folder", id="wpl_folder"),
                          Button("↻", id="wpl_refresh", classes="small"), classes="btnrow")
+        yield Static("[b]Theme from wallpaper[/b] builds a whole theme from the picture's colours (bar, terminal, "
+                     "Rofi, GTK, LibreWolf …). It replaces the last “From wallpaper” theme; to keep one, name it on "
+                     "the Theme page and press “Save as my theme”.", classes="hint")
+        yield Horizontal(Select([("Dark or light: from the picture", "auto"), ("Always dark", "dark"),
+                                 ("Always light", "light")], value="auto", allow_blank=False, id="wpt_mode"),
+                         classes="btnrow")
+        yield Horizontal(Button("Use the theme's own wallpaper", id="wpl_themewp"),
+                         Button("Solid colour", id="wpl_solid"), classes="btnrow")
         yield Static("Collections", classes="section")
         yield Static("Optional downloads – swayforge does not ship these pictures. They come from the original "
                      "GitHub repositories (only the folders you tick) straight into your Wallpapers folder, "
@@ -91,11 +100,18 @@ class WallpapersPanel(Panel):
     # ── data ────────────────────────────────────────────────────────
     def on_mount(self) -> None:
         self.fill_packs()
+        self.show_current()
 
     def refresh_data(self) -> None:
         self.files = scan(paths.WALLPAPER_DIR)
+        self.show_current()
         self.fill_files()
         self.fill_packs()
+
+    def show_current(self) -> None:
+        cur = str(self.app.s["theme"]["wallpaper"])    # type: ignore[attr-defined]
+        what = {"theme": "the theme's own wallpaper", "solid": "a solid colour"}.get(cur, escape(Path(cur).name))
+        self.query_one("#wp_current", Static).update(f"Current wallpaper: [b]{what}[/b]")
 
     def fill_files(self) -> None:
         q = self.query_one("#wpl_filter", Input).value.strip().lower()
@@ -178,6 +194,12 @@ class WallpapersPanel(Panel):
             paths.WALLPAPER_DIR.mkdir(parents=True, exist_ok=True)
             subprocess.Popen(["xdg-open", str(paths.WALLPAPER_DIR)], start_new_session=True,
                              stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        elif bid in ("wpl_themewp", "wpl_solid"):
+            app.show_wallpaper("theme" if bid == "wpl_themewp" else "solid")
+            self.show_current()
+            app.refresh_hero()
+            app.live_apply()
+            app.changed()
         elif bid in ("wpl_set", "wpl_theme") and self.current:
             app.show_wallpaper(str(self.current))
             if bid == "wpl_theme":
@@ -187,6 +209,7 @@ class WallpapersPanel(Panel):
                 app.live_apply()
                 app.changed()
                 app.notify(f"Wallpaper: {self.current.name}")
+            self.show_current()
         elif bid == "wpl_get":
             sel = self.query_one("#wp_packs", SelectionList).selected
             if sel:
