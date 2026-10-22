@@ -17,6 +17,7 @@ from .. import kittyimg, paths, wallpacks
 from .common import HOLD
 from .panels import Panel
 from .preview import KittyPreview
+from .wallgrid import WallGrid
 
 MAX_FILES = 4000
 
@@ -48,6 +49,7 @@ class WallpapersPanel(Panel):
     WallpapersPanel #wp_files { height: 1fr; }
     WallpapersPanel #wp_right { width: 1fr; height: 18; margin-left: 1; }
     WallpapersPanel KittyPreview { height: 1fr; }
+    WallpapersPanel WallGrid { height: 26; }
     WallpapersPanel #wp_packs { height: 14; margin-top: 1; }
     """
 
@@ -57,6 +59,7 @@ class WallpapersPanel(Panel):
         self.shown: list[Path] = []
         self.current: Path | None = None
         self._timer = None
+        self.grid_view = kittyimg.status().ok
 
     def body(self) -> ComposeResult:
         st = kittyimg.status()
@@ -66,6 +69,7 @@ class WallpapersPanel(Panel):
                         "Everything else works."), classes="hint")
         yield Static("", id="wp_where", classes="hint")
         yield Static("", id="wp_current", classes="hint")
+        yield WallGrid(id="wp_grid")
         with Horizontal(id="wp_row"):
             with Vertical(id="wp_left"):
                 yield Input(placeholder="filter …", id="wpl_filter")
@@ -75,6 +79,7 @@ class WallpapersPanel(Panel):
                 yield Static("", id="wp_info", classes="hint")
         yield Horizontal(Button("Set as wallpaper", id="wpl_set", variant="primary", disabled=True),
                          Button("Theme from wallpaper", id="wpl_theme", disabled=True),
+                         Button("Grid / list", id="wpl_view"),
                          Button("Open folder", id="wpl_folder"),
                          Button("↻", id="wpl_refresh", classes="small"), classes="btnrow")
         yield Static("[b]Theme from wallpaper[/b] builds a whole theme from the picture's colours (bar, terminal, "
@@ -99,6 +104,7 @@ class WallpapersPanel(Panel):
 
     # ── data ────────────────────────────────────────────────────────
     def on_mount(self) -> None:
+        self.apply_view()
         self.fill_packs()
         self.show_current()
 
@@ -107,6 +113,16 @@ class WallpapersPanel(Panel):
         self.show_current()
         self.fill_files()
         self.fill_packs()
+
+    def apply_view(self) -> None:
+        self.query_one("#wp_grid", WallGrid).display = self.grid_view
+        self.query_one("#wp_row").display = not self.grid_view
+        self.query_one("#wpl_view", Button).disabled = not kittyimg.status().ok
+        if self.grid_view:
+            self.query_one("#wp_prev", KittyPreview).clear("")
+            self.query_one("#wp_grid", WallGrid).set_files(self.shown, paths.WALLPAPER_DIR)
+        else:
+            self.query_one("#wp_grid", WallGrid).release()
 
     def show_current(self) -> None:
         cur = str(self.app.s["theme"]["wallpaper"])    # type: ignore[attr-defined]
@@ -131,6 +147,8 @@ class WallpapersPanel(Panel):
         self.current = None
         self.query_one("#wp_prev", KittyPreview).clear("Select a picture to preview it.")
         self.query_one("#wp_info", Static).update("")
+        if self.grid_view:
+            self.query_one("#wp_grid", WallGrid).set_files(self.shown[:MAX_FILES], root)
 
     def fill_packs(self) -> None:
         sl = self.query_one("#wp_packs", SelectionList)
@@ -176,6 +194,26 @@ class WallpapersPanel(Panel):
             self._timer.stop()
         self._timer = self.set_timer(0.2, lambda p=self.current: self.query_one("#wp_prev", KittyPreview).show(str(p)))
 
+    @on(WallGrid.Highlighted)
+    def grid_highlighted(self, ev: WallGrid.Highlighted) -> None:
+        ev.stop()
+        self.current = ev.path
+        for b in ("wpl_set", "wpl_theme"):
+            self.query_one(f"#{b}", Button).disabled = False
+        try:
+            size = f"{ev.path.stat().st_size / 1e6:.1f} MB"
+        except OSError:
+            size = "?"
+        self.query_one("#wp_where", Static).update(escape(
+            f"{str(paths.WALLPAPER_DIR).replace(str(paths.HOME), '~')}: {len(self.files)} picture(s) · "
+            f"selected: {ev.path.name} · {size} · Enter or double-click sets it"))
+
+    @on(WallGrid.Chosen)
+    def grid_chosen(self, ev: WallGrid.Chosen) -> None:
+        ev.stop()
+        self.current = ev.path
+        self.query_one("#wpl_set", Button).press()
+
     @on(SelectionList.SelectedChanged, "#wp_packs")
     def picked(self, ev) -> None:
         ev.stop()
@@ -188,7 +226,10 @@ class WallpapersPanel(Panel):
             return
         ev.stop()
         app = self.app
-        if bid == "wpl_refresh":
+        if bid == "wpl_view":
+            self.grid_view = not self.grid_view
+            self.apply_view()
+        elif bid == "wpl_refresh":
             self.refresh_data()
         elif bid == "wpl_folder":
             paths.WALLPAPER_DIR.mkdir(parents=True, exist_ok=True)
