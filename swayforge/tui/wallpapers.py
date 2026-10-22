@@ -50,6 +50,8 @@ class WallpapersPanel(Panel):
     WallpapersPanel #wp_right { width: 1fr; height: 18; margin-left: 1; }
     WallpapersPanel KittyPreview { height: 1fr; }
     WallpapersPanel WallGrid { height: 26; }
+    WallpapersPanel #wp_pager { height: 3; }
+    WallpapersPanel #wp_page { width: 1fr; content-align: center middle; height: 3; }
     WallpapersPanel #wp_packs { height: 14; margin-top: 1; }
     """
 
@@ -70,6 +72,9 @@ class WallpapersPanel(Panel):
         yield Static("", id="wp_where", classes="hint")
         yield Static("", id="wp_current", classes="hint")
         yield WallGrid(id="wp_grid")
+        yield Horizontal(Button("◀ Previous", id="wpl_prev", classes="small"),
+                         Static("", id="wp_page"),
+                         Button("Next ▶", id="wpl_next", classes="small"), id="wp_pager", classes="btnrow")
         with Horizontal(id="wp_row"):
             with Vertical(id="wp_left"):
                 yield Input(placeholder="filter …", id="wpl_filter")
@@ -116,6 +121,7 @@ class WallpapersPanel(Panel):
 
     def apply_view(self) -> None:
         self.query_one("#wp_grid", WallGrid).display = self.grid_view
+        self.query_one("#wp_pager").display = self.grid_view
         self.query_one("#wp_row").display = not self.grid_view
         self.query_one("#wpl_view", Button).disabled = not kittyimg.status().ok
         if self.grid_view:
@@ -206,7 +212,14 @@ class WallpapersPanel(Panel):
             size = "?"
         self.query_one("#wp_where", Static).update(escape(
             f"{str(paths.WALLPAPER_DIR).replace(str(paths.HOME), '~')}: {len(self.files)} picture(s) · "
-            f"selected: {ev.path.name} · {size} · Enter or double-click sets it"))
+            f"selected: {ev.path.name} · {size} · Enter or double-click sets it · PgUp/PgDn turn the page"))
+
+    @on(WallGrid.PageChanged)
+    def grid_page(self, ev: WallGrid.PageChanged) -> None:
+        ev.stop()
+        self.query_one("#wp_page", Static).update(f"Page {ev.page} / {ev.pages}  ·  {ev.total} pictures")
+        self.query_one("#wpl_prev", Button).disabled = ev.page <= 1
+        self.query_one("#wpl_next", Button).disabled = ev.page >= ev.pages
 
     @on(WallGrid.Chosen)
     def grid_chosen(self, ev: WallGrid.Chosen) -> None:
@@ -226,7 +239,9 @@ class WallpapersPanel(Panel):
             return
         ev.stop()
         app = self.app
-        if bid == "wpl_view":
+        if bid in ("wpl_prev", "wpl_next"):
+            self.query_one("#wp_grid", WallGrid).action_page(-1 if bid == "wpl_prev" else 1)
+        elif bid == "wpl_view":
             self.grid_view = not self.grid_view
             self.apply_view()
         elif bid == "wpl_refresh":
