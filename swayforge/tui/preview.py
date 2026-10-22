@@ -112,7 +112,7 @@ class KittyPreview(Widget):
         if y >= len(pl.lines):
             return Strip.blank(w)
         r, g, b = kittyimg.placeholder_color(pl.image_id)
-        line = pl.lines[y]
+        line = pl.lines[y].replace("\x1b", "")      # a stray ESC would make Textual count the row one cell too wide
         style = Style(color=f"rgb({r},{g},{b})")
         used = line.count(kittyimg.PLACEHOLDER)
         segs = [Segment(line, style)]
