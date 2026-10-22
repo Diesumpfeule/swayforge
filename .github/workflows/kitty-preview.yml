@@ -80,17 +80,43 @@ jobs:
           for i in $(seq 1 20); do test -s accept.txt && break; sleep 1; done
           cat accept.txt
           tail -20 kitty.log demo-err.log
-      - name: Raw kitten icat output
+      - name: Wallpapers page in real kitty on X11 (Xvfb + llvmpipe)
         continue-on-error: true
         run: |
-          export HOME=$RUNNER_TEMP/home2
-          export XDG_RUNTIME_DIR=$RUNNER_TEMP/run
-          export WAYLAND_DISPLAY=$(ls $XDG_RUNTIME_DIR | grep -m1 '^wayland-[0-9]$')
-          export LIBGL_ALWAYS_SOFTWARE=1; unset DISPLAY
-          kitty --config NONE -o remember_window_size=no -o confirm_os_window_close=0 \
-            python3 scripts/dump_icat.py $HOME/Pictures/Wallpapers/demo/pic1.png $PWD/icat-raw.txt > dump-run.log 2>&1 &
-          for i in $(seq 1 25); do test -s icat-raw.txt && break; sleep 1; done
-          cat icat-raw.txt || true
+          exec > >(tee x11.log) 2>&1
+          export PYTHONUSERBASE=$HOME/.local
+          export HOME=$RUNNER_TEMP/home3; mkdir -p $HOME/Pictures/Wallpapers/demo
+          i=0; for c in "red-blue" "green-black" "yellow-purple" "white-teal"; do
+            i=$((i+1)); convert -size 1920x1080 gradient:$c -swirl 120 $HOME/Pictures/Wallpapers/demo/pic$i.png
+          done
+          # a picture with a marked top-left corner: red L-shape on the edges, so clipping is visible
+          convert -size 1920x1080 xc:'#203060' -fill red -draw 'rectangle 0,0 1919,40' -draw 'rectangle 0,0 40,1079' \
+            -fill yellow -draw 'rectangle 1880,1039 1919,1079' $HOME/Pictures/Wallpapers/demo/corner.png
+          export LIBGL_ALWAYS_SOFTWARE=1 SWAYFORGE_ROOT=$PWD
+          unset WAYLAND_DISPLAY
+          Xvfb :99 -screen 0 1500x900x24 +extension GLX +render -noreset > xvfb.log 2>&1 &
+          sleep 3; export DISPLAY=:99
+          cat > demo2.py <<'PY'
+          import os, sys, threading
+          sys.path.insert(0, os.environ["SWAYFORGE_ROOT"])
+          from textual.widgets import OptionList
+          import swayforge.tui.settings_app as sa
+          app = sa.SettingsApp(page="wallpapers")
+          def pick():
+              ol = app.query_one("#wp_files", OptionList)
+              ol.focus()
+              names = [str(o.prompt) for o in ol.options]
+              ol.highlighted = names.index("demo/corner.png") if "demo/corner.png" in names else 0
+          threading.Timer(4, lambda: app.call_from_thread(pick)).start()
+          app.run()
+          PY
+          kitty --hold --config NONE -o linux_display_server=x11 -o initial_window_width=150c -o initial_window_height=45c \
+                -o remember_window_size=no -o font_size=11 -o confirm_os_window_close=0 \
+                sh -c 'python3 demo2.py 2> demo2-err.log' > kitty-x11.log 2>&1 &
+          sleep 14
+          import -window root x11-shot.png || true
+          identify x11-shot.png || true
+          tail -5 kitty-x11.log demo2-err.log || true
       - name: Share screenshots
         if: always()
         run: |
