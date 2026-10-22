@@ -80,6 +80,17 @@ jobs:
           for i in $(seq 1 20); do test -s accept.txt && break; sleep 1; done
           cat accept.txt
           tail -20 kitty.log demo-err.log
+      - name: Raw kitten icat output
+        continue-on-error: true
+        run: |
+          export HOME=$RUNNER_TEMP/home2
+          export XDG_RUNTIME_DIR=$RUNNER_TEMP/run
+          export WAYLAND_DISPLAY=$(ls $XDG_RUNTIME_DIR | grep -m1 '^wayland-[0-9]$')
+          export LIBGL_ALWAYS_SOFTWARE=1; unset DISPLAY
+          kitty --config NONE -o remember_window_size=no -o confirm_os_window_close=0 \
+            python3 scripts/dump_icat.py $HOME/Pictures/Wallpapers/demo/pic1.png $PWD/icat-raw.txt > dump-run.log 2>&1 &
+          for i in $(seq 1 25); do test -s icat-raw.txt && break; sleep 1; done
+          cat icat-raw.txt || true
       - name: Share screenshots
         if: always()
         run: |
