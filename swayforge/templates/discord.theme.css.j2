@@ -1,0 +1,111 @@
+/**
+ * @name swayforge
+ * @description Follows your swayforge theme ({{ theme.label }}). Generated – changes will be overwritten.
+ * @author swayforge
+ * @version 1.0.0
+ */
+/* {{ mark }} */
+/* Your own tweaks: put them in a second theme file (e.g. my-discord.theme.css) and enable both. */
+
+:root, .theme-dark, .theme-light, .theme-darker, .theme-midnight {
+    /* old variable names (still used by many parts of Discord and by most themes) */
+    --background-primary: {{ c.base }} !important;
+    --background-secondary: {{ c.mantle }} !important;
+    --background-secondary-alt: {{ c.crust }} !important;
+    --background-tertiary: {{ c.crust }} !important;
+    --background-floating: {{ c.surface }} !important;
+    --background-accent: {{ c.surface2 }} !important;
+    --background-nested-floating: {{ c.surface }} !important;
+    --background-mobile-primary: {{ c.base }} !important;
+    --background-mobile-secondary: {{ c.mantle }} !important;
+    --chat-background: {{ c.base }} !important;
+    --channeltextarea-background: {{ c.surface }} !important;
+    --input-background: {{ c.surface }} !important;
+    --background-modifier-hover: {{ rgba(c.text, 0.06) }} !important;
+    --background-modifier-active: {{ rgba(c.text, 0.10) }} !important;
+    --background-modifier-selected: {{ rgba(c.text, 0.14) }} !important;
+    --background-modifier-accent: {{ rgba(c.text, 0.12) }} !important;
+
+    --text-normal: {{ c.text }} !important;
+    --text-default: {{ c.text }} !important;
+    --text-muted: {{ c.subtext }} !important;
+    --text-secondary: {{ c.subtext }} !important;
+    --text-tertiary: {{ c.overlay }} !important;
+    --text-link: {{ c.accent }} !important;
+    --text-brand: {{ c.accent }} !important;
+    --header-primary: {{ c.text }} !important;
+    --header-secondary: {{ c.subtext }} !important;
+    --interactive-normal: {{ c.subtext }} !important;
+    --interactive-hover: {{ c.text }} !important;
+    --interactive-active: {{ c.text }} !important;
+    --interactive-muted: {{ c.overlay }} !important;
+    --channels-default: {{ c.subtext }} !important;
+
+    /* accent */
+    --brand-experiment: {{ c.accent }} !important;
+    --brand-experiment-500: {{ c.accent }} !important;
+    --brand-500: {{ c.accent }} !important;
+    --brand-360: {{ c.accent }} !important;
+    --brand-400: {{ c.accent }} !important;
+    --brand-560: {{ mix(c.accent, c.crust, 0.2) }} !important;
+    --brand-600: {{ mix(c.accent, c.crust, 0.35) }} !important;
+    --button-filled-brand-background: {{ c.accent }} !important;
+    --button-filled-brand-text: {{ c.crust }} !important;
+    --focus-primary: {{ c.accent }} !important;
+    --mention-foreground: {{ c.accent }} !important;
+    --mention-background: {{ rgba(c.accent, 0.18) }} !important;
+
+    /* status colours */
+    --status-positive: {{ c.green }} !important;
+    --status-positive-background: {{ c.green }} !important;
+    --status-warning: {{ c.yellow }} !important;
+    --status-danger: {{ c.red }} !important;
+    --status-danger-background: {{ c.red }} !important;
+    --info-positive-foreground: {{ c.green }} !important;
+    --info-warning-foreground: {{ c.yellow }} !important;
+    --info-danger-foreground: {{ c.red }} !important;
+    --green-360: {{ c.green }} !important;
+    --yellow-300: {{ c.yellow }} !important;
+    --red-400: {{ c.red }} !important;
+
+    /* newer variable names (2025 layout) */
+    --bg-base-primary: {{ c.base }} !important;
+    --bg-base-secondary: {{ c.mantle }} !important;
+    --bg-base-tertiary: {{ c.crust }} !important;
+    --bg-surface-raised: {{ c.surface }} !important;
+    --bg-surface-overlay: {{ c.surface }} !important;
+    --bg-overlay-1: {{ c.mantle }} !important;
+    --bg-overlay-2: {{ c.base }} !important;
+    --bg-overlay-3: {{ c.surface }} !important;
+    --bg-overlay-chat: {{ c.base }} !important;
+    --bg-overlay-app-frame: {{ c.crust }} !important;
+    --background-base-low: {{ c.mantle }} !important;
+    --background-base-lower: {{ c.crust }} !important;
+    --background-base-lowest: {{ c.crust }} !important;
+    --background-surface-high: {{ c.surface }} !important;
+    --background-surface-higher: {{ c.surface2 }} !important;
+    --background-surface-highest: {{ c.surface2 }} !important;
+    --border-subtle: {{ c.surface2 }} !important;
+    --border-normal: {{ c.surface2 }} !important;
+    --border-strong: {{ c.overlay }} !important;
+
+    /* scroll bars */
+    --scrollbar-thin-thumb: {{ c.surface2 }} !important;
+    --scrollbar-thin-track: transparent !important;
+    --scrollbar-auto-thumb: {{ c.surface2 }} !important;
+    --scrollbar-auto-track: {{ c.mantle }} !important;
+    --scrollbar-auto-scrollbar-color-thumb: {{ c.surface2 }} !important;
+    --scrollbar-auto-scrollbar-color-track: {{ c.mantle }} !important;
+}
+
+/* the font and the corner radius of your swayforge theme */
+body, button, input, textarea {
+    --font-primary: "{{ font }}", "gg sans", "Noto Sans", sans-serif;
+    font-family: var(--font-primary) !important;
+}
+{% if s.look.radius == 0 %}
+[class*="messageContent_"] img, [class*="avatar_"], [class*="wrapper_"] > svg, button, input, textarea,
+[class*="channelTextArea"], [class*="card_"], [class*="popout_"], [class*="menu_"] { border-radius: 0 !important; }
+{% else %}
+[class*="channelTextArea"], [class*="card_"], [class*="popout_"], [class*="menu_"] { border-radius: {{ s.look.radius }}px !important; }
+{% endif %}

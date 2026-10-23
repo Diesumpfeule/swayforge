@@ -20,7 +20,7 @@ gaming, IT tools, keyboard-driven use and **frequent resets**.
   off by default.
 - **Tiling only** by default – no floating windows, no tabs or stacking; workspaces do the rest.
 - **17 colour themes × 10 layouts** (incl. *Modern 11* and a *Touch* layout with on-screen keyboard) – every theme recolours Sway, Waybar, Rofi, kitty/Alacritty,
-  Spaceship, fastfetch, GTK apps, mako, swaylock, btop, cava, MangoHud, the boot screen and the
+  Spaceship, fastfetch, GTK apps, Discord (Vesktop/Vencord/BetterDiscord theme), mako, swaylock, btop, cava, MangoHud, the boot screen and the
   login screen. One Nerd Font everywhere.
 - **Your tweaks always win** – every generated file has a companion file that belongs to you.
 
@@ -488,3 +488,10 @@ This is a personal project: pull requests and outside code are not accepted. Fee
 ## License
 
 MIT – see [LICENSE](LICENSE).
+
+## Discord
+
+swayforge writes a Discord theme (`swayforge.theme.css`, colours, font and corner radius of your current theme) into the
+theme folder of every Vesktop / Vencord / BetterDiscord it finds (the client must have been started once). Enable it once
+in the client under *Settings → Themes*; after that it follows every theme change (Vesktop reloads it live).
+Vesktop is in the app catalog (Apps page). Plain Discord from the official package cannot load themes.

@@ -427,6 +427,17 @@ frametime_color={c['accent']}
 """
 
 
+def discord_theme_dirs() -> list[tuple[Path, Path]]:
+    """(theme folder, client folder) for each Discord mod found. Needs the client folder to exist already."""
+    flat = paths.HOME / ".var/app/dev.vencord.Vesktop/config"
+    homes = [
+        (flat / "vesktop", "themes"), (C / "vesktop", "themes"),
+        (flat / "Vencord", "themes"), (C / "Vencord", "themes"),
+        (flat / "BetterDiscord", "themes"), (C / "BetterDiscord", "themes"),
+    ]
+    return [(h / sub, h) for h, sub in homes if h.is_dir()]
+
+
 def palette_json(ctx: Ctx) -> str:
     """The active look as plain data – wolfforge (LibreWolf) and other tools read this."""
     return json.dumps({
@@ -837,6 +848,11 @@ def render_all(s: dict | None = None, dry: bool = False, si: SysInfo | None = No
         w.owned(C / v / "swayforge.css", gtkcss)
         w.stub(C / v / "gtk.css", '@import url("swayforge.css");\n\n/* Your own GTK rules below. */\n',
                "swayforge.css")
+
+    # Discord (Vesktop / Vencord / BetterDiscord) – only where such a client has been started once
+    discord_css = tpl("discord.theme.css.j2", d)
+    for folder, parent in discord_theme_dirs():
+        w.owned(folder / "swayforge.theme.css", discord_css)
 
     # btop, MangoHud, cava
     w.owned(C / "btop/themes/swayforge.theme", tpl("btop.j2", d))
