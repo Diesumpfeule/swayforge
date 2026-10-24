@@ -1,5 +1,7 @@
 # Anleitung: Python lernen mit swayforge (ohne Tutorials)
 
+> **Zu kompliziert? Lies zuerst [START-HIER.md](START-HIER.md).** Das hier ist die ausführliche Fassung für später.
+
 Für dich, später, in Ruhe. Du musst nichts auf einmal verstehen. Es geht darum, **kleine Dinge zu
 ändern und zu sehen, was passiert**. Das ist Lernen, auch wenn es sich nicht so anfühlt.
 
