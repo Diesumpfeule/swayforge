@@ -132,9 +132,8 @@ Missing something? Add it to `~/.config/swayforge/catalog.toml` – see
 ## Packages: Fedora first
 
 1. **Fedora repos** whenever possible
-2. **RPM Fusion / COPR / vendor RPM repos** – Steam & Discord (RPM Fusion), Prism Launcher &
-   ProtonPlus (COPR), Heroic & balenaEtcher (official RPMs from GitHub), Brave / LibreWolf / VS Code / VSCodium (vendor repos)
-3. **Flatpak** only when there's no maintained RPM (Spotify, Obsidian, Zen, Vesktop, PCSX2, Ruffle, Ghidra …) – marked **[Flatpak]**
+2. **RPM Fusion / COPR / vendor RPM repos** – Steam & Discord (RPM Fusion), ProtonPlus (COPR), Heroic & balenaEtcher (official RPMs from GitHub), Brave / LibreWolf / VS Code / VSCodium (vendor repos)
+3. **Flatpak** only when there's no maintained RPM (Spotify, Obsidian, Zen, Prism Launcher, Vesktop, PCSX2, Ruffle, Ghidra …) – marked **[Flatpak]**
 
 swayforge also switches dnf to **Enter = yes** (`[Y/n]` instead of `[y/N]`). That applies to
 `dnf remove` too – read before pressing Enter.

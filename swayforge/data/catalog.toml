@@ -205,10 +205,10 @@ label = "Gaming"
   [[group.items]]
   id = "prism"
   label = "Prism Launcher"
-  desc = "Minecraft with modpacks (official COPR g3tchoo/prismlauncher)"
+  desc = "Minecraft with modpacks [Flatpak] (the COPR build did not work)"
   default = true
-  copr = "g3tchoo/prismlauncher"
-  dnf = ["prismlauncher"]
+  needs = ["flathub"]
+  flatpak = ["org.prismlauncher.PrismLauncher"]
 
   [[group.items]]
   id = "heroic"
