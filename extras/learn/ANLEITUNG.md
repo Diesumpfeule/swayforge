@@ -1,5 +1,7 @@
 # Anleitung: Python lernen mit swayforge (ohne Tutorials)
 
+> **Du willst nur die Sprache lernen? Geh nach [basics/](basics/README.md).**
+>
 > **Zu kompliziert? Lies zuerst [START-HIER.md](START-HIER.md).** Das hier ist die ausführliche Fassung für später.
 
 Für dich, später, in Ruhe. Du musst nichts auf einmal verstehen. Es geht darum, **kleine Dinge zu
