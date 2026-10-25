@@ -270,10 +270,16 @@ def run_scene(name: str, any_key_quits: bool) -> int:
         signal.signal(signal.SIGINT, signal.SIG_IGN)
     sys.stdout.write("\x1b[?1049h\x1b[?25l\x1b[2J")
     try:
-        sc = Screen(*_colors())
+        colors = _colors()
+        sc = Screen(*colors)
         gen = scene(sc)
         last_check = time.time()
         while True:
+            size = shutil.get_terminal_size((80, 24))
+            if (sc.w, sc.h) != (size.columns, size.lines):       # window became full-screen / changed monitor
+                sys.stdout.write("\x1b[0m\x1b[2J")
+                sc = Screen(*colors)
+                gen = scene(sc)
             delay = next(gen)
             if any_key_quits and old and select.select([sys.stdin], [], [], delay)[0]:
                 return 0
@@ -330,6 +336,19 @@ def log(msg: str) -> None:
         pass
 
 
+def _window_cmd(s: dict, cmd: str) -> list[str]:
+    """Terminal command for a saver window: no padding, no transparency, plain black, no decorations."""
+    import shlex
+    term = s["general"]["terminal"]
+    if term == "alacritty":
+        return ["alacritty", "--class", APP_ID, "-o", "window.padding.x=0", "-o", "window.padding.y=0",
+                "-o", "window.opacity=1", "-o", 'window.decorations="none"',
+                "-o", 'colors.primary.background="#000000"', "-e", *shlex.split(cmd)]
+    return ["kitty", "--class", APP_ID, "-o", "window_padding_width=0", "-o", "background_opacity=1",
+            "-o", "background=#000000", "-o", "hide_window_decorations=yes", "-o", "confirm_os_window_close=0",
+            "-o", "remember_window_size=no", "-o", "tab_bar_style=hidden", *shlex.split(cmd)]
+
+
 def start(s: dict | None = None) -> int:
     from . import render
     s = s or settings.load()
@@ -348,11 +367,17 @@ def start(s: dict | None = None) -> int:
     for o in outs:
         if o:
             run(["swaymsg", f"focus output {o}"])
-        subprocess.Popen(render.terminal_cmd(s, APP_ID, cmd), shell=True, start_new_session=True,
+        subprocess.Popen(_window_cmd(s, cmd), start_new_session=True,
                          stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         time.sleep(0.25)
     # belt and braces: a fullscreen window must not count as "something is being watched" (that cancels idle)
-    run(["swaymsg", f'[app_id="{APP_ID}"] inhibit_idle none, fullscreen enable'])
+    for _ in range(8):
+        run(["swaymsg", f'[app_id="{APP_ID}"] inhibit_idle none, border none, fullscreen enable'])
+        time.sleep(0.25)
+    try:
+        STATE.write_text(str(time.time()))            # the grace period counts from "windows are up"
+    except OSError:
+        pass
     return 0
 
 
