@@ -314,6 +314,22 @@ def running() -> bool:
     return run(["pgrep", "-f", "--", f"class {APP_ID}"]).returncode == 0
 
 
+STATE = paths.STATE_DIR / "screensaver.state"
+LOG = paths.STATE_DIR / "screensaver.log"
+GRACE = 3.0          # seconds after the start in which "activity" is ignored (focus change / pointer warp)
+
+
+def log(msg: str) -> None:
+    try:
+        LOG.parent.mkdir(parents=True, exist_ok=True)
+        with LOG.open("a") as f:
+            f.write(f"{time.strftime('%H:%M:%S')} {msg}\n")
+        if LOG.stat().st_size > 50_000:
+            LOG.write_text("".join(LOG.read_text().splitlines(True)[-100:]))
+    except OSError:
+        pass
+
+
 def start(s: dict | None = None) -> int:
     from . import render
     s = s or settings.load()
@@ -322,12 +338,21 @@ def start(s: dict | None = None) -> int:
         return 0
     cmd = f"{render.LAUNCHER} screensaver run {name}"
     outs = _outputs() or [""]
+    log(f"start {name} on {outs}")
+    try:
+        STATE.parent.mkdir(parents=True, exist_ok=True)
+        STATE.write_text(str(time.time()))
+    except OSError:
+        pass
+    run(["swaymsg", "mouse_warping none"])        # focusing another monitor must not move the pointer = "activity"
     for o in outs:
         if o:
             run(["swaymsg", f"focus output {o}"])
         subprocess.Popen(render.terminal_cmd(s, APP_ID, cmd), shell=True, start_new_session=True,
                          stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         time.sleep(0.25)
+    # belt and braces: a fullscreen window must not count as "something is being watched" (that cancels idle)
+    run(["swaymsg", f'[app_id="{APP_ID}"] inhibit_idle none, fullscreen enable'])
     return 0
 
 
@@ -335,7 +360,17 @@ def wake(s: dict | None = None) -> int:
     """First input after the saver: lock (if locking is on), then close the saver windows."""
     s = s or settings.load()
     if not running():
+        log("wake: nothing running")
         return 0
+    try:
+        age = time.time() - float(STATE.read_text())
+    except (OSError, ValueError):
+        age = 999.0
+    if age < GRACE:
+        log(f"wake ignored: only {age:.1f}s after start (focus/pointer noise)")
+        return 0
+    log(f"wake after {age:.0f}s: lock + close")
+    run(["swaymsg", "mouse_warping output"])
     if s["power"]["lock_after"] > 0 and run(["pgrep", "-x", "swaylock"]).returncode != 0:
         subprocess.Popen(["swaylock", "-f"], start_new_session=True)
         time.sleep(0.4)
