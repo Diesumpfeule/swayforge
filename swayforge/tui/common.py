@@ -175,21 +175,27 @@ def section(title: str) -> Static:
 BASE_CSS = """
 Screen { layout: vertical; }
 #body { height: 1fr; }
-#sidebar { width: 30; border-right: tall $panel; padding: 1 0; }
-#sidebar > ListItem { padding: 0 2; height: 3; content-align: left middle; }
-#sidebar > ListItem Label { padding: 1 0 0 0; }
+#sidebar { width: 26; border-right: tall $panel; padding: 0; }
+#sidebar > ListItem { padding: 0 1; height: 1; content-align: left middle; }
+#sidebar > ListItem Label { padding: 0; }
 #pages { width: 1fr; }
-.page { padding: 1 3; }
-.pagetitle { text-style: bold; color: $accent; padding-bottom: 1; }
-.section { text-style: bold; color: $secondary; margin-top: 1; padding-bottom: 1;
+.page { padding: 0 2; }
+.pagetitle { text-style: bold; color: $accent; padding-bottom: 0; }
+.section { text-style: bold; color: $secondary; margin-top: 1; padding-bottom: 0;
            border-bottom: solid $panel; }
 .frow { height: auto; margin-bottom: 1; }
 .flabelbox { width: 1fr; height: auto; }
-.flabel { padding-top: 1; }
+.flabel { padding-top: 0; }
 .fhelp { color: $text-muted; }
-.frow Input { width: 36; }
-.frow Select { width: 36; }
-.frow Switch { margin-right: 26; }
+.frow Input { width: 30; border: none; height: 1; padding: 0 1; background: $panel; }
+.frow Input:focus { background: $accent 30%; }
+.frow Select { width: 30; }
+.frow Select > SelectCurrent { border: none; height: 1; padding: 0 1; background: $panel; }
+.frow Select:focus > SelectCurrent { border: none; background: $accent 30%; }
+.frow Switch { margin-right: 22; border: none; height: 1; padding: 0; width: 8; background: $panel; }
+.frow Switch > .switch--slider { color: $text-muted; background: $panel; }
+.frow Switch.-on > .switch--slider { color: $accent; background: $panel; }
+.frow Switch:focus { background: $accent 30%; }
 /* ── Buttons: compact by default, shaped by the layout (App.-ui-<layout>) ── */
 Button { height: 1; min-width: 6; border: none; padding: 0 2; background: $panel; color: $text;
          text-style: bold; }
@@ -216,16 +222,16 @@ App.-ui-wired Button { background: transparent; color: $accent; padding: 0 1; }
 App.-ui-wired Button:hover, App.-ui-wired Button:focus { background: $accent; color: $background; }
 App.-ui-wired Button.-primary, App.-ui-wired Button.-success { background: transparent; color: $accent;
          text-style: bold underline; }
-.editbtn { min-width: 5; width: 5; margin-left: 1; margin-top: 1; background: $panel; padding: 0 1; }
+.editbtn { min-width: 5; width: 5; margin-left: 1; margin-top: 0; background: $panel; padding: 0 1; }
 App.-ui-win98 .editbtn, App.-ui-dread .editbtn, App.-ui-winxp .editbtn, App.-ui-win7 .editbtn { height: 1; border: none; margin-top: 1; }
 App.-ui-win98 .small, App.-ui-dread .small, App.-ui-winxp .small, App.-ui-win7 .small { height: 1; border: none; }
 .editbtn:hover { background: $accent; color: $background; }
 .small { min-width: 5; width: 5; }
-.volval { width: 7; padding: 1 1; }
-ProgressBar { padding: 1 1; width: 30; }
-.hint { color: $text-muted; padding-bottom: 1; }
-.warn { color: $warning; padding-bottom: 1; }
-.btnrow { height: auto; margin: 1 0; align: left middle; }
+.volval { width: 7; padding: 0 1; }
+ProgressBar { padding: 0 1; width: 30; }
+.hint { color: $text-muted; padding-bottom: 0; }
+.warn { color: $warning; padding-bottom: 0; }
+.btnrow { height: auto; margin: 0; align: left middle; }
 .btnrow Button { margin-right: 2; }
 ThemeItem { height: 3; padding: 0 1; }
 #statusbar { height: 1; background: $panel; padding: 0 2; color: $text-muted; }
