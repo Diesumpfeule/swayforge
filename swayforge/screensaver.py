@@ -268,7 +268,10 @@ def run_scene(name: str, any_key_quits: bool) -> int:
         tty.setcbreak(fd)
     if not any_key_quits:
         signal.signal(signal.SIGINT, signal.SIG_IGN)
+    born = time.time()
     sys.stdout.write("\x1b[?1049h\x1b[?25l\x1b[2J")
+    if not any_key_quits:
+        sys.stdout.write("\x1b[?1003h\x1b[?1006h")      # report mouse movement too
     try:
         colors = _colors()
         sc = Screen(*colors)
@@ -289,10 +292,13 @@ def run_scene(name: str, any_key_quits: bool) -> int:
                     if run(["pgrep", "-x", "swayidle"]).returncode != 0:
                         return 0                  # nobody left to wake us: don't trap the screen
                 if old and select.select([sys.stdin], [], [], 0)[0]:
-                    os.read(fd, 1024)                 # eat key presses; wake kills us
+                    os.read(fd, 1024)                 # key press / mouse move inside the saver window
+                    if time.time() - born > GRACE + 1:
+                        wake()                        # swayidle may have missed it: lock + close ourselves
+                        return 0
                 time.sleep(delay)
     finally:
-        sys.stdout.write("\x1b[0m\x1b[?25h\x1b[?1049l")
+        sys.stdout.write("\x1b[?1003l\x1b[?1006l\x1b[0m\x1b[?25h\x1b[?1049l")
         if old:
             termios.tcsetattr(fd, termios.TCSADRAIN, old)
 
