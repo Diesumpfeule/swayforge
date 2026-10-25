@@ -195,7 +195,9 @@ for_window [app_id="swayforge-saver"] inhibit_idle none
 exec systemctl --user import-environment DISPLAY WAYLAND_DISPLAY SWAYSOCK XDG_CURRENT_DESKTOP
 exec dbus-update-activation-environment --systemd DISPLAY WAYLAND_DISPLAY SWAYSOCK XDG_CURRENT_DESKTOP=sway
 exec lxqt-policykit-agent
-exec mako
+{% if not ext_shell %}
+exec_always sh -c 'pgrep -x mako >/dev/null || exec mako'
+{% endif %}
 {% if s.sound.enabled and s.sound.login %}
 exec sh -c 'sleep 2; pw-play "$HOME/.local/share/sounds/swayforge/stereo/desktop-login.wav"'
 {% endif %}
@@ -206,7 +208,12 @@ exec blueman-applet
 exec wl-paste --type text --watch cliphist store
 exec wl-paste --type image --watch cliphist store
 exec_always {{ sf }} session
+{% if ext_shell %}
+# {{ ext_shell }} runs the bar + notifications now (Settings → Layout → switch back)
+exec_always sh -c 'pkill -x waybar; pkill -x mako; sleep 1; pgrep -x noctalia >/dev/null || pgrep -x noctalia-shell >/dev/null || pgrep -f "^quickshell.*[n]octalia" >/dev/null || exec {{ ext_shell }}'
+{% else %}
 exec_always sh -c 'pkill -x waybar; exec waybar'
+{% endif %}
 {% if s.power.nightlight %}
 exec_always sh -c 'pkill -x gammastep; exec gammastep -l {{ s.power.location }} -t 6500:{{ s.power.nightlight_temp }}'
 {% else %}

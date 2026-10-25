@@ -192,7 +192,15 @@ class Ctx:
             hx=hx, rgba=rgba, mix=mix, mark=MARK, cs2_watcher=cs2_watcher(),
             layout=self.layout.id, bv=bevel(self.c), user=os.environ.get("USER", "user"), font=self.s["theme"]["font"],
             art=asc.art(self.art_name), banner=asc.banner, extras=art_svg.extras(),
+            ext_shell=external_shell(self.s),
         )
+
+
+def external_shell(s: dict) -> str:
+    """Command of the desktop shell that replaces swayforge's bar + notifications, or '' for swayforge's own."""
+    if s["general"].get("shell", "swayforge") != "noctalia":
+        return ""
+    return "noctalia" if have("noctalia") or not have("noctalia-shell") else "noctalia-shell"
 
 
 def make_ctx(s: dict, si: SysInfo | None = None) -> Ctx:

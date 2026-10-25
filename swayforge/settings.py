@@ -14,6 +14,7 @@ DEFAULTS: dict[str, Any] = {
         "file_manager": "thunar",
         "editor": "nvim",
         "mod": "Mod4",                # Mod4 = Super/Windows key, Mod1 = Alt
+        "shell": "swayforge",         # swayforge = our bar + notifications | noctalia = hand them to Noctalia
     },
     "theme": {
         "name": "catppuccin-mocha",

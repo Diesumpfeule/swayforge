@@ -394,8 +394,17 @@ class SettingsApp(App):
     def page_layout(self) -> VerticalScroll:
         cur = layouts.get(self.s["bar"]["layout"])
         ids = list(layouts.LAYOUTS)
+        noctalia = self.s["general"].get("shell") == "noctalia"
         return self.page(
             "layout",
+            Static("[b]Desktop shell[/b]  " + ("Noctalia is running the bar and notifications. swayforge's bar is off."
+                                              if noctalia else
+                                              "swayforge's own bar and notifications are on."), id="shell_state", classes="hint"),
+            Horizontal(Button("Switch back to swayforge's bar" if noctalia else "Run Noctalia instead (bar off)",
+                              id="shell_toggle", variant="primary"), classes="btnrow"),
+            Static("Noctalia has to be installed first (sudo dnf install noctalia). Your theme, wallpaper, shortcuts and "
+                   "everything else of swayforge keep working; only the bar and notifications are handed over.",
+                   classes="hint"),
             Static("The layout decides how the bar, start menu/launcher, notifications and GTK buttons "
                    "look – combine it with any colour theme (e.g. Classic 98 + Rust). Also: Super+Shift+L.",
                    classes="hint"),
@@ -966,6 +975,20 @@ class SettingsApp(App):
         elif bid == "sys_selfupdate":
             self.start_update()
             self.notify("Updating swayforge + wolfforge in a terminal – restart this app afterwards")
+        elif bid == "shell_toggle":
+            if not (have("noctalia") or have("noctalia-shell")) and self.s["general"].get("shell") != "noctalia":
+                self.notify("Noctalia is not installed. Run: sudo dnf install noctalia", severity="warning", timeout=10)
+                return
+            self.s["general"]["shell"] = "swayforge" if self.s["general"].get("shell") == "noctalia" else "noctalia"
+            if self.s["general"]["shell"] == "swayforge":
+                for pat in (["-x", "noctalia"], ["-x", "noctalia-shell"], ["-f", "^quickshell.*noctalia"]):
+                    run(["pkill", *pat])                  # swayforge's bar + mako come back with the reload
+            self.save_and_apply(quiet=False)
+            on = self.s["general"]["shell"] == "noctalia"
+            ev.button.label = "Switch back to swayforge's bar" if on else "Run Noctalia instead (bar off)"
+            self.query_one("#shell_state", Static).update(
+                "[b]Desktop shell[/b]  " + ("Noctalia is running the bar and notifications. swayforge's bar is off."
+                                            if on else "swayforge's own bar and notifications are on."))
         elif bid == "sv_preview":
             name = self.s["power"].get("screensaver", "off")
             if name == "off":
