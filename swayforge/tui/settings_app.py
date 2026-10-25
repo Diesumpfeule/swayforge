@@ -172,10 +172,11 @@ FIELDS: dict[str, list[Field | str]] = {
                ("VSCodium", "codium --wait"), ("micro", "micro")]),
     ],
     "power": [
+        "Screensaver",
+        Field("power.screensaver", "Screensaver", "choice", SAVER_OPTS,
+              help="choose one: it plays instead of a plain lock"),
         "Lock & screen",
         Field("power.lock_after", "Lock after (minutes)", "int", help="0 = never"),
-        Field("power.screensaver", "Screensaver when it locks", "choice", SAVER_OPTS,
-              help="plays from “lock after”, the first key or mouse move locks. Set “Screen off after” higher than “Lock after”"),
         Field("power.screen_off_after", "Screen off after (minutes)", "int", help="0 = never"),
         Field("power.suspend_after", "Suspend after (minutes)", "int", help="0 = never"),
         Field("power.lock_before_sleep", "Lock before suspend", "bool"),
@@ -498,6 +499,10 @@ class SettingsApp(App):
 
     def page_power(self) -> VerticalScroll:
         children = self.fields("power")
+        children[2:2] = [Static("It starts after “Lock after (minutes)” below; the first key or mouse move locks the screen. "
+                                "Set “Screen off after” higher than “Lock after”. cmatrix is the real program "
+                                "(Apps page → cmatrix); without it the built-in Matrix is used.", classes="hint"),
+                         Horizontal(Button("Preview screensaver", id="sv_preview"), classes="btnrow")]
         if have("powerprofilesctl"):
             cur = run(["powerprofilesctl", "get"]).stdout.strip()
             avail = [l.strip().rstrip(":").lstrip("* ").strip()
@@ -506,13 +511,10 @@ class SettingsApp(App):
             opts = [(names.get(a, a), a) for a in avail] or [("Balanced", "balanced")]
             if cur and cur not in [v for _, v in opts]:
                 opts.append((cur, cur))
-            children[0:0] = [section("Power profile (applies immediately)"),
+            children[4:4] = [section("Power profile (applies immediately)"),
                              Horizontal(Label("Profile", classes="flabel flabelbox"),
                                         Select(opts, value=cur or opts[0][1], allow_blank=False, id="ppd"),
                                         classes="frow")]
-        children[0:0] = [Static("[b]Screensaver preview[/b] opens it in a terminal window (any key closes it). "
-                                "cmatrix needs the program from the Apps page.", classes="hint"),
-                         Horizontal(Button("Preview screensaver", id="sv_preview"), classes="btnrow")]
         return self.page("power", *children)
 
     def page_boot(self) -> VerticalScroll:
