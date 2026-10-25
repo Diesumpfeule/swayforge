@@ -859,7 +859,7 @@ def render_all(s: dict | None = None, dry: bool = False, si: SysInfo | None = No
 
     # Discord (Vesktop / Vencord / BetterDiscord) – only where such a client has been started once
     discord_css = tpl("discord.theme.css.j2", d)
-    for folder, parent in discord_theme_dirs():
+    for folder, _client in discord_theme_dirs():
         w.owned(folder / "swayforge.theme.css", discord_css)
 
     # btop, MangoHud, cava

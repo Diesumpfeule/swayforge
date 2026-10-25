@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <b>Fedora Sway</b> · AMD · keyboard-first · 17 themes × 10 layouts · 93 apps · reset-friendly
+  <b>Fedora Sway</b> · AMD · keyboard-first · 24 themes × 13 layouts · 96 apps · reset-friendly
 </p>
 
 > ⚠ **Proof of concept, written by Claude (AI) – no warranty, use at your own risk.** See [Disclaimer](#disclaimer).
@@ -19,7 +19,7 @@ gaming, IT tools, keyboard-driven use and **frequent resets**.
 - **System sounds** – generated sound packs (gothic church bells, classic bleeps, glass chimes …),
   off by default.
 - **Tiling only** by default – no floating windows, no tabs or stacking; workspaces do the rest.
-- **17 colour themes × 10 layouts** (incl. *Modern 11* and a *Touch* layout with on-screen keyboard) – every theme recolours Sway, Waybar, Rofi, kitty/Alacritty,
+- **24 colour themes × 13 layouts** (incl. *Modern 11* and a *Touch* layout with on-screen keyboard) – every theme recolours Sway, Waybar, Rofi, kitty/Alacritty,
   Spaceship, fastfetch, GTK apps, Discord (Vesktop/Vencord/BetterDiscord theme), mako, swaylock, btop, cava, MangoHud, the boot screen and the
   login screen. One Nerd Font everywhere.
 - **Your tweaks always win** – every generated file has a companion file that belongs to you.

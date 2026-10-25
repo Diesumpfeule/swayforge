@@ -56,7 +56,7 @@ def power() -> None:
 def sound(action: str, event: str = "bell") -> None:
     """swayforge sound test|play EVENT|build – the generated system sounds."""
     import time
-    from . import render, sounds
+    from . import sounds
     s = settings.load()
     pack = sounds.pack_for(s, s["theme"]["name"], s["bar"]["layout"])
     sounds.install(pack, float(s["sound"]["volume"]), force=action == "build")

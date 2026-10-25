@@ -23,10 +23,9 @@ import re
 import shutil
 import struct
 import subprocess
-import sys
 import termios
 import threading
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 PLACEHOLDER = "\U0010EEEE"
 APC_RE = re.compile(r"\x1b_G.*?\x1b\\", re.S)

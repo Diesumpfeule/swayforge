@@ -44,7 +44,7 @@ STEAM_ROOTS = [
 
 # Examples: "[ALL] Name: hi"   "[CT] Name﹫CT Start: rotate"
 CHAT_RE = re.compile(r"\[(ALL|CT|T|TEAM)\]\s*(.+?)(?:\s*[@﹫＠][^:]*)?:\s+(.+)$")
-INVISIBLE = dict.fromkeys(map(ord, "‎‏​﻿"), None)
+INVISIBLE = dict.fromkeys(map(ord, "\u200e\u200f\u200b\ufeff"), None)
 
 # Start logo (r"..." keeps the backslashes)
 LOGO = r"""

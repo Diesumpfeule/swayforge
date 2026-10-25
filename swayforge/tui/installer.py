@@ -17,7 +17,7 @@ from .. import catalog as cat
 from .. import layouts, paths, plan, settings, themes
 from ..system import detect, installed_rpms
 from ..render import mix
-from .common import BASE_CSS, AnimatedArt, art_styles, hero_text, swatch, two_tone, use_layout, use_theme
+from .common import BASE_CSS, AnimatedArt, art_styles, swatch, use_layout, use_theme
 
 
 class Nav(Horizontal):
@@ -293,7 +293,6 @@ class Look(Step):
         s = self.app.s
         all_t = themes.all_themes()
         ids = list(all_t)
-        lay_ids = list(layouts.LAYOUTS)
         yield Static("Look & terminal", classes="steptitle")
         with VerticalScroll(classes="page"):
             yield Static("Theme – arrow keys preview it, the installer recolours itself:", classes="hint")

@@ -29,7 +29,7 @@ def _versions() -> str:
             try:
                 from importlib.metadata import version
                 v = version(mod)
-            except Exception:  # noqa: BLE001
+            except Exception:
                 v = ""
         if m:
             out.append(f"{mod} {v or '?'}")
@@ -101,7 +101,7 @@ def guard(app_name: str, fn, *args, **kwargs):
         return fn(*args, **kwargs)
     except (KeyboardInterrupt, SystemExit):
         raise
-    except BaseException as e:  # noqa: BLE001
+    except BaseException as e:
         report(app_name, e)
         return 1
 

@@ -7,7 +7,6 @@ import shlex
 import subprocess
 from pathlib import Path
 
-from rich.text import Text
 from textual import on, work
 from textual.app import App, ComposeResult
 from textual.binding import Binding
@@ -19,8 +18,8 @@ from textual.widgets.selection_list import Selection
 from .. import ascii as asc
 from .. import boot, layouts, paths, render, settings, screensaver, sounds, themes
 from ..system import detect, have, run
-from .common import (BASE_CSS, HOLD, AnimatedArt, Field, art_styles, coerce, field_row, hero_text, path_from_wid, section, swatch,
-                     two_tone, use_layout, use_theme)
+from .common import (BASE_CSS, HOLD, AnimatedArt, Field, art_styles, coerce, field_row, path_from_wid, section, swatch,
+                     use_layout, use_theme)
 from .games import GamesPanel
 from .maintenance import AboutPanel, AppsPanel, CleanupPanel, MountsPanel
 from .wallpapers import WallpapersPanel
@@ -674,7 +673,7 @@ class SettingsApp(App):
                 elif isinstance(w, (Select, Switch)):
                     try:
                         w.value = val
-                    except Exception:  # noqa: BLE001 – value not among the options
+                    except Exception:
                         pass
 
     def refresh_hero(self) -> None:

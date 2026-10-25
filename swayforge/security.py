@@ -135,7 +135,7 @@ def scan(target: str = "downloads", quarantine: bool = True, quiet: bool = False
     title = "Malware scan: " + ("nothing found" if rc == 0 else f"{found} infected file(s)!" if rc == 1
                                  else "error – see report")
     body = f"{', '.join(Path(t).name or t for t in targets)}" + \
-           (f" · moved to quarantine" if found and quarantine else "")
+           (" · moved to quarantine" if found and quarantine else "")
     notify(title, body)
     if not quiet:
         print(f"\n{title}\nReport: {rep}")

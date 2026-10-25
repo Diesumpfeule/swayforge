@@ -8,7 +8,7 @@ from pathlib import Path
 
 from textual import on, work
 from textual.app import ComposeResult
-from textual.containers import Horizontal, Vertical, VerticalScroll
+from textual.containers import Horizontal, VerticalScroll
 from textual.widgets import (Button, Input, Label, ListItem, ListView, ProgressBar, Select,
                              Static, Switch)
 

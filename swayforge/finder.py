@@ -324,7 +324,7 @@ def search_all(term: str, on_done: Callable[[str, list[Hit], str], None] | None 
         key, _label, fn = step
         try:
             hits, err = fn(term), ""
-        except Exception as e:                                    # noqa: BLE001
+        except Exception as e:
             hits, err = [], f"{e.__class__.__name__}: {e}"[:160]
         if on_done:
             on_done(key, hits, err)

@@ -187,7 +187,7 @@ async def execute(steps: list[Step], dry: bool = False) -> AsyncIterator[Event]:
                         for line in await asyncio.to_thread(st.func):
                             log.write(line + "\n")
                             yield Event("line", line)
-                    except Exception as e:  # noqa: BLE001
+                    except Exception as e:
                         ok = False
                         yield Event("line", f"Error: {e}")
             for cmd in st.cmds:

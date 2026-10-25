@@ -112,7 +112,7 @@ class GamesPanel(Panel):
             st = steamtune_module()
             root = st.root()
             libs = st.libraries(root) if root else []
-        except Exception as e:                        # noqa: BLE001 – a broken Steam must not break settings
+        except Exception as e:
             yield Static(f"Could not read Steam: {e}", classes="warn")
             return
         if not libs:
@@ -153,17 +153,17 @@ class GamesPanel(Panel):
                                  st.window(root)))
                 else:
                     rows.append((i, f"[{i}] {lib} · not mounted", "", st.window(root)))
-        except Exception:                              # noqa: BLE001
+        except Exception:
             return
         self.app.call_from_thread(self._loaded, rows)
 
     def _loaded(self, rows: list) -> None:
-        for i, text, lim, win in rows:
+        for i, text, lim, _win in rows:
             try:
                 self.query_one(f"#gm_st_info{i}", Static).update(text)
                 if lim and not self.query_one(f"#gm_st_limit{i}", Input).value:
                     self.query_one(f"#gm_st_limit{i}", Input).value = _human_in(int(lim))
-            except Exception:                          # noqa: BLE001 – widget not there (yet)
+            except Exception:
                 pass
 
     # ── buttons ──────────────────────────────────────────────────────
