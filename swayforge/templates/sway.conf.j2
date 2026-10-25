@@ -185,8 +185,10 @@ for_window [class="steam" title="^(?!Steam$).*"] floating enable
 {% endif %}
 for_window [class="steam_app_.*"] allow_tearing {{ "yes" if s.display.allow_tearing else "no" }}
 for_window [app_id="gamescope"] allow_tearing {{ "yes" if s.display.allow_tearing else "no" }}
+for_window [app_id="swayforge-saver"] fullscreen enable, border none
 {% if s.power.inhibit_fullscreen %}
 for_window [all] inhibit_idle fullscreen
+for_window [app_id="swayforge-saver"] inhibit_idle none
 {% endif %}
 
 # ── Autostart ────────────────────────────────────────────────────

@@ -66,6 +66,9 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("action", choices=["test", "play", "build"])
     p.add_argument("event", nargs="?", default="bell")
     sub.add_parser("power", help="power menu (Rofi)")
+    p = sub.add_parser("screensaver", help="animated screensaver instead of a plain lock: list | preview NAME | start | wake")
+    p.add_argument("action", choices=["list", "preview", "run", "start", "wake"])
+    p.add_argument("name", nargs="?", default="")
     sub.add_parser("start", help="start menu (Rofi)")
     sub.add_parser("keys", help="shortcut overview (Rofi)")
     sub.add_parser("version", help="installed versions + whether GitHub has newer ones")
@@ -230,6 +233,18 @@ def main(argv: list[str] | None = None) -> int:
             return 2
         print(f"about {wallpacks.total_mb(keys)} MB")
         return subprocess.call(["bash", "-o", "pipefail", "-c", wallpacks.script(keys)])
+
+    if a.cmd == "screensaver":
+        from . import screensaver as sv
+        if a.action == "list":
+            for k, v in sv.SAVERS.items():
+                print(f"{k:10} {v}")
+            return 0
+        if a.action == "preview":
+            return sv.preview(a.name or "matrix")
+        if a.action == "run":
+            return sv.run_scene(a.name or "matrix", False)
+        return sv.start() if a.action == "start" else sv.wake()
 
     if a.cmd == "hello":
         from . import anim

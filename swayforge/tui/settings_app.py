@@ -17,7 +17,7 @@ from textual.widgets import (Button, ContentSwitcher, Footer, Header, Input, Lab
 from textual.widgets.selection_list import Selection
 
 from .. import ascii as asc
-from .. import boot, layouts, paths, render, settings, sounds, themes
+from .. import boot, layouts, paths, render, settings, screensaver, sounds, themes
 from ..system import detect, have, run
 from .common import (BASE_CSS, HOLD, AnimatedArt, Field, art_styles, coerce, field_row, hero_text, path_from_wid, section, swatch,
                      two_tone, use_layout, use_theme)
@@ -26,6 +26,7 @@ from .maintenance import AboutPanel, AppsPanel, CleanupPanel, MountsPanel
 from .wallpapers import WallpapersPanel
 from .panels import AudioPanel, BluetoothPanel, NetworkPanel
 
+SAVER_OPTS = [(label, key) for key, label in screensaver.SAVERS.items()]
 ON_OFF = [("always", "always"), ("only via SSH/root", "needed"), ("never", "false")]
 
 PAGES: list[tuple[str, str]] = [
@@ -173,6 +174,8 @@ FIELDS: dict[str, list[Field | str]] = {
     "power": [
         "Lock & screen",
         Field("power.lock_after", "Lock after (minutes)", "int", help="0 = never"),
+        Field("power.screensaver", "Screensaver when it locks", "choice", SAVER_OPTS,
+              help="plays from “lock after”, the first key or mouse move locks. Set “Screen off after” higher than “Lock after”"),
         Field("power.screen_off_after", "Screen off after (minutes)", "int", help="0 = never"),
         Field("power.suspend_after", "Suspend after (minutes)", "int", help="0 = never"),
         Field("power.lock_before_sleep", "Lock before suspend", "bool"),
@@ -507,6 +510,9 @@ class SettingsApp(App):
                              Horizontal(Label("Profile", classes="flabel flabelbox"),
                                         Select(opts, value=cur or opts[0][1], allow_blank=False, id="ppd"),
                                         classes="frow")]
+        children[0:0] = [Static("[b]Screensaver preview[/b] opens it in a terminal window (any key closes it). "
+                                "cmatrix needs the program from the Apps page.", classes="hint"),
+                         Horizontal(Button("Preview screensaver", id="sv_preview"), classes="btnrow")]
         return self.page("power", *children)
 
     def page_boot(self) -> VerticalScroll:
@@ -958,6 +964,12 @@ class SettingsApp(App):
         elif bid == "sys_selfupdate":
             self.start_update()
             self.notify("Updating swayforge + wolfforge in a terminal – restart this app afterwards")
+        elif bid == "sv_preview":
+            name = self.s["power"].get("screensaver", "off")
+            if name == "off":
+                name = "matrix"
+                self.notify("No screensaver chosen – showing the Matrix one", timeout=5)
+            self.spawn_term(f"{render.LAUNCHER} screensaver preview {name}")
         elif bid == "keys_reset":
             self.s["keys"] = {}
             for aid, _l, key, _c in settings.KEY_ACTIONS:

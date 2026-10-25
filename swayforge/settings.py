@@ -95,6 +95,7 @@ DEFAULTS: dict[str, Any] = {
         "lock_after": 10,             # minutes, 0 = never
         "screen_off_after": 15,
         "suspend_after": 0,           # 0 = never (desktop); the installer sets 30 on laptops
+        "screensaver": "off",         # animated full-screen scene instead of a plain lock (see screensaver.py)
         "lock_before_sleep": True,
         "inhibit_fullscreen": True,   # don't lock while gaming / watching videos
         "nightlight": False,

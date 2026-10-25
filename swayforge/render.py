@@ -957,7 +957,11 @@ def set_primary_output(s: dict) -> None:
 def idle_args(s: dict) -> list[str]:
     p = s["power"]
     args = ["-w"]
-    if p["lock_after"] > 0:
+    if p["lock_after"] > 0 and p.get("screensaver", "off") != "off":
+        # the saver stands in for the lock: it starts at "lock after", the first input locks and closes it
+        args += ["timeout", str(p["lock_after"] * 60), f"{LAUNCHER} screensaver start",
+                 "resume", f"{LAUNCHER} screensaver wake"]
+    elif p["lock_after"] > 0:
         args += ["timeout", str(p["lock_after"] * 60), "swaylock -f"]
     if p["screen_off_after"] > 0:
         args += ["timeout", str(p["screen_off_after"] * 60), 'swaymsg "output * power off"',

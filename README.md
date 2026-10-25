@@ -494,3 +494,12 @@ swayforge writes a Discord theme (`swayforge.theme.css`, colours, font and corne
 theme folder of every Vesktop / Vencord / BetterDiscord it finds (the client must have been started once). Enable it once
 in the client under *Settings → Themes*; after that it follows every theme change (Vesktop reloads it live).
 Vesktop is in the app catalog (Apps page). Plain Discord from the official package cannot load themes.
+
+## Screensavers
+
+*Settings → Power & lock → Screensaver when it locks.* Instead of a plain lock, an animated full-screen scene starts after
+“Lock after (minutes)”: **Matrix rain** (built in, in your theme colours), **cmatrix** (the real program, install it on the Apps
+page), Starfield, Pipes, Fire, Game of Life, a bouncing logo or a big clock. The first key press or mouse move locks the screen
+(swaylock) and closes the scene, so the desktop is never visible in between. “Preview screensaver” shows it in a window,
+`swayforge screensaver list` / `swayforge screensaver preview NAME` do the same from a terminal. Set “Screen off after” higher
+than “Lock after”, otherwise the screen goes dark before you see anything. Not active in gaming mode.

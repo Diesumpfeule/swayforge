@@ -381,6 +381,13 @@ label = "Dev"
   dnf = ["codium"]
 
   [[group.items]]
+  id = "cmatrix"
+  label = "cmatrix"
+  desc = "The Matrix rain – used by the screensaver (Settings → Power & lock)"
+  default = false
+  dnf = ["cmatrix"]
+
+  [[group.items]]
   id = "python-dev"
   label = "Python"
   desc = "pip, dev headers, ipython, Tkinter"
