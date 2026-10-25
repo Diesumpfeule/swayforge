@@ -272,11 +272,16 @@ def run_scene(name: str, any_key_quits: bool) -> int:
     try:
         sc = Screen(*_colors())
         gen = scene(sc)
+        last_check = time.time()
         while True:
             delay = next(gen)
             if any_key_quits and old and select.select([sys.stdin], [], [], delay)[0]:
                 return 0
             elif not any_key_quits:
+                if time.time() - last_check > 5:
+                    last_check = time.time()
+                    if run(["pgrep", "-x", "swayidle"]).returncode != 0:
+                        return 0                  # nobody left to wake us: don't trap the screen
                 if old and select.select([sys.stdin], [], [], 0)[0]:
                     os.read(fd, 1024)                 # eat key presses; wake kills us
                 time.sleep(delay)
@@ -306,7 +311,7 @@ def _outputs() -> list[str]:
 
 
 def running() -> bool:
-    return run(["pgrep", "-f", f"--class {APP_ID}"]).returncode == 0
+    return run(["pgrep", "-f", "--", f"class {APP_ID}"]).returncode == 0
 
 
 def start(s: dict | None = None) -> int:
@@ -334,8 +339,8 @@ def wake(s: dict | None = None) -> int:
     if s["power"]["lock_after"] > 0 and run(["pgrep", "-x", "swaylock"]).returncode != 0:
         subprocess.Popen(["swaylock", "-f"], start_new_session=True)
         time.sleep(0.4)
-    run(["pkill", "-f", f"--class {APP_ID}"])
-    run(["pkill", "-f", "screensaver run"])
+    run(["pkill", "-f", "--", f"class {APP_ID}"])
+    run(["pkill", "-f", "--", "screensaver run"])
     return 0
 
 
