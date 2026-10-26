@@ -43,6 +43,7 @@ DEFAULTS: dict[str, Any] = {
         "gtk_buttons": False,         # close/minimise buttons in GTK apps (keyboard users: off)
         "smart_gaps": True,
         "terminal_opacity": 0.95,
+        "ui_opacity": 1.0,            # bar, launcher, notifications: 1.0 = layout default, lower = more see-through
         "terminal_padding": 10,
         "fx_blur": True,              # SwayFX only
         "fx_shadows": True,           # SwayFX only

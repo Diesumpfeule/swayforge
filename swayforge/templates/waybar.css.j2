@@ -24,7 +24,7 @@ tooltip label { color: {{ c.text }}; }
 /* ── Modern islands ─────────────────────────────────────────────── */
 window#waybar { background: transparent; color: {{ c.text }}; }
 {{ mods }} {
-    background: {{ rgba(c.base, 0.88) }};
+    background: {{ ua(c.base, 0.88) }};
     border: 1px solid {{ rgba(c.surface2, 0.6) }};
     border-radius: {{ s.look.radius }}px;
     margin: 5px 3px;
@@ -37,7 +37,7 @@ window#waybar { background: transparent; color: {{ c.text }}; }
 /* ── Glass islands: see-through, hairline edge ──────────────────── */
 window#waybar { background: transparent; color: {{ c.text }}; }
 {{ mods }} {
-    background: {{ rgba(c.base, 0.55) }};
+    background: {{ ua(c.base, 0.55) }};
     border: 1px solid {{ rgba(c.text, 0.14) }};
     border-radius: {{ s.look.radius }}px;
     margin: 6px 3px;
@@ -50,7 +50,7 @@ window#waybar { background: transparent; color: {{ c.text }}; }
 {% elif layout == "solid" %}
 /* ── Solid bar ──────────────────────────────────────────────────── */
 window#waybar {
-    background: {{ rgba(c.base, 0.95) }};
+    background: {{ ua(c.base, 0.95) }};
     border-bottom: 2px solid {{ c.surface }};
     color: {{ c.text }};
 }
@@ -362,7 +362,7 @@ window#waybar {
 {% elif layout == "sidebar" %}
 /* ── Sidebar ────────────────────────────────────────────────────── */
 window#waybar {
-    background: {{ rgba(c.base, 0.95) }};
+    background: {{ ua(c.base, 0.95) }};
     border-right: 2px solid {{ c.surface }};
     color: {{ c.text }};
 }
@@ -423,3 +423,8 @@ window#waybar.empty #window { background: transparent; border-color: transparent
 #custom-gamemode { color: {{ c.overlay }}; }
 #custom-gamemode.on { background: {{ c.accent }}; color: {{ c.crust }}; }
 #tray > .needs-attention { background: {{ c.red }}; }
+
+{% if ui < 1 and layout not in ("modern", "minimal", "glass", "solid") %}
+/* layout transparency: bevelled/gradient bars fade as a whole */
+window#waybar { opacity: {{ ui }}; }
+{% endif %}

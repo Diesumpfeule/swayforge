@@ -378,7 +378,9 @@ class SettingsApp(App):
                               "GTK apps, lock screen, notifications, btop, cava, MangoHud and the boot/login "
                               "screens.\n\nRetro themes also bring square corners, a retro font and their own "
                               "layout.", classes="hint", id="hero_intro"), id="hero"),
+            section("Colour theme"),
             ListView(*items, id="themelist", initial_index=current),
+            section("Accent & ASCII art"),
             field_row(Field("theme.accent", "Accent colour", "choice", accent_opts), self.s),
             field_row(Field("theme.ascii", "ASCII art", "choice", art_opts,
                             help="fastfetch, login, boot screen · add your own in ~/.config/swayforge/ascii"),
@@ -401,28 +403,34 @@ class SettingsApp(App):
         cur = layouts.get(self.s["bar"]["layout"])
         ids = list(layouts.LAYOUTS)
         noctalia = self.s["general"].get("shell") == "noctalia"
+        opacity = Field("look.ui_opacity", "Transparency", "choice",
+                        [("Off – layout default", 1.0)] + [(f"{n}% see-through", round(1 - n / 100, 2))
+                                                           for n in (10, 20, 30, 40, 50, 60, 70)],
+                        help="bar, launcher and notifications of the chosen layout")
         return self.page(
             "layout",
-            Static("[b]Desktop shell[/b]  " + ("Noctalia is running the bar and notifications. swayforge's bar is off."
-                                              if noctalia else
-                                              "swayforge's own bar and notifications are on."), id="shell_state", classes="hint"),
-            Horizontal(Button("Switch back to swayforge's bar" if noctalia else "Run Noctalia instead (bar off)",
-                              id="shell_toggle", variant="primary"), classes="btnrow"),
-            Static("Noctalia has to be installed first (sudo dnf install noctalia). Your theme, wallpaper, shortcuts and "
-                   "everything else of swayforge keep working; only the bar and notifications are handed over.",
-                   classes="hint"),
-            Static("The layout decides how the bar, start menu/launcher, notifications and GTK buttons "
-                   "look – combine it with any colour theme (e.g. Classic 98 + Rust). Also: Super+Shift+L.",
-                   classes="hint"),
+            section("Layout"),
+            Static("Sets how the bar, launcher, notifications and GTK buttons look. "
+                   "Mix it with any colour theme. Quick switch: Super+Shift+L.", classes="hint"),
             ListView(*[LayoutItem(l) for l in layouts.LAYOUTS.values()], id="layoutlist",
                      initial_index=ids.index(cur.id)),
             Static(cur.preview, id="layout_preview", classes="preview", markup=False),
-            Static("Turn individual modules on/off under “Bar modules”. Per-module tweaks: ✎ there.",
-                   classes="hint"),
+            section("Transparency"),
+            field_row(opacity, self.s),
+            Static("Islands and plain bars fade their background; bevelled retro bars fade as a whole. "
+                   "Blur needs SwayFX (Appearance).", classes="hint"),
+            section("Desktop shell"),
+            Static(("Noctalia runs the bar and notifications; swayforge's bar is off."
+                    if noctalia else "swayforge's own bar and notifications are on."), id="shell_state"),
+            Horizontal(Button("Switch back to swayforge's bar" if noctalia else "Run Noctalia instead (bar off)",
+                              id="shell_toggle", variant="primary"), classes="btnrow"),
+            Static("Needs Noctalia installed (sudo dnf install noctalia). Theme, wallpaper and shortcuts "
+                   "keep working.", classes="hint"),
+            Static("Individual bar modules: see “Bar modules”.", classes="hint"),
         )
 
     def page_display(self) -> VerticalScroll:
-        children: list = [field_row(Field("display.allow_tearing", "Allow tearing in games", "bool",
+        children: list = [section("Games"), field_row(Field("display.allow_tearing", "Allow tearing in games", "bool",
                                           help="lower input lag in fullscreen games"), self.s)]
         outs = self.si.outputs
         if not outs:
@@ -434,6 +442,7 @@ class SettingsApp(App):
             cur_main = self.s["display"].get("primary") or ""
             if cur_main not in [v for _, v in main_opts]:
                 cur_main = main_opts[0][1]
+            children.append(section("Screens"))
             children.append(Horizontal(
                 Vertical(Label("Main screen", classes="flabel"),
                          Label("workspace 1 opens here, and games (XWayland) see it as the primary monitor",
@@ -994,7 +1003,7 @@ class SettingsApp(App):
             on = self.s["general"]["shell"] == "noctalia"
             ev.button.label = "Switch back to swayforge's bar" if on else "Run Noctalia instead (bar off)"
             self.query_one("#shell_state", Static).update(
-                "[b]Desktop shell[/b]  " + ("Noctalia is running the bar and notifications. swayforge's bar is off."
+                ("Noctalia runs the bar and notifications; swayforge's bar is off."
                                             if on else "swayforge's own bar and notifications are on."))
         elif bid == "sv_preview":
             name = self.s["power"].get("screensaver", "off")

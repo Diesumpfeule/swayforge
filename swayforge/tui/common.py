@@ -180,9 +180,8 @@ Screen { layout: vertical; }
 #sidebar > ListItem Label { padding: 0; }
 #pages { width: 1fr; }
 .page { padding: 0 2; }
-.pagetitle { text-style: bold; color: $accent; padding-bottom: 0; }
-.section { text-style: bold; color: $secondary; margin-top: 1; padding-bottom: 0;
-           border-bottom: solid $panel; }
+.pagetitle { text-style: bold; color: $accent; padding: 0 1; margin-bottom: 1; border-bottom: heavy $accent; }
+.section { text-style: bold; color: $text; background: $panel; padding: 0 1; margin-top: 2; margin-bottom: 1; }
 .frow { height: auto; margin-bottom: 1; }
 .flabelbox { width: 1fr; height: auto; }
 .flabel { padding-top: 0; }
@@ -229,7 +228,7 @@ App.-ui-win98 .small, App.-ui-dread .small, App.-ui-winxp .small, App.-ui-win7 .
 .small { min-width: 5; width: 5; }
 .volval { width: 7; padding: 0 1; }
 ProgressBar { padding: 0 1; width: 30; }
-.hint { color: $text-muted; padding-bottom: 0; }
+.hint { color: $text-muted; padding: 0 1; margin-bottom: 1; border-left: tall $panel; }
 .warn { color: $warning; padding-bottom: 0; }
 .btnrow { height: auto; margin: 0; align: left middle; }
 .btnrow Button { margin-right: 2; }

@@ -1,6 +1,6 @@
 # {{ mark }} – changes will be overwritten.
 font={{ font }} {{ s.theme.font_size + (5 if layout == 'touch' else 0) }}
-background-color={{ (c.crust if layout == 'dread' else '#ffffe1' if layout == 'winxp' else bv.face if layout == 'win98' else c.crust if layout == 'wired' else c.base) }}{{ '' if layout == 'winxp' else 'ee' }}
+background-color={{ (c.crust if layout == 'dread' else '#ffffe1' if layout == 'winxp' else bv.face if layout == 'win98' else c.crust if layout == 'wired' else c.base) }}{{ '' if layout == 'winxp' else uhex(0.93) }}
 {% if layout == 'wired' %}
 format=<b>// %s</b>\n%b
 {% elif layout == 'dread' %}

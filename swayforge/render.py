@@ -59,6 +59,10 @@ def rgb(color: str) -> tuple[int, int, int]:
     return int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16)
 
 
+def hx_(color: str) -> str:
+    return "#" + hx(color)
+
+
 def rgba(color: str, alpha: float) -> str:
     r, g, b = rgb(color)
     return f"rgba({r}, {g}, {b}, {alpha})"
@@ -165,6 +169,21 @@ class Ctx:
     def art_name(self) -> str:
         return asc.resolve(self.s, self.theme)
 
+    def _ui(self) -> float:
+        try:
+            return max(0.2, min(1.0, float(self.s["look"].get("ui_opacity", 1.0))))
+        except (TypeError, ValueError):
+            return 1.0
+
+    def _ua(self, color: str, alpha: float = 1.0) -> str:
+        """Colour with the layout transparency applied (plain colour when untouched)."""
+        a = round(alpha * self._ui(), 2)
+        return hx_(color) if a >= 1.0 else rgba(color, a)
+
+    def _uhex(self, alpha: float = 0.93) -> str:
+        """Two hex digits of alpha for mako."""
+        return f"{round(255 * alpha * self._ui()):02x}"
+
     def as_dict(self) -> dict:
         keys = []
         repl = {
@@ -190,7 +209,7 @@ class Ctx:
             outputs=sorted(self.s["display"]["outputs"].items()),
             custom_conf=str(paths.SWAY_CUSTOM), gen_dir=str(paths.GEN_DIR),
             spaceship_dir=str(paths.SPACESHIP_DIR), p=self.s["prompt"], sections=sections,
-            hx=hx, rgba=rgba, mix=mix, mark=MARK, cs2_watcher=cs2_watcher(),
+            hx=hx, rgba=rgba, mix=mix, ua=self._ua, uhex=self._uhex, ui=self._ui(), mark=MARK, cs2_watcher=cs2_watcher(),
             layout=self.layout.id, bv=bevel(self.c), user=os.environ.get("USER", "user"), font=self.s["theme"]["font"],
             art=asc.art(self.art_name), banner=asc.banner, extras=art_svg.extras(),
             ext_shell=external_shell(self.s),
