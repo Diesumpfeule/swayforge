@@ -47,9 +47,9 @@ blur {{ "enable" if s.look.fx_blur else "disable" }}
 blur_passes 3
 blur_radius 5
 default_dim_inactive {{ s.look.fx_dim_inactive }}
-layer_effects "waybar" {{ "blur disable" if ui < 1 else "blur enable" }}; shadows enable
-layer_effects "rofi" {{ "blur disable" if ui < 1 else "blur enable" }}; shadows enable
-layer_effects "notifications" {{ "blur disable" if ui < 1 else "blur enable" }}; shadows enable
+layer_effects "waybar" {{ "blur disable" if ui < 1 else "blur enable" }}; {{ "shadows disable" if ui < 1 else "shadows enable" }}
+layer_effects "rofi" {{ "blur disable" if ui < 1 else "blur enable" }}; {{ "shadows disable" if ui < 1 else "shadows enable" }}
+layer_effects "notifications" {{ "blur disable" if ui < 1 else "blur enable" }}; {{ "shadows disable" if ui < 1 else "shadows enable" }}
 {% endif %}
 
 seat seat0 xcursor_theme {{ s.theme.cursor_theme }} {{ s.theme.cursor_size }}

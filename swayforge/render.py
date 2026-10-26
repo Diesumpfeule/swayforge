@@ -805,6 +805,11 @@ def render_all(s: dict | None = None, dry: bool = False, si: SysInfo | None = No
     w.owned(C / "sway/environment", environment(ctx, shell=True))
     w.owned(C / "environment.d/90-swayforge.conf", environment(ctx, shell=False))
 
+    # Screen sharing (Discord/Vesktop, browsers, OBS): portal routing for Sway
+    w.owned(C / "xdg-desktop-portal/sway-portals.conf",
+            f"# {MARK} – don't edit\n[preferred]\ndefault=gtk\n"
+            "org.freedesktop.impl.portal.ScreenCast=wlr\norg.freedesktop.impl.portal.Screenshot=wlr\n")
+
     # Waybar: generated base + your config that includes it (your values win)
     w.owned(C / "waybar/swayforge.jsonc",
             f"// {MARK} – don't edit, put your own values in config.jsonc\n"
@@ -947,6 +952,26 @@ def apply_sounds(s: dict, ctx: Ctx) -> None:
         run(["gsettings", "set", "org.gnome.desktop.sound", "event-sounds", "true"])
 
 
+def fix_screenshare() -> None:
+    """Screen share fixes that need no root: Flatpak clients get PipeWire access (Vesktop, Discord),
+    and the portals are restarted once so they pick up the Sway routing."""
+    stamp = paths.CONFIG_DIR / ".portal-restarted"
+    if not stamp.exists() and have("systemctl"):
+        run(["systemctl", "--user", "restart", "xdg-desktop-portal-wlr", "xdg-desktop-portal"])
+        try:
+            stamp.parent.mkdir(parents=True, exist_ok=True)
+            stamp.write_text("1")
+        except OSError:
+            pass
+    if not have("flatpak"):
+        return
+    r = run(["flatpak", "list", "--app", "--columns=application"])
+    for app in ("dev.vencord.Vesktop", "com.discordapp.Discord"):
+        if app in r.stdout.split():
+            run(["flatpak", "override", "--user", "--filesystem=xdg-run/pipewire-0",
+                 "--socket=wayland", app])
+
+
 def session(s: dict | None = None) -> None:
     """Runs at Sway start and after every change."""
     s = s or settings.load()
@@ -971,6 +996,7 @@ def session(s: dict | None = None) -> None:
             run(["gsettings", "set", iface, k, v])
         run(["gsettings", "set", "org.gnome.desktop.wm.preferences", "button-layout", button_layout(ctx)])
     restart_idle(s)
+    fix_screenshare()
     set_primary_output(s)
     apply_sounds(s, ctx)
 

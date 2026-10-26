@@ -727,6 +727,8 @@ class SettingsApp(App):
             for w in self.query(AnimatedArt):
                 w.set_animate(bool(val))
             self.live_apply()
+        elif f.path == "look.ui_opacity":
+            self.live_apply()
         elif f.path in ("theme.wallpaper", "theme.ascii"):
             self.refresh_hero()
             self.live_apply()
