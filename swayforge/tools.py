@@ -43,10 +43,6 @@ def power() -> None:
     choice = rofi_menu(list(opts), "> power" if wired else "Power", width="420px")
     if not choice or choice not in opts:
         return
-    if opts[choice][-1] in ("exit", "reboot", "poweroff"):
-        sure = rofi_menu(["Yes", "No"], choice.strip("[] ").split("  ")[-1].lower() + "?", width="280px")
-        if sure != "Yes":
-            return
     subprocess.Popen(opts[choice], start_new_session=True)
 
 
