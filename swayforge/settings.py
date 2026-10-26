@@ -28,6 +28,9 @@ DEFAULTS: dict[str, Any] = {
         "wallpaper": "theme",         # theme | solid | /path/to/image
         "ascii": "auto",              # auto = the theme's motif, or anvil/rose/moon/bat/…
         "animate": True,              # ASCII art glints and twinkles (apps, terminal greeting, LibreWolf)
+        "live_fps": 0,                # animated wallpaper: 0 = as the video is, else limit (uses more CPU: no hardware decoding)
+        "live_pause_fullscreen": True,   # pause the animation while a fullscreen window covers it
+        "live_pause_battery": True,      # pause on battery
         "style_backup": {},           # internal: your own values while a theme style is active
     },
     "look": {

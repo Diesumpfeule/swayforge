@@ -57,7 +57,12 @@ seat seat0 xcursor_theme {{ s.theme.cursor_theme }} {{ s.theme.cursor_size }}
 # ── Wallpaper & outputs ────────────────────────────────────
 {% if wallpaper_kind == "solid" %}
 output * bg {{ c.base }} solid_color
+exec_always sh -c "pkill -x mpvpaper; pkill -f '[l]ivewall guard'; true"
+{% elif wallpaper_kind == "video" %}
+output * bg {{ c.base }} solid_color
+exec_always sh {{ gen_dir }}/livewall.sh
 {% else %}
+exec_always sh -c "pkill -x mpvpaper; pkill -f '[l]ivewall guard'; true"
 output * bg "{{ wallpaper_path }}" fill {{ c.base }}
 {% endif %}
 {% for name, o in outputs %}

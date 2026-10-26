@@ -13,7 +13,7 @@ from textual.widgets import Button, Input, OptionList, Select, SelectionList, St
 from textual.widgets.option_list import Option
 from textual.widgets.selection_list import Selection
 
-from .. import kittyimg, paths, wallpacks
+from .. import kittyimg, livewall, paths, render, wallpacks
 from .common import HOLD
 from .panels import Panel
 from .preview import KittyPreview
@@ -95,6 +95,11 @@ class WallpapersPanel(Panel):
                          classes="btnrow")
         yield Horizontal(Button("Use the theme's own wallpaper", id="wpl_themewp"),
                          Button("Solid colour", id="wpl_solid"), classes="btnrow")
+        yield Static("[b]Animated wallpapers:[/b] videos and GIFs in your Wallpapers folder (▶) play through mpvpaper "
+                     "(Apps page). They pause while a fullscreen window covers them, in gaming mode and on battery. "
+                     "“Make” renders a small seamless loop in your theme colours (about 30 s).", classes="hint")
+        yield Horizontal(Button("Make live wallpaper: Aurora", id="wpl_live_aurora"),
+                         Button("Make live wallpaper: Tide", id="wpl_live_tide"), classes="btnrow")
         yield Static("Collections", classes="section")
         yield Static("Optional downloads – swayforge does not ship these pictures. They come from the original "
                      "GitHub repositories (only the folders you tick) straight into your Wallpapers folder, "
@@ -141,7 +146,8 @@ class WallpapersPanel(Panel):
         self.shown = [p for p in self.files if q in str(p.relative_to(root)).lower()] if q else list(self.files)
         ol = self.query_one("#wp_files", OptionList)
         ol.clear_options()
-        ol.add_options([Option(escape(str(p.relative_to(root)))) for p in self.shown[:MAX_FILES]])
+        ol.add_options([Option(("▶ " if livewall.is_video(p) else "") + escape(str(p.relative_to(root))))
+                        for p in self.shown[:MAX_FILES]])
         where = str(root).replace(str(paths.HOME), "~")
         n = len(self.files)
         self.query_one("#wp_where", Static).update(
@@ -250,6 +256,9 @@ class WallpapersPanel(Panel):
             paths.WALLPAPER_DIR.mkdir(parents=True, exist_ok=True)
             subprocess.Popen(["xdg-open", str(paths.WALLPAPER_DIR)], start_new_session=True,
                              stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        elif bid.startswith("wpl_live_"):
+            app.spawn_term(f"{render.LAUNCHER} livewall make {bid.removeprefix('wpl_live_')}; {HOLD}")
+            app.notify("Rendering in a terminal – press ↻ when it's done", timeout=8)
         elif bid in ("wpl_themewp", "wpl_solid"):
             app.show_wallpaper("theme" if bid == "wpl_themewp" else "solid")
             self.show_current()

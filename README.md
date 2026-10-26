@@ -503,3 +503,14 @@ page), Starfield, Pipes, Fire, Game of Life, a bouncing logo or a big clock. The
 (swaylock) and closes the scene, so the desktop is never visible in between. “Preview screensaver” shows it in a window,
 `swayforge screensaver list` / `swayforge screensaver preview NAME` do the same from a terminal. Set “Screen off after” higher
 than “Lock after”, otherwise the screen goes dark before you see anything. Not active in gaming mode.
+
+## Animated wallpapers
+
+Videos and GIFs (`.mp4 .webm .mkv .mov .gif`) in your Wallpapers folder show up in the *Wallpapers* page with a ▶ and work like any
+picture (preview = first frame). They play through **mpvpaper** (Apps page → *Animated wallpapers*, built from source into `~/.local`).
+*Make live wallpaper: Aurora / Tide* renders a small seamless loop (800×450, 12 fps, a few hundred KB) in your theme colours.
+
+Made to be light: hardware video decoding, no audio, no cache, and a small guard process that **pauses** the video whenever a fullscreen
+window covers it, in gaming mode, while the screen is locked or the screensaver runs, and (optionally) on battery. Settings →
+Appearance → *Animated wallpaper* has the switches and an optional frame-rate limit (a limit turns hardware decoding off, so leave it
+at “as the video is” unless you want it). Pictures stop the player again, so nothing runs when you use a normal wallpaper.

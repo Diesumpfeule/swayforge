@@ -131,6 +131,14 @@ label = "Desktop"
   ]
 
   [[group.items]]
+  id = "mpvpaper"
+  label = "Animated wallpapers (mpvpaper)"
+  desc = "Plays videos/GIFs as wallpaper, paused while a fullscreen window covers it – built from source into ~/.local (Settings → Wallpapers)"
+  default = false
+  dnf = ["mpv", "mpv-libs-devel", "ffmpeg-free", "meson", "ninja-build", "gcc", "git", "wayland-devel", "wayland-protocols-devel", "mesa-libEGL-devel", "pkgconf-pkg-config"]
+  post = ["rm -rf /tmp/mpvpaper-build && git clone --depth 1 https://github.com/GhostNaN/mpvpaper /tmp/mpvpaper-build && cd /tmp/mpvpaper-build && meson setup build --prefix=$HOME/.local && ninja -C build && ninja -C build install && rm -rf /tmp/mpvpaper-build"]
+
+  [[group.items]]
   id = "files"
   label = "Thunar file manager"
   desc = "With archive plugin, thumbnails and network drives"

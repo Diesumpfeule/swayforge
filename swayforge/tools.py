@@ -8,7 +8,6 @@ import tarfile
 import time
 from pathlib import Path
 
-from . import ascii as asc
 from . import layouts, paths, render, settings, themes
 from .system import have, notify, run
 
@@ -39,15 +38,13 @@ def power() -> None:
         ("[logout]" if wired else "\U000f0343  Log out"): ["swaymsg", "exit"],
         ("[suspend]" if wired else "\U000f04b2  Suspend"): ["systemctl", "suspend"],
         ("[reboot]" if wired else "\U000f0709  Reboot"): ["systemctl", "reboot"],
-        ("[halt]" if wired else f"{I['power']}  Shut down"): ["systemctl", "poweroff"],
+        ("[shutdown]" if wired else f"{I['power']}  Shut down"): ["systemctl", "poweroff"],
     }
-    s = settings.load()
-    art = "\n".join(asc.best_banner(s["boot"]["text"] or "bye", 44)) if wired else ""
-    choice = rofi_menu(list(opts), "> power" if wired else "Power", width="420px", message=art)
+    choice = rofi_menu(list(opts), "> power" if wired else "Power", width="420px")
     if not choice or choice not in opts:
         return
     if opts[choice][-1] in ("exit", "reboot", "poweroff"):
-        sure = rofi_menu(["Yes", "No"], choice.strip("[] ").split("  ")[-1] + "?", width="280px")
+        sure = rofi_menu(["Yes", "No"], choice.strip("[] ").split("  ")[-1].lower() + "?", width="280px")
         if sure != "Yes":
             return
     subprocess.Popen(opts[choice], start_new_session=True)

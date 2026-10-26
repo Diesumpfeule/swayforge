@@ -146,6 +146,10 @@ def render(path: str, cols: int, rows: int, timeout: float = 20,
     proc_holder: a list that receives the running process (so a newer request can kill this one)."""
     if cols < 2 or rows < 1:
         raise RuntimeError("no room for a picture")
+    orig = path
+    from . import livewall
+    if livewall.is_video(path):
+        path = livewall.thumb(path)             # first frame (RuntimeError if ffmpeg is missing)
     with _lock:
         image_id = next(_ids)
     cmd = build_cmd(path, cols, rows, image_id)
@@ -168,7 +172,7 @@ def render(path: str, cols: int, rows: int, timeout: float = 20,
     if not lines or not transmit:
         raise RuntimeError("kitten icat gave no picture")
     cells = max(ln.count(PLACEHOLDER) for ln in lines)
-    return Placement(got_id or image_id, lines, transmit, cells, len(lines), path)
+    return Placement(got_id or image_id, lines, transmit, cells, len(lines), orig)
 
 
 def placeholder_color(image_id: int) -> tuple[int, int, int]:

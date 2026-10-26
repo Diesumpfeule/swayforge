@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import json
 import os
+import shlex
 import shutil
 import subprocess
 import tempfile
@@ -22,7 +23,7 @@ import jinja2
 
 from . import art_svg
 from . import ascii as asc
-from . import layouts, paths, settings, themes
+from . import layouts, livewall, paths, settings, themes
 from .system import SysInfo, detect, have, run
 
 MARK = "swayforge generated"   # present in every file swayforge fully owns
@@ -685,6 +686,16 @@ def wallpaper(ctx: Ctx, w: Writer) -> None:
         return
     if wp not in ("", "theme"):
         p = Path(os.path.expanduser(wp))
+        if p.is_file() and livewall.is_video(p):
+            ctx.wallpaper_kind, ctx.wallpaper_path = "video", str(p)
+            script = (f"#!/bin/sh\n# {MARK} – starts the animated wallpaper (mpvpaper) unless it already plays\n"
+                      f"command -v mpvpaper >/dev/null || exit 0\n"
+                      f"pgrep -af mpvpaper | grep -qF {shlex.quote(str(p))} && exit 0\n"
+                      f"pkill -x mpvpaper; sleep 0.3\n"
+                      f"mpvpaper -f -o {shlex.quote(livewall.mpv_options(ctx.s))} ALL {shlex.quote(str(p))}\n"
+                      f"pgrep -f '[l]ivewall guard' >/dev/null || nohup {LAUNCHER} livewall guard >/dev/null 2>&1 &\n")
+            w.owned(paths.GEN_DIR / "livewall.sh", script)
+            return
         if p.is_file():
             ctx.wallpaper_kind, ctx.wallpaper_path = "image", str(p)
             return

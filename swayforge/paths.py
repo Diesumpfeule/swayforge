@@ -39,7 +39,8 @@ def _pictures_dir() -> Path:
 
 
 WALLPAPER_DIR = _pictures_dir() / "Wallpapers"     # drop your images here
-WALLPAPER_EXT = (".png", ".jpg", ".jpeg", ".webp", ".svg")
+VIDEO_EXT = (".mp4", ".webm", ".mkv", ".mov", ".gif", ".m4v")      # animated wallpapers (see livewall.py)
+WALLPAPER_EXT = (".png", ".jpg", ".jpeg", ".webp", ".svg") + VIDEO_EXT
 
 
 def ensure_dirs() -> None:

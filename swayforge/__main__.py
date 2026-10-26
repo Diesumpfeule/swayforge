@@ -66,6 +66,9 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("action", choices=["test", "play", "build"])
     p.add_argument("event", nargs="?", default="bell")
     sub.add_parser("power", help="power menu (Rofi)")
+    p = sub.add_parser("livewall", help="animated wallpaper: make aurora|tide | guard | stop")
+    p.add_argument("action", choices=["make", "guard", "stop"])
+    p.add_argument("name", nargs="?", default="aurora")
     p = sub.add_parser("screensaver", help="animated screensaver instead of a plain lock: list | preview NAME | start | wake")
     p.add_argument("action", choices=["list", "preview", "run", "start", "wake"])
     p.add_argument("name", nargs="?", default="")
@@ -233,6 +236,25 @@ def main(argv: list[str] | None = None) -> int:
             return 2
         print(f"about {wallpacks.total_mb(keys)} MB")
         return subprocess.call(["bash", "-o", "pipefail", "-c", wallpacks.script(keys)])
+
+    if a.cmd == "livewall":
+        from . import livewall as lw
+        if a.action == "guard":
+            return lw.guard()
+        if a.action == "stop":
+            lw.stop()
+            return 0
+        if a.name not in lw.STYLES:
+            print("styles:", ", ".join(lw.STYLES))
+            return 2
+        print("Rendering a seamless loop in your theme colours (about half a minute) …")
+        try:
+            out = lw.generate(a.name)
+        except RuntimeError as e:
+            print(f"✗ {e}")
+            return 1
+        print(f"✓ {out}\n  Pick it on the Wallpapers page (press ↻ first).")
+        return 0
 
     if a.cmd == "screensaver":
         from . import screensaver as sv

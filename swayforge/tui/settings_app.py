@@ -80,6 +80,13 @@ FIELDS: dict[str, list[Field | str]] = {
         Field("look.fx_blur", "Blur behind transparent windows", "bool"),
         Field("look.fx_shadows", "Shadows", "bool"),
         Field("look.fx_dim_inactive", "Dim inactive windows", "float", help="0.0 = off, 0.2 = slight"),
+        "Animated wallpaper (videos, GIFs)",
+        Field("theme.live_pause_fullscreen", "Pause while a fullscreen window covers it", "bool",
+              help="saves CPU/GPU in games and videos"),
+        Field("theme.live_pause_battery", "Pause on battery", "bool"),
+        Field("theme.live_fps", "Limit frame rate", "choice",
+              [("As the video is (hardware decoding)", 0), ("12 fps", 12), ("15 fps", 15), ("24 fps", 24),
+               ("30 fps", 30)], help="lower = less work, but disables hardware decoding"),
     ],
     "bar": [
         "General",
@@ -898,7 +905,8 @@ class SettingsApp(App):
             return
         mode = str(self.query_one("#wpt_mode", Select).value)
         try:
-            t = wallpalette.make_theme(img, mode)
+            from .. import livewall
+            t = wallpalette.make_theme(livewall.thumb(img) if livewall.is_video(img) else img, mode)
         except ImportError:
             self.notify("Needs Pillow: sudo dnf install python3-pillow", severity="error", timeout=10)
             return
