@@ -10,6 +10,7 @@ Two kinds of files:
 from __future__ import annotations
 
 import json
+import re
 import os
 import shlex
 import shutil
@@ -177,7 +178,8 @@ class Ctx:
 
     def _ua(self, color: str, alpha: float = 1.0) -> str:
         """Colour with the layout transparency applied (plain colour when untouched)."""
-        a = round(alpha * self._ui(), 2)
+        # island layouts scale here; the others are faded afterwards by fade_css()
+        a = round(alpha * (self._ui() if self.layout.id in ("modern", "minimal", "glass", "solid", "sidebar") else 1.0), 2)
         return hx_(color) if a >= 1.0 else rgba(color, a)
 
     def _uhex(self, alpha: float = 0.93) -> str:
@@ -819,13 +821,13 @@ def render_all(s: dict | None = None, dry: bool = False, si: SysInfo | None = No
            '// Example: "clock": { "format": "{:%H:%M:%S}", "interval": 1 },\n'
            '{\n  "include": ["~/.config/waybar/swayforge.jsonc"]\n}\n',
            "swayforge.jsonc")
-    w.owned(C / "waybar/swayforge.css", tpl("waybar.css.j2", d))
+    w.owned(C / "waybar/swayforge.css", fade_css(tpl("waybar.css.j2", d), ctx._ui() if ctx.layout.id not in ("modern", "minimal", "glass", "solid") else 1.0))
     w.stub(C / "waybar/style.css",
            '@import "swayforge.css";\n\n/* Your own Waybar rules below – they override the theme. */\n',
            '@import "swayforge.css"')
 
     # Rofi
-    w.owned(C / "rofi/themes/swayforge.rasi", tpl("rofi.rasi.j2", d | {"icons": icon_theme(ctx)}))
+    w.owned(C / "rofi/themes/swayforge.rasi", fade_css(tpl("rofi.rasi.j2", d | {"icons": icon_theme(ctx)}), ctx._ui() if ctx.layout.id not in ("modern", "minimal", "glass", "solid", "sidebar") else 1.0, skip=()))
     w.stub(C / "rofi/config.rasi",
            '@theme "swayforge"\n\n/* Your own Rofi tweaks below, e.g.\n'
            'configuration { modi: "drun,run,window,filebrowser"; }\n*/\n',
@@ -950,6 +952,35 @@ def apply_sounds(s: dict, ctx: Ctx) -> None:
     if have("gsettings"):
         run(["gsettings", "set", "org.gnome.desktop.sound", "theme-name", "swayforge"])
         run(["gsettings", "set", "org.gnome.desktop.sound", "event-sounds", "true"])
+
+
+_HEX = re.compile(r"#([0-9a-fA-F]{6})\b")
+_RGBA = re.compile(r"rgba\((\d+),\s*(\d+),\s*(\d+),\s*([\d.]+)\)")
+
+
+def fade_css(css: str, ui: float, skip: tuple[str, ...] = ("tooltip",)) -> str:
+    """Make every background in a stylesheet `ui` times as opaque (text and borders stay)."""
+    if ui >= 1.0:
+        return css
+    def fade(line: str) -> str:
+        line = _RGBA.sub(lambda m: f"rgba({m[1]}, {m[2]}, {m[3]}, {round(float(m[4]) * ui, 2)})", line)
+        return _HEX.sub(lambda m: rgba("#" + m[1], round(ui, 2)), line)
+    out, sel, skipping = [], "", False
+    for line in css.split("\n"):
+        if line.rstrip().endswith("{"):
+            sel = line.strip()
+            skipping = sel.startswith(skip)
+        elif "{" in line and "}" in line and not skipping:
+            head, _, body = line.partition("{")
+            if re.search(r"background", body) and not head.strip().startswith(skip):
+                body = re.sub(r"(background[\w-]*\s*:[^;]*;)", lambda m: fade(m[1]), body)
+                line = head + "{" + body
+        elif re.match(r"\s*background[\w-]*\s*:", line) and not skipping:
+            line = fade(line)
+        if line.strip() == "}":
+            skipping = False
+        out.append(line)
+    return "\n".join(out)
 
 
 def fix_screenshare() -> None:

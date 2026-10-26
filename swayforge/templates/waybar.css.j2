@@ -424,10 +424,6 @@ window#waybar.empty #window { background: transparent; border-color: transparent
 #custom-gamemode.on { background: {{ c.accent }}; color: {{ c.crust }}; }
 #tray > .needs-attention { background: {{ c.red }}; }
 
-{% if ui < 1 and layout not in ("modern", "minimal", "glass", "solid") %}
-/* layout transparency: bevelled/gradient bars fade as a whole */
-window#waybar { opacity: {{ ui }}; }
-{% endif %}
 {% if ui < 1 %}
 /* see-through bar: keep the text readable over any wallpaper */
 #workspaces button, #clock, #cpu, #memory, #temperature, #network, #pulseaudio, #bluetooth, #battery, #backlight, #window, #tray, #mpris, label { text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9); }
