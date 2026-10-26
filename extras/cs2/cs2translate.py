@@ -18,6 +18,10 @@ Setup (Linux):
 Setup (Windows 11): download cs2translate.exe from the GitHub releases, set -condebug,
   double-click it once – it then starts and stops with CS2 by itself.
 
+Writing back (optional): type in your own language, it is translated into the language the
+other players use and sent to the in-game chat through the game's own console port
+(launch option -netconport 2121). See the README, section "Write back".
+
 Debug mode (shows EVERY new log line, not just chat):
      python3 cs2translate.py --debug --terminal
 """
@@ -44,7 +48,7 @@ STEAM_ROOTS = [
 
 # Examples: "[ALL] Name: hi"   "[CT] Name﹫CT Start: rotate"
 CHAT_RE = re.compile(r"\[(ALL|CT|T|TEAM)\]\s*(.+?)(?:\s*[@﹫＠][^:]*)?:\s+(.+)$")
-INVISIBLE = dict.fromkeys(map(ord, "\u200e\u200f\u200b\ufeff"), None)
+INVISIBLE = dict.fromkeys(map(ord, "‎‏​﻿"), None)
 
 # Start logo (r"..." keeps the backslashes)
 LOGO = r"""
@@ -67,6 +71,8 @@ if WINDOWS:
 else:
     CONFIG = Path(os.path.expanduser("~/.config/cs2translate.json"))
 OLD_CONFIG = Path(os.path.expanduser("~/.config/cs2_chat_uebersetzer.json"))   # earlier versions
+# who wrote in which language lately (the "write back" window uses it to pick the language)
+HEARD = CONFIG.with_name("heard.json" if WINDOWS else "cs2translate-heard.json")
 
 
 def windows_steam_roots():
@@ -202,6 +208,7 @@ class Translator:
         self.status = status
         self.backends = [("Google", self._google), ("MyMemory", self._mymemory)]
         self.blocked_until = {}
+        self.last_src = ""          # language the last text was detected as (Google only)
 
     def _get_json(self, url):
         import urllib.request
@@ -214,6 +221,7 @@ class Translator:
         url = ("https://translate.googleapis.com/translate_a/single?client=gtx&dt=t"
                f"&sl=auto&tl={self.target}&q={quote(text)}")
         data = self._get_json(url)
+        self.last_src = data[2] if len(data) > 2 and isinstance(data[2], str) else ""
         return "".join(seg[0] for seg in data[0] if seg and seg[0])
 
     def _mymemory(self, text):
@@ -230,6 +238,7 @@ class Translator:
 
     def translate(self, text):
         last_err = None
+        self.last_src = ""
         for name, fn in self.backends:
             if time.time() < self.blocked_until.get(name, 0):
                 continue
@@ -262,6 +271,8 @@ def worker(log_path, target, out_q, history, show_all):
         if msg not in cache:
             try:
                 cache[msg] = tr.translate(msg) or msg
+                if tr.last_src and kind == "new":
+                    note_heard(name, tr.last_src, target)
             except Exception as e:
                 # not cached, so it's retried next time
                 translated = f"{msg}  (translation failed: {e})"
@@ -756,10 +767,317 @@ def run_overlay(out_q, args):
     root.mainloop()
 
 
+# ── Write back: your message → their language → in-game chat ────────
+# The game itself offers a text console on a local port (launch option -netconport 2121).
+# cs2translate connects there and runs `say "…"` / `say_team "…"` – no key presses are simulated
+# and the game process isn't touched. Without the port the translation is copied to the clipboard.
+SAY_MAX = 110                      # characters per chat line (CS2 cuts long lines), longer text is split
+SAY_PAUSE = 0.8                    # seconds between the parts (chat spam limit)
+HEARD_MAX_AGE = 3 * 3600           # "auto" only trusts languages heard in the last 3 hours
+
+
+def note_heard(name, lang, own_lang):
+    """Remember that <name> writes <lang> (called for every translated chat line)."""
+    if not lang or lang.split("-")[0] == own_lang.split("-")[0]:
+        return
+    try:
+        try:
+            data = json.loads(HEARD.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            data = {}
+        rec = [e for e in data.get("recent", []) if e.get("name") != name]
+        rec.insert(0, {"name": name, "lang": lang, "t": int(time.time())})
+        data["recent"] = rec[:12]
+        HEARD.parent.mkdir(parents=True, exist_ok=True)
+        tmp = HEARD.with_suffix(".tmp")
+        tmp.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
+        os.replace(tmp, HEARD)
+    except OSError:
+        pass
+
+
+def heard_list():
+    try:
+        return json.loads(HEARD.read_text(encoding="utf-8")).get("recent", [])
+    except (OSError, ValueError):
+        return []
+
+
+def resolve_lang(to, own_lang):
+    """'auto' | 'Ivan → ru' | 'ru'  →  language code. Auto = what was heard last, else English."""
+    to = (to or "auto").strip()
+    if "→" in to:
+        to = to.split("→")[-1].strip()
+    if to.lower() != "auto":
+        return to or "en"
+    now = time.time()
+    for e in heard_list():
+        lang = e.get("lang") or ""
+        if lang and lang.split("-")[0] != own_lang.split("-")[0] and now - e.get("t", 0) < HEARD_MAX_AGE:
+            return lang
+    return "en"
+
+
+def clean_for_console(text):
+    """Make text safe inside say "…": no quotes, no ';' (it would start another console command),
+    no comment marker, no control characters."""
+    text = text.replace('"', "'").replace(";", ",").replace("\\", "/").replace("//", "/ /")
+    text = "".join(" " if ord(c) < 32 else c for c in text)
+    return " ".join(text.split())
+
+
+def chat_chunks(text, limit=SAY_MAX):
+    """Split on word boundaries into parts of at most <limit> characters."""
+    out, cur = [], ""
+    for w in clean_for_console(text).split():
+        while len(w) > limit:                       # one huge "word"
+            if cur:
+                out.append(cur)
+                cur = ""
+            out.append(w[:limit])
+            w = w[limit:]
+        if cur and len(cur) + 1 + len(w) > limit:
+            out.append(cur)
+            cur = w
+        else:
+            cur = f"{cur} {w}".strip()
+    if cur:
+        out.append(cur)
+    return out
+
+
+def netcon_send(commands, port, host="127.0.0.1", pause=SAY_PAUSE):
+    """Send console commands to the game. Raises OSError if the game isn't listening."""
+    import socket
+    with socket.create_connection((host, port), timeout=2) as s:
+        for i, cmd in enumerate(commands):
+            if i:
+                time.sleep(pause)
+            s.sendall((cmd + "\n").encode("utf-8"))
+        time.sleep(0.15)                            # let the game read it before we hang up
+
+
+def send_chat(text, team, port, host="127.0.0.1", pause=SAY_PAUSE):
+    """Put text into the in-game chat. Returns the number of lines sent."""
+    cmd = "say_team" if team else "say"
+    parts = chat_chunks(text)
+    if not parts:
+        raise ValueError("nothing to send")
+    netcon_send([f'{cmd} "{p}"' for p in parts], port, host, pause)
+    return len(parts)
+
+
+def netcon_test(port, host="127.0.0.1"):
+    """(ok, message) – prints a line into the game console."""
+    try:
+        netcon_send(['echo "cs2translate: console port works"'], port, host)
+        return True, f"Connected – the game console on port {port} answered."
+    except OSError as e:
+        return False, (f"Can't reach the game on port {port} ({e.__class__.__name__}). "
+                       f"Is CS2 running with the launch option  -netconport {port} ?")
+
+
+def reply(text, to, team, opts, status=lambda s: None, send=True):
+    """Translate <text> into the other players' language and send it.
+    Returns (translated text, language, how) – how: 'sent' | 'clipboard' | 'preview'."""
+    lang = resolve_lang(to, opts["lang"])
+    out = Translator(lang, status).translate(text) or text
+    if not send:
+        return out, lang, "preview"
+    return out, lang, send_out(out, team, opts)
+
+
+def send_out(out, team, opts):
+    """'sent', or 'clipboard' / 'clipboard:<why>' when the caller should copy the text instead."""
+    port = int(opts.get("netcon_port") or 0)
+    if port <= 0:
+        return "clipboard"
+    try:
+        send_chat(out, team, port)
+    except OSError as e:
+        return f"clipboard:CS2 isn't answering on port {port} ({e.__class__.__name__})"
+    return "sent"
+
+
+def write_window():
+    """Small always-on-top box: type, Enter → translated and sent. Esc closes. Tab = All/Team."""
+    import tkinter as tk
+    from tkinter import ttk
+    if not single_instance("cs2translate-write"):
+        return
+    opts = options()
+    root = tk.Tk()
+    root.title("cs2translate – write")
+    root.attributes("-topmost", True)
+    root.resizable(False, False)
+    ui = ("Segoe UI", 11) if WINDOWS else ("DejaVu Sans", 11)
+    frm = ttk.Frame(root, padding=10)
+    frm.pack(fill="both", expand=True)
+
+    top = ttk.Frame(frm)
+    top.pack(fill="x")
+    ttk.Label(top, text="Say in").pack(side="left")
+    names = [f"{e['name']} → {e['lang']}" for e in heard_list() if e.get("lang")]
+    to = tk.StringVar(value=opts.get("out_lang") or "auto")
+    combo = ttk.Combobox(top, textvariable=to, values=["auto"] + names + LANGS, width=18)
+    combo.pack(side="left", padx=6)
+    team = tk.BooleanVar(value=bool(opts.get("say_team")))
+    ttk.Radiobutton(top, text="All chat", variable=team, value=False).pack(side="left", padx=(10, 2))
+    ttk.Radiobutton(top, text="Team chat", variable=team, value=True).pack(side="left", padx=2)
+
+    entry = ttk.Entry(frm, width=64, font=ui)
+    entry.pack(fill="x", pady=(8, 4))
+    shown = tk.StringVar(value=f"Auto = the language heard last: {resolve_lang('auto', opts['lang'])}.   "
+                               "Enter sends · Tab All/Team · Esc closes")
+    ttk.Label(frm, textvariable=shown, wraplength=520, foreground="#777").pack(anchor="w")
+
+    results = queue.Queue()
+    pending = {}                                     # check-first mode: (text, lang) → translation
+    busy = {"on": False}
+
+    def work(text, lang_choice, is_team, check):
+        try:
+            key = (text, lang_choice)
+            if check and key in pending:
+                out, lang = pending.pop(key)
+                results.put(("done", out, lang, send_out(out, is_team, opts)))
+                return
+            out, lang, how = reply(text, lang_choice, is_team, opts, send=not check)
+            if check:
+                pending.clear()
+                pending[(text, lang_choice)] = (out, lang)
+                results.put(("preview", out, lang, how))
+            else:
+                results.put(("done", out, lang, how))
+        except Exception as e:                       # noqa: BLE001
+            results.put(("error", f"{e.__class__.__name__}: {e}", "", ""))
+
+    def go(_e=None):
+        text = entry.get().strip()
+        if not text or busy["on"]:
+            return "break"
+        busy["on"] = True
+        shown.set("Translating …")
+        threading.Thread(target=work, args=(text, to.get(), bool(team.get()),
+                                            bool(opts.get("check_first"))), daemon=True).start()
+        return "break"
+
+    def remember():
+        c = load_cfg()
+        if "options" in c:                           # only once the settings window has been used
+            c["options"]["say_team"] = bool(team.get())
+            c["options"]["out_lang"] = to.get().strip() or "auto"
+            save_cfg(c)
+
+    def poll():
+        try:
+            kind, out, lang, how = results.get_nowait()
+        except queue.Empty:
+            root.after(80, poll)
+            return
+        busy["on"] = False
+        if kind == "error":
+            shown.set(f"✗ {out}")
+        elif kind == "preview":
+            shown.set(f"→ {lang}:  {out}\nEnter again to send, or change the text.")
+        elif how == "sent":
+            remember()
+            shown.set(f"✓ Sent ({lang}):  {out}")
+            root.after(700, root.destroy)
+            return
+        else:                                        # clipboard instead
+            root.clipboard_clear()
+            root.clipboard_append(out)
+            root.update()
+            remember()
+            why = how.partition(":")[2] or "no console port set"
+            shown.set(f"Copied ({lang}):  {out}\nNot sent – {why}. Paste it into the chat with Ctrl+V.")
+        root.after(80, poll)
+
+    def toggle(_e=None):
+        team.set(not team.get())
+        return "break"
+
+    entry.bind("<Return>", go)
+    entry.bind("<Tab>", toggle)
+    root.bind("<Escape>", lambda _e: root.destroy())
+    sw, sh = root.winfo_screenwidth(), root.winfo_screenheight()
+    root.update_idletasks()
+    root.geometry(f"+{(sw - root.winfo_reqwidth()) // 2}+{int(sh * 0.62)}")
+    root.deiconify()
+    root.lift()
+    root.focus_force()
+    entry.focus_set()
+    poll()
+    root.mainloop()
+
+
+# Windows: a global hotkey (only while CS2 runs) opens the write window.
+HOTKEY_DEFAULT = "Ctrl+Alt+T"
+WM_HOTKEY = 0x0312
+
+
+def parse_hotkey(spec):
+    """'Ctrl+Alt+T' → (modifier flags, virtual key code) for RegisterHotKey."""
+    mods_map = {"alt": 0x1, "ctrl": 0x2, "control": 0x2, "shift": 0x4, "win": 0x8}
+    parts = [p for p in spec.replace(" ", "").lower().split("+") if p]
+    if not parts:
+        raise ValueError("empty hotkey")
+    mods = 0
+    for m in parts[:-1]:
+        if m not in mods_map:
+            raise ValueError(f"unknown key '{m}' (use Ctrl, Alt, Shift, Win)")
+        mods |= mods_map[m]
+    key = parts[-1]
+    if len(key) == 1 and key.isalnum():
+        vk = ord(key.upper())
+    elif re.fullmatch(r"f([1-9]|1[0-9]|2[0-4])", key):
+        vk = 0x70 + int(key[1:]) - 1
+    else:
+        raise ValueError(f"unknown key '{key}' (a letter, a digit or F1–F24)")
+    if not mods and not key.startswith("f"):
+        raise ValueError("add Ctrl, Alt or Shift – a bare letter would block normal typing")
+    return mods, vk
+
+
+def hotkey_loop(is_active, on_press):
+    """Windows only. Registers the hotkey while is_active() is true; calls on_press() on use."""
+    import ctypes
+    from ctypes import wintypes
+    user32 = ctypes.windll.user32
+    msg = wintypes.MSG()
+    registered = tried = None
+    last_read, spec = 0, HOTKEY_DEFAULT
+    while True:
+        if time.time() - last_read > 2:
+            spec, last_read = (options().get("hotkey") or "").strip(), time.time()
+        want = spec if (spec and is_active()) else None
+        if want != tried:
+            if registered:
+                user32.UnregisterHotKey(None, 1)
+                registered = None
+            tried = want
+            if want:
+                try:
+                    mods, vk = parse_hotkey(want)
+                    if user32.RegisterHotKey(None, 1, mods | 0x4000, vk):   # 0x4000 = no auto-repeat
+                        registered = want
+                    else:
+                        print(f"[hotkey] {want} is taken by another program", flush=True)
+                except ValueError as e:
+                    print(f"[hotkey] {e}", flush=True)
+        while user32.PeekMessageW(ctypes.byref(msg), None, WM_HOTKEY, WM_HOTKEY, 1):
+            on_press()
+        time.sleep(0.05)
+
+
 # ── Starting with CS2 (watch mode), autostart, settings window ──────
-OPTION_KEYS = ("lang", "font_size", "width", "lines", "duration", "no_original", "alpha")
+OPTION_KEYS = ("lang", "font_size", "width", "lines", "duration", "no_original", "alpha",
+               "hotkey", "netcon_port", "out_lang", "say_team", "check_first")
 DEFAULTS = {"lang": "de", "font_size": 12, "width": 520, "lines": 6, "duration": 15,
-            "no_original": False, "alpha": 0.7}
+            "no_original": False, "alpha": 0.7,
+            "hotkey": HOTKEY_DEFAULT, "netcon_port": 2121, "out_lang": "auto",
+            "say_team": False, "check_first": False}
 LANGS = ["de", "en", "fr", "es", "it", "pt", "nl", "pl", "tr", "ru", "uk", "sv", "zh-CN", "ja", "ko"]
 NO_WINDOW = 0x08000000                                  # CREATE_NO_WINDOW (Windows)
 
@@ -839,8 +1157,19 @@ def watch():
         return
     print("Watching for CS2 … (Ctrl+C to stop)", flush=True)
     child = None
+    state = {"running": False}
+    if WINDOWS:
+        def open_writer():
+            p = spawn(["--write"])
+            try:                                    # let the new window take the keyboard from the game
+                import ctypes
+                ctypes.windll.user32.AllowSetForegroundWindow(p.pid)
+            except Exception:                       # noqa: BLE001
+                pass
+        threading.Thread(target=hotkey_loop, args=(lambda: state["running"], open_writer),
+                         daemon=True).start()
     while True:
-        running = cs2_running()
+        running = state["running"] = cs2_running()
         if running and (child is None or child.poll() is not None):
             child = spawn(["--history", "0"])
         elif not running and child is not None:
@@ -896,14 +1225,22 @@ def settings_window():
     v = {"lang": tk.StringVar(value=opts["lang"]), "font_size": tk.IntVar(value=opts["font_size"]),
          "width": tk.IntVar(value=opts["width"]), "lines": tk.IntVar(value=opts["lines"]),
          "duration": tk.IntVar(value=opts["duration"]), "alpha": tk.DoubleVar(value=opts["alpha"]),
-         "show_orig": tk.BooleanVar(value=not opts["no_original"])}
+         "show_orig": tk.BooleanVar(value=not opts["no_original"]),
+         "out_lang": tk.StringVar(value=opts["out_lang"]), "netcon_port": tk.IntVar(value=opts["netcon_port"]),
+         "hotkey": tk.StringVar(value=opts["hotkey"]), "check_first": tk.BooleanVar(value=opts["check_first"])}
     rows = [("Translate into", ttk.Combobox(frm, textvariable=v["lang"], values=LANGS, width=10)),
             ("Font size", ttk.Spinbox(frm, from_=8, to=28, textvariable=v["font_size"], width=8)),
             ("Overlay width (px)", ttk.Spinbox(frm, from_=300, to=1600, increment=20, textvariable=v["width"], width=8)),
             ("Messages at once", ttk.Spinbox(frm, from_=1, to=15, textvariable=v["lines"], width=8)),
             ("Seconds visible", ttk.Spinbox(frm, from_=3, to=120, textvariable=v["duration"], width=8)),
             ("Opacity", ttk.Scale(frm, from_=0.2, to=1.0, variable=v["alpha"], length=160)),
-            ("", ttk.Checkbutton(frm, text="Show the original text under the translation", variable=v["show_orig"]))]
+            ("", ttk.Checkbutton(frm, text="Show the original text under the translation", variable=v["show_orig"])),
+            ("Write back: language", ttk.Combobox(frm, textvariable=v["out_lang"], values=["auto"] + LANGS, width=10)),
+            ("Write back: console port", ttk.Spinbox(frm, from_=0, to=65535, textvariable=v["netcon_port"], width=8))]
+    if WINDOWS:
+        rows.append(("Write back: hotkey", ttk.Entry(frm, textvariable=v["hotkey"], width=14)))
+    rows.append(("", ttk.Checkbutton(frm, text="Show the translation first, send with a second Enter",
+                                     variable=v["check_first"])))
     for i, (label, w) in enumerate(rows, start=2):
         ttk.Label(frm, text=label).grid(row=i, column=0, sticky="w", **pad)
         w.grid(row=i, column=1, sticky="w", **pad)
@@ -921,8 +1258,15 @@ def settings_window():
     ttk.Label(frm, text=info, wraplength=520, foreground="#2a7" if found else "#c70").grid(
         row=r, column=0, columnspan=2, sticky="w", pady=(8, 4))
     r += 1
+    ttk.Label(frm, wraplength=520, foreground="#777",
+              text="Write back: add  -netconport 2121  to the CS2 launch options (after -condebug). "
+                   "Port 0 = copy the translation to the clipboard instead. Auto = the language "
+                   "heard last in chat." + (" Open the write box with the hotkey while CS2 runs."
+                                            if WINDOWS else " Bind  cs2translate --write  to a key in your WM.")
+              ).grid(row=r, column=0, columnspan=2, sticky="w", pady=(2, 4))
+    r += 1
     status = tk.StringVar(value="")
-    ttk.Label(frm, textvariable=status).grid(row=r, column=0, columnspan=2, sticky="w")
+    ttk.Label(frm, textvariable=status, wraplength=520).grid(row=r, column=0, columnspan=2, sticky="w")
     r += 1
 
     def save(close=False):
@@ -930,11 +1274,18 @@ def settings_window():
             new = {"lang": v["lang"].get().strip() or "de", "font_size": int(v["font_size"].get()),
                    "width": int(v["width"].get()), "lines": int(v["lines"].get()),
                    "duration": int(v["duration"].get()), "alpha": round(float(v["alpha"].get()), 2),
-                   "no_original": not v["show_orig"].get()}
-        except (tk.TclError, ValueError):
-            status.set("Please enter numbers only.")
+                   "no_original": not v["show_orig"].get(),
+                   "out_lang": v["out_lang"].get().strip() or "auto",
+                   "netcon_port": int(v["netcon_port"].get()), "check_first": bool(v["check_first"].get()),
+                   "hotkey": v["hotkey"].get().strip()}
+            if WINDOWS and new["hotkey"]:
+                parse_hotkey(new["hotkey"])
+        except (tk.TclError, ValueError) as e:
+            status.set(f"Please check the values: {e}" if str(e) and "invalid literal" not in str(e)
+                       else "Please enter numbers only.")
             return
         c = load_cfg()
+        new["say_team"] = bool((c.get("options") or {}).get("say_team", False))
         c["options"] = new
         save_cfg(c)
         if WINDOWS:
@@ -952,6 +1303,10 @@ def settings_window():
     btns.grid(row=r, column=0, columnspan=2, sticky="e", pady=(10, 0))
     ttk.Button(btns, text="Position overlay …", command=lambda: (save(), spawn(["--move"]))).pack(side="left", padx=4)
     ttk.Button(btns, text="Test", command=lambda: spawn(["--test"])).pack(side="left", padx=4)
+    ttk.Button(btns, text="Test console port",
+               command=lambda: status.set(netcon_test(int(v["netcon_port"].get() or 0))[1])
+               ).pack(side="left", padx=4)
+    ttk.Button(btns, text="Write …", command=lambda: (save(), spawn(["--write"]))).pack(side="left", padx=4)
     ttk.Button(btns, text="Save", command=save).pack(side="left", padx=4)
     ttk.Button(btns, text="Save & close", command=lambda: save(True)).pack(side="left", padx=4)
     ttk.Label(frm, text="Proof of concept, written by Claude (Anthropic) – no warranty.",
@@ -964,6 +1319,55 @@ def self_test():
     assert parse_chat("[ALL] Ivan: привет всем") == ("ALL", "Ivan", "привет всем")
     assert parse_chat("[T] Bob﹫T Start: go mid") == ("T", "Bob", "go mid")
     assert parse_chat("Damage given to bot") is None
+    # write back: text safety, splitting, hotkey parsing, language memory, and a fake game console
+    assert clean_for_console('say "hi"; quit // x\n') == "say 'hi', quit / / x"
+    assert ";" not in "".join(chat_chunks("a; b; quit " * 40)) and '"' not in "".join(chat_chunks('"' * 300))
+    parts = chat_chunks("слово " * 60)
+    assert len(parts) > 1 and all(len(x) <= SAY_MAX for x in parts) and chat_chunks("   ") == []
+    assert all(len(x) <= SAY_MAX for x in chat_chunks("x" * 400))
+    assert parse_hotkey("Ctrl+Alt+T") == (0x3, ord("T")) and parse_hotkey("F8") == (0, 0x77)
+    for bad in ("T", "Ctrl+", "Ctrl+Foo", "Hyper+T"):
+        try:
+            parse_hotkey(bad)
+            raise AssertionError(bad)
+        except ValueError:
+            pass
+    import socket
+    srv = socket.socket()
+    srv.bind(("127.0.0.1", 0))
+    srv.listen(1)
+    got = []
+
+    def fake_game():
+        conn, _ = srv.accept()
+        data = b""
+        while True:
+            chunk = conn.recv(4096)
+            if not chunk:
+                break
+            data += chunk
+        got.extend(data.decode("utf-8").splitlines())
+    t = threading.Thread(target=fake_game, daemon=True)
+    t.start()
+    n = send_chat("привет; всем " + "wort " * 40, True, srv.getsockname()[1], pause=0)
+    t.join(5)
+    assert n == len(got) > 1 and all(l.startswith('say_team "') and l.endswith('"') for l in got), got
+    assert not netcon_test(1)[0] and send_out("x", False, {"netcon_port": 0}) == "clipboard"
+    assert send_out("x", False, {"netcon_port": 1}).startswith("clipboard:")
+    global HEARD
+    old, HEARD = HEARD, Path(os.environ.get("TEMP") or "/tmp") / "cs2t-heard-selftest.json"
+    HEARD.unlink(missing_ok=True)
+    note_heard("Ivan", "ru", "de")
+    note_heard("Hans", "de", "de")                     # own language → ignored
+    assert resolve_lang("auto", "de") == "ru" and resolve_lang("Ivan → uk", "de") == "uk" \
+        and resolve_lang("fr", "de") == "fr"
+    HEARD.unlink(missing_ok=True)
+    assert resolve_lang("auto", "de") == "en"
+    HEARD = old
+    if WINDOWS:                                          # the hotkey can really be registered
+        import ctypes
+        assert ctypes.windll.user32.RegisterHotKey(None, 9, 0x2 | 0x1 | 0x4000, ord("T")), "RegisterHotKey failed"
+        ctypes.windll.user32.UnregisterHotKey(None, 9)
     print("platform:", sys.platform, "| config:", CONFIG)
     print("searching:", *[str(p) for p in candidate_logs()[:6]], sep="\n  ")
     print("defaults:", options())
@@ -1005,6 +1409,13 @@ def main():
     ap.add_argument("--settings", action="store_true", help="settings window (default on Windows)")
     ap.add_argument("--autostart", choices=["on", "off"], help="Windows: start the watcher at login")
     ap.add_argument("--test", action="store_true", help="show the overlay with sample messages")
+    ap.add_argument("--write", action="store_true",
+                    help="open the write box: your text is translated and sent to the in-game chat")
+    ap.add_argument("--say", metavar="TEXT", help="translate TEXT into the other players' language and send it")
+    ap.add_argument("--team", action="store_true", help="with --say: team chat instead of all chat")
+    ap.add_argument("--to", metavar="LANG", help="with --say: language (default: auto = heard last)")
+    ap.add_argument("--netcon-test", dest="netcon_test", action="store_true",
+                    help="check that the game's console port answers")
     ap.add_argument("--self-test", dest="self_test", action="store_true", help=argparse.SUPPRESS)
     ap.set_defaults(**{k: v for k, v in options().items()})   # your saved settings
     argv = [OLD_FLAGS.get(a, a) for a in sys.argv[1:]]
@@ -1016,6 +1427,23 @@ def main():
     if args.autostart:
         print("autostart:", autostart(args.autostart == "on"))
         return
+    if args.netcon_test:
+        ok, text = netcon_test(int(options()["netcon_port"]))
+        print(text)
+        sys.exit(0 if ok else 1)
+    if args.write:
+        write_window()
+        return
+    if args.say:
+        opts = options()
+        try:
+            out, lang, how = reply(args.say, args.to or opts["out_lang"], args.team or opts["say_team"], opts,
+                                   status=lambda t: print(f"[status] {t}", flush=True))
+        except Exception as e:                      # noqa: BLE001
+            sys.exit(f"Not sent: {e}")
+        print(f"[{lang}] {out}")
+        print("sent to the game chat" if how == "sent" else f"not sent ({how.partition(':')[2] or 'port is 0'})")
+        sys.exit(0 if how == "sent" else 2)
     if args.watch:
         watch()
         return

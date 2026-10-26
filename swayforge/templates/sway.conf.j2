@@ -226,6 +226,8 @@ exec_always pkill -x gammastep
 {% endif %}
 {% if cs2_watcher %}
 exec_always {{ cs2_watcher }}
+# CS2 write-back box (needs the launch option -netconport 2121)
+bindsym $mod+Ctrl+t exec ~/.local/bin/cs2translate --write
 {% endif %}
 {% for cmd in s.autostart.extra %}
 exec {{ cmd }}
