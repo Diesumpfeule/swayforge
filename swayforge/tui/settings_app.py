@@ -405,8 +405,8 @@ class SettingsApp(App):
         noctalia = self.s["general"].get("shell") == "noctalia"
         opacity = Field("look.ui_opacity", "Transparency", "choice",
                         [("Off – layout default", 1.0)] + [(f"{n}% see-through", round(1 - n / 100, 2))
-                                                           for n in (10, 20, 30, 40, 50, 60, 70)],
-                        help="bar, launcher and notifications of the chosen layout")
+                                                           for n in (10, 20, 30, 40, 50, 60, 70, 80)],
+                        help="bar, launcher, notifications · turns blur off so the wallpaper shows")
         return self.page(
             "layout",
             section("Layout"),
