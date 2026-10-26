@@ -19,6 +19,7 @@
 from __future__ import annotations
 
 import argparse
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -121,6 +122,12 @@ def main(argv: list[str] | None = None) -> int:
 
     if a.cmd == "install":
         from . import plan, settings
+        if not a.dry_run and os.geteuid() != 0 and subprocess.run(
+                ["sudo", "-n", "true"], capture_output=True).returncode != 0:
+            print("swayforge needs admin rights to install packages – enter your password once:")
+            if subprocess.run(["sudo", "-v"]).returncode != 0:
+                print("No admin rights – nothing was installed.")
+                return 1
         if a.yes or a.dry_run:
             prof = plan.Profile.load(a.profile)
             if not prof:
