@@ -6,29 +6,22 @@
 <title>swayforge Studio</title>
 <link rel="stylesheet" href="/static/studio.css">
 </head>
-<body data-page="overview">
+<body>
 <div class="app">
   <nav class="rail" aria-label="Sections">
     <div class="brand" aria-label="swayforge Studio">
       <canvas id="logo" width="232" height="44" aria-hidden="true"></canvas>
       <span class="brand-sub">Studio</span>
     </div>
-    <ul class="nav" role="list">
-      <li><button data-go="overview" aria-current="page"><span class="ico">◧</span>Overview</button></li>
-      <li><button data-go="themes"><span class="ico">◐</span>Themes</button></li>
-      <li><button data-go="layouts"><span class="ico">▤</span>Layouts</button></li>
-      <li><button data-go="wallpapers"><span class="ico">▣</span>Wallpapers</button></li>
-      <li><button data-go="look"><span class="ico">◇</span>Look &amp; feel</button></li>
-      <li><button data-go="saver"><span class="ico">✶</span>Screensaver</button></li>
-      <li><button data-go="more"><span class="ico">⋯</span>Everything else</button></li>
-    </ul>
+    <input id="find" type="search" placeholder="Find a setting" aria-label="Find a setting" autocomplete="off">
+    <div id="nav" class="navs"></div>
     <figure class="rail-preview" aria-label="Your desktop with the current changes">
       <div class="desk-frame" id="rail-desk"></div>
       <figcaption id="rail-caption"></figcaption>
     </figure>
   </nav>
 
-  <main>
+  <main id="main">
     <header class="top">
       <h1 id="title">Overview</h1>
       <div class="actions">
@@ -37,64 +30,14 @@
         <button id="apply" class="btn primary" disabled>Apply to desktop</button>
       </div>
     </header>
-
-    <section class="page" id="page-overview" aria-labelledby="title">
-      <div class="hero">
-        <div class="desk-frame big" id="hero-desk"></div>
-        <div class="sweep" aria-hidden="true"></div>
-      </div>
-      <dl class="facts" id="facts"></dl>
-    </section>
-
-    <section class="page" id="page-themes" hidden>
-      <div class="toolbar">
-        <div class="seg" role="group" aria-label="Show">
-          <button data-filter="all" aria-pressed="true">All</button>
-          <button data-filter="dark" aria-pressed="false">Dark</button>
-          <button data-filter="light" aria-pressed="false">Light</button>
-          <button data-filter="custom" aria-pressed="false">Yours</button>
-        </div>
-        <div class="accents" id="accents" role="group" aria-label="Accent colour"></div>
-      </div>
-      <div class="grid" id="theme-grid"></div>
-    </section>
-
-    <section class="page" id="page-layouts" hidden>
-      <p class="lede">The layout shapes the bar, start menu, notifications and window frames. It works with every theme.</p>
-      <div class="grid" id="layout-grid"></div>
-    </section>
-
-    <section class="page" id="page-wallpapers" hidden>
-      <div class="toolbar">
-        <input id="wall-q" type="search" placeholder="Search your wallpapers" aria-label="Search wallpapers">
-        <div class="pager"><button id="wall-prev" class="btn ghost" aria-label="Previous page">‹</button>
-          <span id="wall-page"></span><button id="wall-next" class="btn ghost" aria-label="Next page">›</button></div>
-        <button id="wall-rescan" class="btn ghost">Look for new files</button>
-      </div>
-      <div class="grid walls" id="wall-grid"></div>
-      <p class="hint" id="wall-hint"></p>
-    </section>
-
-    <section class="page split" id="page-look" hidden>
-      <form class="controls" id="look-form" onsubmit="return false"></form>
-      <div class="sticky"><div class="desk-frame big" id="look-desk"></div></div>
-    </section>
-
-    <section class="page" id="page-saver" hidden>
-      <p class="lede">Instead of a plain lock, a scene starts after the lock time. The first key or mouse move locks the screen and ends it.</p>
-      <div class="grid savers" id="saver-grid"></div>
-      <form class="controls inline" id="saver-form" onsubmit="return false"></form>
-    </section>
-
-    <section class="page" id="page-more" hidden>
-      <p class="lede">Hardware, shortcuts, apps and system tools stay in the classic settings. They open in a terminal window.</p>
-      <div class="more" id="more"></div>
-    </section>
+    <div id="view" class="page"></div>
   </main>
 </div>
 <div class="toast" id="toast" role="alert" hidden></div>
+<dialog id="dlg"><form method="dialog" class="dlg-body" id="dlg-body"></form></dialog>
 <script src="/static/desk.js"></script>
 <script src="/static/savers.js"></script>
 <script src="/static/studio.js"></script>
+<script src="/static/pages.js"></script>
 </body>
 </html>

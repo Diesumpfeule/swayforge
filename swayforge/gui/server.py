@@ -15,6 +15,7 @@ import mimetypes
 import os
 import re
 import secrets
+import shlex
 import threading
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -42,11 +43,36 @@ EDITABLE = {
     "power.suspend_after": "int", "power.lock_before_sleep": "bool", "power.inhibit_fullscreen": "bool",
     "sound.enabled": "bool", "sound.volume": "float",
 }
+# … plus every option of the shared settings forms (the same list the terminal app shows)
+CHOICES: dict[str, list] = {}
+
+
+def _from_fields() -> None:
+    from ..fields import FIELDS
+    for fs in FIELDS.values():
+        for f in fs:
+            if isinstance(f, str):
+                continue
+            kind = {"choice": "choice"}.get(f.kind, f.kind)
+            EDITABLE.setdefault(f.path, kind)
+            if f.kind == "choice":
+                CHOICES[f.path] = [v for _, v in f.options]
+    EDITABLE.update({"display.allow_tearing": "bool", "boot.style": "str", "boot.text": "str",
+                     "theme.ascii": "str"})
+
+
+_from_fields()
+
 RANGES = {"look.ui_opacity": (0.2, 1.0), "look.terminal_opacity": (0.3, 1.0), "look.fx_dim_inactive": (0.0, 0.5),
           "look.radius": (0, 24), "look.gaps_inner": (0, 40), "look.gaps_outer": (0, 40), "look.border": (0, 8),
           "theme.font_size": (8, 20), "bar.height": (20, 60), "sound.volume": (0.0, 1.0),
           "power.lock_after": (0, 240), "power.screen_off_after": (0, 240), "power.suspend_after": (0, 480),
-          "look.terminal_padding": (0, 40)}
+          "look.terminal_padding": (0, 40), "input.mouse_speed": (-1.0, 1.0), "input.repeat_rate": (1, 100),
+          "input.repeat_delay": (100, 2000), "power.nightlight_temp": (1500, 6500), "prompt.dir_trunc": (0, 20)}
+
+
+PAGE_IDS = {"display", "audio", "bluetooth", "network", "power", "boot", "security", "apps", "cleanup",
+            "mounts", "system", "about", "games"}
 
 
 class State:
@@ -71,7 +97,13 @@ def _theme_json(t: themes.Theme) -> dict:
             "style": t.style, "custom": t.custom}
 
 
-def _coerce(kind: str, value):
+def _coerce(kind: str, value, path: str = ""):
+    if kind == "choice":
+        opts = CHOICES.get(path, [])
+        for o in opts:                          # the option list decides the type
+            if str(o) == str(value):
+                return o
+        raise ValueError("not one of the choices")
     if kind == "bool":
         return bool(value)
     if kind == "int":
@@ -205,6 +237,30 @@ def make_handler(state: State, token: str):
                     "user": os.environ.get("USER", "user"),
                     "applying": state.applying, "result": state.last_result,
                 })
+            if name == "fields":
+                from ..fields import FIELDS
+                from .. import settings as st
+                return self._json({
+                    "forms": {pid: [f if isinstance(f, str) else {"path": f.path, "label": f.label, "kind": f.kind,
+                                                                   "options": f.options, "help": f.help} for f in fs]
+                              for pid, fs in FIELDS.items()},
+                    "keys": [{"id": a, "label": lab, "default": k} for a, lab, k, _c in st.KEY_ACTIONS],
+                    "prompt_sections": st.PROMPT_SECTIONS,
+                    "art": list(__import__("swayforge.ascii", fromlist=["all_art"]).all_art()),
+                    "color_keys": themes.COLOR_KEYS, "color_labels": themes.COLOR_LABELS})
+            if name == "page":
+                from . import actions
+                pid = q.get("id", [""])[0]
+                fn = getattr(actions, f"page_{pid}", None)
+                if pid not in PAGE_IDS or fn is None:
+                    return self._json({"error": "unknown page"}, 404)
+                with state.lock:
+                    s = copy.deepcopy(state.s)
+                kw = {"rescan": True} if pid == "network" and q.get("rescan") else {}
+                return self._json(fn(s, **kw))
+            if name == "wallpacks":
+                from . import actions
+                return self._json(actions.wallpacks_page())
             if name == "status":
                 return self._json({"applying": state.applying, "result": state.last_result, "dirty": state.dirty})
             if name == "wallpapers":
@@ -232,7 +288,7 @@ def make_handler(state: State, token: str):
             if name == "themewall":
                 tid = q.get("id", [""])[0]
                 if tid not in themes.all_themes():
-                    return self._send(404, b"unknown theme", "text/plain")
+                    tid = themes.get(tid).id               # merged/removed theme → what it falls back to
                 with state.lock:
                     s = copy.deepcopy(state.s)
                 body = theme_wallpaper_svg(s, tid).encode()
@@ -259,10 +315,15 @@ def make_handler(state: State, token: str):
                 kind = EDITABLE.get(path)
                 if not kind:
                     return self._json({"error": f"{path} can't be changed here"}, 400)
-                val = _coerce(kind, value)
+                try:
+                    val = _coerce(kind, value, path)
+                except (TypeError, ValueError):
+                    return self._json({"error": f"“{value}” doesn't fit here"}, 400)
+                if kind == "str" and (len(str(val)) > 200 or "\n" in str(val)):
+                    return self._json({"error": "too long"}, 400)
                 if path in RANGES:
                     lo, hi = RANGES[path]
-                    val = type(val)(min(hi, max(lo, val)))
+                    val = type(val)(min(hi, max(lo, val))) if isinstance(val, (int, float)) and not isinstance(val, bool) else val
                 if path == "bar.layout" and val not in layouts.LAYOUTS:
                     return self._json({"error": "unknown layout"}, 400)
                 if path == "power.screensaver":
@@ -304,6 +365,8 @@ def make_handler(state: State, token: str):
                     return self._json({"error": "unknown page"}, 400)
                 _open_classic(state, page)
                 return self._json({"ok": True})
+            if name == "do":
+                return self._do(d)
             if name == "preview-saver":
                 name_ = str(d.get("name", "matrix"))
                 from .. import render
@@ -313,7 +376,110 @@ def make_handler(state: State, token: str):
                 return self._json({"ok": True})
             return self._json({"error": "unknown"}, 404)
 
+        def _do(self, d: dict) -> None:
+            from . import actions as A
+            act = str(d.get("action", ""))
+            try:
+                if act in CHANGES_SETTINGS:
+                    with state.lock:
+                        out = _dispatch(state, A, act, d)
+                else:                           # slow device work must not block the rest of the app
+                    out = _dispatch(state, A, act, d)
+            except A.Fail as e:
+                return self._json({"ok": False, "msg": str(e)})
+            if isinstance(out, dict):
+                return self._json({"ok": True, **out, "dirty": state.dirty})
+            return self._json({"ok": True, "msg": out or "", "dirty": state.dirty})
+
     return Handler
+
+
+CHANGES_SETTINGS = {"outputs", "keys", "autostart", "sections", "theme_save", "theme_from_wallpaper",
+                    "live_wallpaper", "shell_toggle", "boot_install", "system"}
+
+
+def _dispatch(state: State, A, act: str, d: dict):
+    """Studio buttons → actions.py. Settings changes stay staged until Apply, like everywhere else."""
+    s = state.s
+    v = d.get("verb", "")
+    if act == "audio":
+        return A.audio(str(d.get("kind")), str(v), d.get("value"))
+    if act == "bluetooth":
+        return A.bluetooth(str(v), str(d.get("mac", "")), bool(d.get("on", True)))
+    if act == "network":
+        return A.network(state, str(v), d)
+    if act == "power_profile":
+        return A.power_profile(str(d.get("profile", "")))
+    if act == "security":
+        return A.security_action(state, str(v), d)
+    if act == "apps_remove":
+        return A.apps_remove(state, str(d.get("id", "")))
+    if act == "apps_search":
+        return A.apps_search(state, str(d.get("term", "")))
+    if act == "apps_install":
+        return A.apps_install(state, d.get("n"))
+    if act == "cleanup":
+        return A.cleanup_run(state, [str(x) for x in d.get("ids", [])])
+    if act == "wipe":
+        return A.wipe(state, d)
+    if act == "mounts":
+        return A.mounts_action(state, str(v), d)
+    if act == "system":
+        return A.system_action(state, str(v), d)
+    if act == "open_file":
+        return A.open_file(state, str(d.get("key", "")))
+    if act == "about":
+        return A.about_action(state, str(v))
+    if act == "games":
+        return A.games_action(state, str(v), d)
+    if act == "sound_test":
+        return A.sound_test(str(d.get("event", "")) if re.fullmatch(r"[a-z-]*", str(d.get("event", ""))) else "")
+    if act == "outputs":
+        A.set_outputs(s, list(d.get("outputs", [])), str(d.get("primary", "")))
+        return "Display changes are staged – Apply to use them"
+    if act == "keys":
+        keys = {}
+        known = {a: k for a, _l, k, _c in settings.KEY_ACTIONS}
+        for aid, val in dict(d.get("keys", {})).items():
+            val = str(val).strip()
+            if aid in known and val != known[aid]:
+                if val and not re.fullmatch(r"[\w$+-]{1,40}", val):
+                    raise A.Fail(f"“{val}” is not a key combination like $mod+Shift+x")
+                keys[aid] = val
+        s["keys"] = keys
+        return ""
+    if act == "autostart":
+        lines = [str(x).strip() for x in d.get("lines", []) if str(x).strip()]
+        if any(len(x) > 300 for x in lines):
+            raise A.Fail("A line is too long")
+        s["autostart"]["extra"] = lines[:40]
+        return ""
+    if act == "sections":
+        chosen = set(map(str, d.get("sections", [])))
+        s["prompt"]["sections"] = [x for x in settings.PROMPT_SECTIONS if x in chosen]
+        return ""
+    if act == "theme_save":
+        return A.theme_save(state, str(d.get("label", "")), dict(d.get("colors", {})))
+    if act == "theme_from_wallpaper":
+        return A.theme_from_wallpaper(state, str(d.get("mode", "auto")))
+    if act == "live_wallpaper":
+        return A.live_wallpaper(state, str(d.get("style", "")))
+    if act == "wallpacks":
+        return A.wallpacks_download(state, [str(x) for x in d.get("keys", [])])
+    if act == "shell_toggle":
+        return {"shell": A.shell_toggle(state)}
+    if act == "boot_install":
+        if v not in ("boot", "login", "restore"):
+            raise A.Fail("unknown")
+        from .. import boot, render
+        snap = copy.deepcopy(s)
+        settings.save(snap)
+        render.apply(snap)
+        state.saved = snap
+        script = {"boot": "apply-boot.sh", "login": "apply-login.sh", "restore": "restore-sddm.sh"}[v]
+        A.term(state, f"bash {shlex.quote(str(boot.BOOT_DIR / script))}; {A.HOLD}")
+        return "Runs in a terminal (it asks for your password)"
+    raise A.Fail("unknown action")
 
 
 def _apply(state: State) -> None:

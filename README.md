@@ -140,23 +140,39 @@ swayforge also switches dnf to **Enter = yes** (`[Y/n]` instead of `[y/N]`). Tha
 
 ## swayforge Studio (graphical settings)
 
-`swayforge gui`, `Super+Ctrl+I` or *swayforge Studio* in the app launcher opens a graphical
-settings app next to the terminal one (which stays as it is). Every theme and every layout is shown
-as a small live desktop – bar, start menu, window frames, notification and wallpaper – so you see
-the result before you apply it, and the app itself recolours to the theme you are trying.
+`swayforge gui`, `Super+Ctrl+I` or *swayforge Studio* in the app launcher opens the graphical
+settings app. It does everything the terminal app does – the terminal app stays as it is, both
+work on the same settings.
 
-- **Themes** with accent colours, **Layouts**, **Wallpapers** (paged thumbnails, videos too)
-- **Look & feel**: transparency, corners, gaps, borders, SwayFX effects, terminal opacity – with
-  a live preview next to the sliders
-- **Screensaver**: every saver plays as a small animation; pick one and set the times
-- **Apply to desktop** (or `Ctrl+S`) writes everything at once; *Undo changes* goes back
-- Hardware, shortcuts, apps and system tools open the matching page of the terminal app
+- **Look:** themes and layouts as small live desktops (bar, start menu, window frames,
+  notification, wallpaper), accent colours, your own theme with a colour editor, a theme from your
+  wallpaper, wallpapers (paged thumbnails, videos, animated loops, downloadable collections),
+  transparency, corners, gaps and effects with a live preview, bar modules
+- **Devices:** displays with an arrangement picture, audio output/input, system sounds,
+  Bluetooth, Wi-Fi and VPN, keyboard and mouse
+- **Work & play:** terminal and prompt, every shortcut and the autostart, apps (what is installed,
+  find and install from Fedora / COPR / RPM Fusion / Flathub), CS2 translator and Steam cache
+- **System:** screensavers playing as small animations, power and lock, boot and login screens,
+  security scans and reports, cleanup and wiping USB sticks, mounting drives, backups and config
+  files, updates
+- **Find a setting** (`Ctrl+F`) searches every option; **Apply to desktop** (`Ctrl+S`) writes
+  everything at once, **Undo changes** goes back. The app itself recolours to the theme you try.
 
-<p align="center"><img src="docs/img/studio_themes.png" alt="swayforge Studio – themes" width="100%"></p>
+<table>
+  <tr>
+    <td><img src="docs/img/studio_themes.png" alt="Studio – themes"></td>
+    <td><img src="docs/img/studio_display.png" alt="Studio – displays"></td>
+  </tr>
+  <tr>
+    <td><img src="docs/img/studio_saver.png" alt="Studio – screensavers"></td>
+    <td><img src="docs/img/studio_network.png" alt="Studio – network"></td>
+  </tr>
+</table>
 
-It runs as a small local server (127.0.0.1 only, with a random key) and shows itself in a GTK
-window (`python3-gobject` + `webkitgtk6.0`, installed by `install.sh`); without those it opens
-in a Chromium-type browser window or your normal browser.
+Anything that needs your password (installing, scanning, the boot screen …) opens a terminal with
+the exact command, like in the terminal app. Studio runs as a small local server (127.0.0.1 only,
+with a random key) in a GTK window (`python3-gobject` + `webkitgtk6.0`, installed by
+`install.sh`); without those it opens in a Chromium-type browser window or your normal browser.
 
 ## Themes
 

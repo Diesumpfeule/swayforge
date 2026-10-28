@@ -1,14 +1,13 @@
 """Shared TUI pieces: colours from the active theme, form fields, swatches."""
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-from typing import Any
 
 from rich.text import Text
 from textual.containers import Horizontal, Vertical
 from textual.widgets import Button, Input, Label, Select, Static, Switch
 
 from .. import settings, themes
+from ..fields import Field, coerce, path_from_wid  # noqa: F401 – re-exported for the TUI pages
 
 
 def textual_theme(theme_id: str, accent: str = ""):
@@ -113,23 +112,6 @@ def swatch(t: themes.Theme, width: int = 3) -> Text:
     return txt
 
 
-@dataclass
-class Field:
-    path: str
-    label: str
-    kind: str = "str"                 # str | int | float | bool | choice
-    options: list[tuple[str, Any]] = field(default_factory=list)
-    help: str = ""
-
-    @property
-    def wid(self) -> str:
-        return "f__" + self.path.replace(".", "__")
-
-
-def path_from_wid(wid: str) -> str:
-    return wid[3:].replace("__", ".")
-
-
 def field_row(f: Field, s: dict) -> Horizontal:
     value = settings.get(s, f.path)
     if f.kind == "bool":
@@ -149,20 +131,6 @@ def field_row(f: Field, s: dict) -> Horizontal:
     lab = Vertical(Label(txt, classes="flabel"), classes="flabelbox")
     edit = Button("✎", name=f"edit:{f.path}", classes="editbtn", tooltip="Open the responsible config file")
     return Horizontal(lab, widget, edit, classes="frow")
-
-
-def coerce(f: Field, raw: Any) -> Any:
-    if f.kind == "int":
-        try:
-            return int(raw)
-        except (TypeError, ValueError):
-            return None
-    if f.kind == "float":
-        try:
-            return float(raw)
-        except (TypeError, ValueError):
-            return None
-    return raw
 
 
 # Ends every task terminal. Line mode (Enter) instead of raw "any key": it doesn't depend on the tty
