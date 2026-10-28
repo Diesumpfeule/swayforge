@@ -30,10 +30,10 @@ smart_gaps {{ "on" if s.look.smart_gaps else "off" }}
 hide_edge_borders --i3 {{ "smart" if s.look.smart_gaps else "none" }}
 
 #                       border       background   text         indicator    child border
-client.focused          {{ c.accent }}   {{ c.accent }}   {{ c.crust }}    {{ c.accent2 }}   {{ c.accent }}
+client.focused          {{ c.accent }}   {{ c.accent }}   {{ on(c.accent, c.crust) }}    {{ c.accent2 }}   {{ c.accent }}
 client.focused_inactive {{ c.surface2 }} {{ c.surface }}  {{ c.text }}     {{ c.surface2 }}  {{ c.surface2 }}
 client.unfocused        {{ c.surface }}  {{ c.base }}     {{ c.subtext }}  {{ c.surface }}   {{ c.surface }}
-client.urgent           {{ c.red }}      {{ c.red }}      {{ c.crust }}    {{ c.red }}       {{ c.red }}
+client.urgent           {{ c.red }}      {{ c.red }}      {{ on(c.red, c.crust) }}    {{ c.red }}       {{ c.red }}
 client.background       {{ c.base }}
 {% if si.swayfx %}
 

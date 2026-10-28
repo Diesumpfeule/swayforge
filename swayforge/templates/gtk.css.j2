@@ -44,7 +44,7 @@ entry, spinbutton, textview, treeview.view, scrolledwindow.frame {
 headerbar, .titlebar {
     border-radius: 0;
     background-image: linear-gradient(to right, {{ bv.title }}, {{ bv.title2 }});
-    color: {{ c.crust }};
+    color: {{ on(bv.title, c.crust) }};
 }
 menu, popover contents, .menu { border-radius: 0; border: 2px solid {{ bv.hi }}; }
 {% elif layout == "winxp" %}
@@ -72,14 +72,14 @@ entry, spinbutton, textview, treeview.view {
 headerbar, .titlebar {
     border-radius: 8px 8px 0 0;
     border: none;
-    color: #ffffff;
+    color: {{ on(c.accent) }};
     font-weight: bold;
     text-shadow: 1px 1px 1px {{ mix(c.accent, "#000000", 0.6) }};
     background-image: linear-gradient(to bottom, {{ mix(c.accent, "#ffffff", 0.35) }}, {{ c.accent }} 12%, {{ c.accent }} 80%, {{ mix(c.accent, "#000000", 0.2) }});
 }
-headerbar button { color: #ffffff; background-image: none; border-color: {{ rgba("#ffffff", 0.6) }}; }
+headerbar button { color: {{ on(c.accent) }}; background-image: none; border-color: {{ rgba("#ffffff", 0.6) }}; }
 menu, popover contents, .menu { border-radius: 0; border: 1px solid {{ c.surface2 }}; }
-menuitem:hover, row:selected { background-color: {{ c.accent2 }}; color: #ffffff; }
+menuitem:hover, row:selected { background-color: {{ c.accent2 }}; color: {{ on(c.accent2) }}; }
 {% elif layout == "dread" %}
 
 /* Dread: flat, square, dark, thin rust lines */

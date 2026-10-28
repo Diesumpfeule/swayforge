@@ -86,12 +86,20 @@ def text_svg(lines: list[str], color: str, size: int, font: str, bg: str | None 
             f'fill-opacity="{opacity}">{body}</g></svg>')
 
 
-def two_tone_svg(lines: list[str], face: str, shade: str, size: int, font: str) -> str:
-    """Two text layers on the same grid: block faces + shadow lines in a darker colour."""
-    f, s = asc.layers(lines)
-    a, b = text_svg(f, face, size, font), text_svg(s, shade, size, font)
-    inner = b[b.index("<g "):b.rindex("</svg>")]
-    return a.replace("</svg>", inner + "</svg>")
+def blocks_svg(lines: list[str], face: str, shade: str, size: int) -> str:
+    """Block lettering (█ ▀ ▄ ░) drawn as rectangles – no font, no gaps between rows."""
+    cw, ch = size * 0.6, size * 1.2
+    w = int(max((len(l) for l in lines), default=1) * cw + 2)
+    h = int(len(lines) * ch + 2)
+    rects = []
+    for y, line in enumerate(lines):
+        for x, c in enumerate(line):
+            part = {"█": (0, 1, face), "▀": (0, 0.5, face), "▄": (0.5, 1, face), "░": (0, 1, shade)}.get(c)
+            if part:
+                y0, y1, col = part
+                rects.append(f'<rect x="{x * cw:.1f}" y="{(y + y0) * ch:.1f}" width="{cw + 0.4:.1f}" '
+                             f'height="{(y1 - y0) * ch + 0.4:.1f}" fill="{col}"/>')
+    return f'<svg xmlns="http://www.w3.org/2000/svg" width="{w}" height="{h}">{"".join(rects)}</svg>'
 
 
 def rect_svg(w: int, h: int, fill: str, stroke: str | None = None, sw: int = 0, rx: int = 0,
@@ -294,7 +302,7 @@ def plymouth_files(ctx: "Ctx") -> dict[str, str]:
     size = 30 if style != "bios" else 18
     big = asc.best_banner(text, 70 if style != "bios" else 100)
     from .render import mix
-    files["banner.svg"] = two_tone_svg(big, c["accent"], mix(c["accent"], c["base"], 0.5), size, font)
+    files["banner.svg"] = blocks_svg(big, c["accent"], mix(c["accent"], c["base"], 0.5), size)
     files["prompt.svg"] = text_svg(["  Disk passphrase  "], c["text"], 26, font, bg=c["surface"], pad=14)
     files["bullet.svg"] = rect_svg(14, 14, c["accent"])
     top, bottom = c["base"], c["mantle"]

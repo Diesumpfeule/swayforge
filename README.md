@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <b>Fedora Sway</b> · AMD · keyboard-first · 24 themes × 13 layouts · 96 apps · reset-friendly
+  <b>Fedora Sway</b> · AMD · keyboard-first · 24 themes × 13 layouts · 97 apps · reset-friendly
 </p>
 
 > ⚠ **Proof of concept, written by Claude (AI) – no warranty, use at your own risk.** See [Disclaimer](#disclaimer).
@@ -181,12 +181,21 @@ theme*, or use `--save "NAME"` on the command line.
 | **Glass islands** | see-through floating islands with a hairline edge, the focused workspace outlined in the accent, compact centred launcher with a rounded search and outlined selection, hairline notifications |
 | **Dread** | dark survival-horror: top bar of worn inventory slots, rust rule, blood-red glow on the focused workspace, ☠ power button, centred inventory-style launcher with key hints, grim notifications, flat square GTK |
 | **Glass 7** | bottom glass taskbar, round start orb, icon-only task buttons |
+| Modern 11 | centred rounded taskbar with start button and icon tasks, widgets on the left |
+| Touch | tall bottom bar with big tap targets, on-screen keyboard button, large menus |
 | **Wired** | text only, `[brackets]`, no icons, seconds ticking, terminal-style launcher |
 | Minimal | only workspaces, clock, tray, power |
 | Sidebar | vertical icon bar on the left |
 | Cathedral | gothic: stone bar with a crimson double rule, roman-numeral workspaces, ✠ around the clock, framed launcher and notifications |
 
 Any layout works with any theme. `Super+Shift+B` cycles bar layouts, `Super+Shift+T` cycles themes.
+Text on coloured surfaces (start buttons, selections, title bars) picks a readable colour by itself,
+so e.g. Luna XP with a white-accent theme stays legible.
+
+**Transparency:** *Settings → Layout → Transparency* makes the bar, launcher and notifications of
+any layout 10–80 % see-through (bevelled and gradient layouts too; text and borders stay solid).
+While it is on, SwayFX blur and shadows are switched off for them so the wallpaper shows clearly.
+“Off – layout default” brings back the original look.
 
 ## ASCII art
 
@@ -368,14 +377,15 @@ read the report before acting.
 | `Ctrl+Shift+Esc` | task manager (btop) – also a bar button |
 | `Super+Shift+G` | gaming mode on/off – also a bar button |
 | `Super+Shift+A` / `Super+Shift+I` | audio / network settings |
-| `Super+Escape` | power menu (also the bar's ⏻ button) |
+| `Super+Escape` | power menu (also the bar's ⏻ button) – acts at once, no second question |
 | `Super+V` | clipboard history |
 | `Super+Shift+S` | screenshot area and edit · `Print` = area to clipboard |
 | `Super+Shift+T` / `Super+Shift+B` | next theme / next bar layout |
+| `Super+Ctrl+T` | CS2 write-back box (when cs2translate is installed) |
 
 **Tiling only (default):** every window tiles – dialogs too – and there are no floating, tabbed
 or stacked layouts; use workspaces instead. Splits, resize mode, floating, tabs and the scratchpad
-are still in *Settings → Shortcuts* without a key – give them one if you want them, or switch
+are still in *Settings → Apps & shortcuts* without a key – give them one if you want them, or switch
 *Appearance → Tiling only* off.
 
 **Bar:** click speaker/Bluetooth/network → matching settings page; right-click = mute/advanced;
@@ -440,12 +450,44 @@ scripts/make_banner.py     regenerates docs/img/banner.svg
 scripts/make_screenshots.py renders README screenshots in a headless Sway (throw-away HOME)
 ```
 
+## Discord & screen sharing
+
+swayforge writes a Discord theme (`swayforge.theme.css`, colours, font and corner radius of your current theme) into the
+theme folder of every Vesktop / Vencord / BetterDiscord it finds (the client must have been started once). Enable it once
+in the client under *Settings → Themes*; after that it follows every theme change (Vesktop reloads it live).
+Vesktop is in the app catalog (Apps page). Plain Discord from the official package cannot load themes.
+
+Screen sharing works out of the box: swayforge routes the screen-cast portal to `xdg-desktop-portal-wlr`
+(`~/.config/xdg-desktop-portal/sway-portals.conf`) and gives Flatpak Vesktop/Discord access to PipeWire.
+After the first apply, quit and restart the client once.
+
+## Screensavers
+
+*Settings → Power & lock → Screensaver when it locks.* Instead of a plain lock, an animated full-screen scene starts after
+“Lock after (minutes)”: **Matrix rain** (built in, in your theme colours), **cmatrix** (the real program, install it on the Apps
+page), Starfield, Pipes, Fire, Game of Life, a bouncing logo or a big clock. The first key press or mouse move locks the screen
+(swaylock) and closes the scene, so the desktop is never visible in between. “Preview screensaver” shows it in a window,
+`swayforge screensaver list` / `swayforge screensaver preview NAME` do the same from a terminal. Set “Screen off after” higher
+than “Lock after”, otherwise the screen goes dark before you see anything. Not active in gaming mode.
+
+## Animated wallpapers
+
+Videos and GIFs (`.mp4 .webm .mkv .mov .gif`) in your Wallpapers folder show up in the *Wallpapers* page with a ▶ and work like any
+picture (preview = first frame). They play through **mpvpaper** (Apps page → *Animated wallpapers*, built from source into `~/.local`).
+*Make live wallpaper: Aurora / Tide* renders a small seamless loop (800×450, 12 fps, a few hundred KB) in your theme colours.
+
+Made to be light: hardware video decoding, no audio, no cache, and a small guard process that **pauses** the video whenever a fullscreen
+window covers it, in gaming mode, while the screen is locked or the screensaver runs, and (optionally) on battery. Settings →
+Appearance → *Animated wallpaper* has the switches and an optional frame-rate limit (a limit turns hardware decoding off, so leave it
+at “as the video is” unless you want it). Pictures stop the player again, so nothing runs when you use a normal wallpaper.
+
 ## CS2 chat translator
 
 Bundled in `extras/cs2/`. The installer item *Own tools → CS2 chat translator* sets it up: a
 watcher started by Sway runs the overlay while CS2 runs, coloured in your theme. Once per reset:
 Steam launch option `-condebug`, CS2 display mode *Fullscreen windowed*. Positioning, test run,
-options and log: *Settings → Apps & shortcuts*. Details: [extras/cs2/README.md](extras/cs2/README.md).
+options and log: *Settings → Games*. Write back (type in your language, sent translated to the
+chat): launch option `-netconport 2121`, then `Super+Ctrl+T`. Details: [extras/cs2/README.md](extras/cs2/README.md).
 
 ## Gaming tips
 
@@ -487,30 +529,3 @@ This is a personal project: pull requests and outside code are not accepted. Fee
 ## License
 
 MIT – see [LICENSE](LICENSE).
-
-## Discord
-
-swayforge writes a Discord theme (`swayforge.theme.css`, colours, font and corner radius of your current theme) into the
-theme folder of every Vesktop / Vencord / BetterDiscord it finds (the client must have been started once). Enable it once
-in the client under *Settings → Themes*; after that it follows every theme change (Vesktop reloads it live).
-Vesktop is in the app catalog (Apps page). Plain Discord from the official package cannot load themes.
-
-## Screensavers
-
-*Settings → Power & lock → Screensaver when it locks.* Instead of a plain lock, an animated full-screen scene starts after
-“Lock after (minutes)”: **Matrix rain** (built in, in your theme colours), **cmatrix** (the real program, install it on the Apps
-page), Starfield, Pipes, Fire, Game of Life, a bouncing logo or a big clock. The first key press or mouse move locks the screen
-(swaylock) and closes the scene, so the desktop is never visible in between. “Preview screensaver” shows it in a window,
-`swayforge screensaver list` / `swayforge screensaver preview NAME` do the same from a terminal. Set “Screen off after” higher
-than “Lock after”, otherwise the screen goes dark before you see anything. Not active in gaming mode.
-
-## Animated wallpapers
-
-Videos and GIFs (`.mp4 .webm .mkv .mov .gif`) in your Wallpapers folder show up in the *Wallpapers* page with a ▶ and work like any
-picture (preview = first frame). They play through **mpvpaper** (Apps page → *Animated wallpapers*, built from source into `~/.local`).
-*Make live wallpaper: Aurora / Tide* renders a small seamless loop (800×450, 12 fps, a few hundred KB) in your theme colours.
-
-Made to be light: hardware video decoding, no audio, no cache, and a small guard process that **pauses** the video whenever a fullscreen
-window covers it, in gaming mode, while the screen is locked or the screensaver runs, and (optionally) on battery. Settings →
-Appearance → *Animated wallpaper* has the switches and an optional frame-rate limit (a limit turns hardware decoding off, so leave it
-at “as the video is” unless you want it). Pictures stop the player again, so nothing runs when you use a normal wallpaper.

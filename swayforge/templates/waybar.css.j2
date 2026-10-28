@@ -120,19 +120,20 @@ window#waybar {
 {% set hi = mix(c.accent, "#ffffff", 0.32) %}
 {% set mid = mix(c.accent, "#ffffff", 0.08) %}
 {% set lo = mix(c.accent, "#000000", 0.18) %}
+{% set fg = on(c.accent) %}
 window#waybar {
     background: linear-gradient(to bottom, {{ hi }} 0%, {{ mid }} 9%, {{ c.accent }} 45%, {{ lo }} 100%);
     border-top: 1px solid {{ mix(c.accent, "#ffffff", 0.5) }};
-    color: #ffffff;
+    color: {{ fg }};
 }
-{{ mods }} { padding: 0 6px; margin: 0; background: transparent; color: #ffffff; }
+{{ mods }} { padding: 0 6px; margin: 0; background: transparent; color: {{ fg }}; }
 #custom-start {
     margin: 0 10px 0 0;
     padding: 0 26px 0 16px;
     font-size: {{ s.theme.font_size + 5 }}px;
     font-weight: bold;
     font-style: italic;
-    color: #ffffff;
+    color: {{ on(c.green) }};
     text-shadow: 1px 1px 2px rgba(0, 40, 0, 0.75);
     background: linear-gradient(to bottom, {{ mix(c.green, "#ffffff", 0.45) }} 0%, {{ mix(c.green, "#ffffff", 0.1) }} 14%, {{ c.green }} 55%, {{ mix(c.green, "#000000", 0.22) }} 100%);
     border: 1px solid {{ mix(c.green, "#000000", 0.5) }};
@@ -147,7 +148,7 @@ window#waybar {
 #workspaces { margin: 4px 6px 4px 0; padding: 0; }
 #workspaces button {
     padding: 0 8px; margin: 0 2px;
-    color: #ffffff;
+    color: {{ fg }};
     background: {{ rgba("#ffffff", 0.14) }};
     border: 1px solid {{ rgba("#000000", 0.28) }};
     border-radius: 3px;
@@ -159,7 +160,7 @@ window#waybar {
 #taskbar button {
     min-width: 170px;
     padding: 0 10px; margin: 0 2px;
-    color: #ffffff;
+    color: {{ on(mix(c.accent, "#ffffff", 0.22)) }};
     background: linear-gradient(to bottom, {{ mix(c.accent, "#ffffff", 0.42) }}, {{ mix(c.accent, "#ffffff", 0.22) }} 50%, {{ mix(c.accent, "#ffffff", 0.14) }});
     border: 1px solid {{ mix(c.accent, "#000000", 0.4) }};
     border-radius: 3px;
@@ -178,12 +179,12 @@ window#waybar {
     border-left: 1px solid {{ mix(c.accent, "#000000", 0.45) }};
     box-shadow: inset 1px 0 0 {{ rgba("#ffffff", 0.35) }}, inset 0 1px 0 {{ rgba("#ffffff", 0.3) }};
 }
-#status label { color: #ffffff; }
+#status label { color: {{ on(mix(c.accent, "#2aa0f0", 0.45)) }}; }
 #status #clock { padding: 0 6px; }
 #custom-power {
     margin: 4px 6px 4px 6px;
     padding: 0 9px;
-    color: #ffffff;
+    color: {{ on(c.red) }};
     background: linear-gradient(to bottom, {{ mix(c.red, "#ffffff", 0.35) }}, {{ c.red }} 60%, {{ mix(c.red, "#000000", 0.2) }});
     border: 1px solid {{ mix(c.red, "#000000", 0.5) }};
     border-radius: 3px;
@@ -252,7 +253,7 @@ window#waybar {
     padding: 0 6px;
     border-radius: 9999px;
     font-size: {{ s.theme.font_size + 6 }}px;
-    color: {{ c.crust }};
+    color: {{ on(c.accent, c.crust) }};
     background: radial-gradient(circle, {{ mix(c.accent, "#ffffff", 0.55) }}, {{ c.accent }} 55%, {{ c.accent2 }});
     border: 1px solid {{ rgba(c.text, 0.5) }};
     box-shadow: 0 0 8px {{ rgba(c.accent, 0.6) }};
@@ -311,13 +312,13 @@ window#waybar {
     color: {{ c.text }};
 }
 {{ mods }} { padding: 0 18px; margin: 6px 5px; border-radius: 14px; background: {{ c.surface }}; min-width: 28px; }
-#custom-start, #custom-osk { color: {{ c.crust }}; background: {{ c.accent }}; padding: 0 24px; font-size: {{ s.theme.font_size + 10 }}px; }
+#custom-start, #custom-osk { color: {{ on(c.accent, c.crust) }}; background: {{ c.accent }}; padding: 0 24px; font-size: {{ s.theme.font_size + 10 }}px; }
 #custom-osk { background: {{ c.accent2 }}; color: {{ c.text }}; }
 #workspaces { padding: 0; background: transparent; margin: 6px 5px; }
 #workspaces button { min-width: 56px; margin: 0 4px; padding: 0 16px; border-radius: 14px; background: {{ c.surface }}; color: {{ c.text }}; }
-#workspaces button.focused { background: {{ c.accent }}; color: {{ c.crust }}; }
+#workspaces button.focused { background: {{ c.accent }}; color: {{ on(c.accent, c.crust) }}; }
 #status { background: transparent; padding: 0; margin: 0; }
-#custom-power { background: {{ c.red }}; color: {{ c.crust }}; padding: 0 24px; }
+#custom-power { background: {{ c.red }}; color: {{ on(c.red, c.crust) }}; padding: 0 24px; }
 #tray { min-width: 48px; }
 
 {% elif layout == "wired" %}
@@ -383,16 +384,16 @@ window#waybar {
 {% if s.look.radius == 0 %}
 #workspaces button.focused { background: {{ c.surface }}; color: {{ c.accent }}; box-shadow: inset 0 -3px {{ c.accent }}; }
 {% else %}
-#workspaces button.focused { background: {{ c.accent }}; color: {{ c.crust }}; }
+#workspaces button.focused { background: {{ c.accent }}; color: {{ on(c.accent, c.crust) }}; }
 {% endif %}
 {% endif %}
-#workspaces button.urgent { background: {{ c.red }}; color: {{ c.crust }}; }
+#workspaces button.urgent { background: {{ c.red }}; color: {{ on(c.red, c.crust) }}; }
 {% if layout == "glass" %}
 #workspaces button.focused { background: {{ rgba(c.accent, 0.16) }}; color: {{ c.accent }}; box-shadow: inset 0 0 0 1px {{ c.accent }}; }
 {% endif %}
 {% endif %}
 
-#mode { background: {{ c.yellow }}; color: {{ c.crust }}; }
+#mode { background: {{ c.yellow }}; color: {{ on(c.yellow, c.crust) }}; }
 #window { color: {{ c.subtext }}; }
 window#waybar.empty #window { background: transparent; border-color: transparent; }
 {% if layout not in ("win98", "winxp", "dread", "win7", "win11", "touch", "wired", "cathedral") %}
@@ -408,20 +409,20 @@ window#waybar.empty #window { background: transparent; border-color: transparent
 #battery { color: {{ c.green }}; }
 #mpris { color: {{ c.green }}; }
 #custom-taskmanager { color: {{ c.cyan }}; }
-#custom-taskmanager:hover { background: {{ c.cyan }}; color: {{ c.crust }}; }
+#custom-taskmanager:hover { background: {{ c.cyan }}; color: {{ on(c.cyan, c.crust) }}; }
 #custom-power { color: {{ c.red }}; }
-#custom-power:hover { background: {{ c.red }}; color: {{ c.crust }}; }
+#custom-power:hover { background: {{ c.red }}; color: {{ on(c.red, c.crust) }}; }
 {% endif %}
-#temperature.critical { background: {{ c.red }}; color: {{ c.crust }}; }
+#temperature.critical { background: {{ c.red }}; color: {{ on(c.red, c.crust) }}; }
 #network.disconnected { color: {{ c.red }}; }
 #pulseaudio.muted, #pulseaudio.source-muted { color: {{ c.overlay }}; }
 #bluetooth.off, #bluetooth.disabled { color: {{ c.overlay }}; }
 #battery.warning { color: {{ c.yellow }}; }
-#battery.critical:not(.charging) { background: {{ c.red }}; color: {{ c.crust }}; }
+#battery.critical:not(.charging) { background: {{ c.red }}; color: {{ on(c.red, c.crust) }}; }
 #idle_inhibitor { color: {{ c.overlay }}; }
 #idle_inhibitor.activated { color: {{ c.accent }}; }
 #custom-gamemode { color: {{ c.overlay }}; }
-#custom-gamemode.on { background: {{ c.accent }}; color: {{ c.crust }}; }
+#custom-gamemode.on { background: {{ c.accent }}; color: {{ on(c.accent, c.crust) }}; }
 #tray > .needs-attention { background: {{ c.red }}; }
 
 {% if ui < 1 %}

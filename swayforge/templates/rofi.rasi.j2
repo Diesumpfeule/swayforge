@@ -18,7 +18,7 @@ configuration {
     fg:        {{ c.text }};
     fg-dim:    {{ c.subtext }};
     accent:    {{ c.accent }};
-    on-accent: {{ c.crust }};
+    on-accent: {{ on(c.accent, c.crust) }};
     urgent:    {{ c.red }};
     hi:        {{ bv.hi }};
     lo:        {{ bv.lo }};
@@ -52,7 +52,7 @@ textbox-stripe {
     expand: false;
     width: 34px;
     background-color: {{ bv.title }};
-    text-color: {{ c.crust }};
+    text-color: {{ on(bv.title, c.crust) }};
     content: "";
 }
 mainbox { padding: 6px; spacing: 6px; children: [ inputbar, listview ]; }
@@ -66,7 +66,7 @@ prompt { text-color: @accent; }
 entry  { placeholder: "Type to search …"; placeholder-color: @fg-dim; }
 listview { lines: 12; columns: 1; spacing: 0; fixed-height: false; scrollbar: false; }
 element { padding: 5px 8px; spacing: 10px; }
-element selected.normal { background-color: {{ bv.title }}; text-color: {{ c.crust }}; }
+element selected.normal { background-color: {{ bv.title }}; text-color: {{ on(bv.title, c.crust) }}; }
 
 {% elif layout == "winxp" %}
 /* ── Luna XP start menu: blue header with the user name, light body, blue footer ── */
@@ -88,7 +88,7 @@ textbox-head {
     padding: 12px 14px;
     content: "  {{ user }}";
     font: "{{ font }} Bold {{ s.theme.font_size + 4 }}";
-    text-color: #ffffff;
+    text-color: {{ on(c.accent) }};
     border-radius: 7px 7px 0 0;
     background-color: {{ c.accent }};
     background-image: linear-gradient(to bottom, {{ mix(c.accent, "#ffffff", 0.3) }}, {{ mix(c.accent, "#000000", 0.08) }});
@@ -104,12 +104,12 @@ prompt { text-color: {{ c.accent2 }}; }
 entry  { placeholder: "Search programs …"; placeholder-color: @fg-dim; }
 listview { lines: 12; columns: 1; spacing: 1px; margin: 4px 10px 8px 10px; fixed-height: false; scrollbar: false; background-color: {{ c.surface }}; border: 1px; border-color: {{ c.surface2 }}; padding: 4px; }
 element { padding: 6px 8px; spacing: 10px; border-radius: 0; }
-element selected.normal { background-color: {{ c.accent2 }}; text-color: #ffffff; }
+element selected.normal { background-color: {{ c.accent2 }}; text-color: {{ on(c.accent2) }}; }
 textbox-foot {
     expand: false;
     padding: 8px 14px;
     content: "  Turn off: right-click the Start button";
-    text-color: #ffffff;
+    text-color: {{ on(c.accent) }};
     background-color: {{ c.accent }};
     background-image: linear-gradient(to bottom, {{ c.accent }}, {{ mix(c.accent, "#000000", 0.2) }});
 }

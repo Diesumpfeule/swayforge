@@ -82,6 +82,30 @@ def sgr(color: str) -> str:
     return f"38;2;{r};{g};{b}"
 
 
+def luminance(color: str) -> float:
+    def ch(v: int) -> float:
+        v /= 255
+        return v / 12.92 if v <= 0.03928 else ((v + 0.055) / 1.055) ** 2.4
+    r, g, b = rgb(color)
+    return 0.2126 * ch(r) + 0.7152 * ch(g) + 0.0722 * ch(b)
+
+
+def contrast(a: str, b: str) -> float:
+    la, lb = sorted((luminance(a), luminance(b)), reverse=True)
+    return (la + 0.05) / (lb + 0.05)
+
+
+def readable(bg: str, pref: str, c: dict, need: float = 3.0) -> str:
+    """Text colour for a coloured surface: the layout's own choice when it is readable, otherwise
+    the theme's darkest/lightest colour (pure black/white as a last resort)."""
+    if contrast(pref, bg) >= need:
+        return pref
+    best = max((c["crust"], c["text"]), key=lambda x: contrast(x, bg))
+    if contrast(best, bg) >= need:
+        return best
+    return max(("#ffffff", "#000000"), key=lambda x: contrast(x, bg))
+
+
 def bevel(c: dict) -> dict:
     """Colours for Win98-style 3D edges, derived from the theme."""
     face = mix(c["surface"], c["text"], 0.10)
@@ -144,7 +168,8 @@ def cs2_theme(ctx: "Ctx", dry: bool) -> None:
     if not isinstance(cfg, dict) or cfg.get("theme_locked"):
         return
     c, font = ctx.c, ctx.s["theme"]["font"]
-    new = {"bg": c["crust"], "text": c["text"], "orig": c["overlay"], "ct": c["blue"],
+    orig = c["overlay"] if contrast(c["overlay"], c["crust"]) >= 3 else c["subtext"]
+    new = {"bg": c["crust"], "text": c["text"], "orig": orig, "ct": c["blue"],
            "t": c["yellow"], "all": c["green"], "logo": c["accent"], "font": font, "mono": font}
     if cfg.get("theme") != new:
         cfg["theme"] = new
@@ -182,6 +207,10 @@ class Ctx:
         a = round(alpha * (self._ui() if self.layout.id in ("modern", "minimal", "glass", "solid", "sidebar") else 1.0), 2)
         return hx_(color) if a >= 1.0 else rgba(color, a)
 
+    def _on(self, bg: str, pref: str = "#ffffff", need: float = 3.0) -> str:
+        """Readable text colour on bg (see readable())."""
+        return readable(bg, pref, self.c, need)
+
     def _uhex(self, alpha: float = 0.93) -> str:
         """Two hex digits of alpha for mako."""
         return f"{round(255 * alpha * self._ui()):02x}"
@@ -211,7 +240,7 @@ class Ctx:
             outputs=sorted(self.s["display"]["outputs"].items()),
             custom_conf=str(paths.SWAY_CUSTOM), gen_dir=str(paths.GEN_DIR),
             spaceship_dir=str(paths.SPACESHIP_DIR), p=self.s["prompt"], sections=sections,
-            hx=hx, rgba=rgba, mix=mix, ua=self._ua, uhex=self._uhex, ui=self._ui(), mark=MARK, cs2_watcher=cs2_watcher(),
+            hx=hx, rgba=rgba, mix=mix, ua=self._ua, uhex=self._uhex, on=self._on, ui=self._ui(), mark=MARK, cs2_watcher=cs2_watcher(),
             layout=self.layout.id, bv=bevel(self.c), user=os.environ.get("USER", "user"), font=self.s["theme"]["font"],
             art=asc.art(self.art_name), banner=asc.banner, extras=art_svg.extras(),
             ext_shell=external_shell(self.s),

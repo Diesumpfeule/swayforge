@@ -410,8 +410,10 @@ class SettingsApp(App):
         return self.page(
             "layout",
             section("Layout"),
-            Static("Sets how the bar, launcher, notifications and GTK buttons look. "
-                   "Mix it with any colour theme. Quick switch: Super+Shift+L.", classes="hint"),
+            Static("Sets how the bar, launcher, notifications and GTK buttons look. Mix it with any colour "
+                   "theme. Quick switch: " + self.s.get("keys", {}).get(
+                       "layout_next", next(k for a, _, k, _ in settings.KEY_ACTIONS if a == "layout_next")
+                   ).replace("$mod", "Super") + ".", classes="hint"),
             ListView(*[LayoutItem(l) for l in layouts.LAYOUTS.values()], id="layoutlist",
                      initial_index=ids.index(cur.id)),
             Static(cur.preview, id="layout_preview", classes="preview", markup=False),
