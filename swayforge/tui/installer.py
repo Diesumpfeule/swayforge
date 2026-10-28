@@ -171,7 +171,7 @@ class Welcome(Step):
             c = themes.get(self.app.s["theme"]["name"]).with_accent(self.app.s["theme"]["accent"])
             anim = self.app.s["theme"]["animate"]
             yield AnimatedArt(asc.best_banner("swayforge", max(40, self.app.size.width - 8)),
-                              art_styles(c, bold=True), animate=anim, id="w_banner")
+                              art_styles(c, bold=True), animate=anim, banner=True, id="w_banner")
             yield AnimatedArt(asc.art("forge"), art_styles(c, "accent2"), animate=anim, id="w_art")
             yield Static("Sets up Fedora Sway in one go: apps, drivers, theme, layout, bar, launcher, "
                          "terminal, prompt, boot and login screen. You choose, swayforge does the rest – "

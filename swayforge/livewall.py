@@ -36,20 +36,20 @@ def is_video(path: str | Path) -> bool:
 
 
 # ── thumbnails for the preview (first frame) ─────────────────────────
-def thumb(path: str) -> str:
+def thumb(path: str, width: int = 640) -> str:
     """PNG of a video's first moments (cached) – used by the picture preview."""
     if not have("ffmpeg"):
         raise RuntimeError("ffmpeg is needed for video previews")
     st = Path(path).stat()
-    key = hashlib.sha1(f"{path}{st.st_mtime_ns}{st.st_size}".encode()).hexdigest()[:16]
+    key = hashlib.sha1(f"{path}{st.st_mtime_ns}{st.st_size}{'' if width == 640 else width}".encode()).hexdigest()[:16]
     out = CACHE / f"{key}.png"
     if not out.exists():
         CACHE.mkdir(parents=True, exist_ok=True)
         r = run(["ffmpeg", "-hide_banner", "-loglevel", "error", "-y", "-ss", "1", "-i", path,
-                 "-frames:v", "1", "-vf", "scale=640:-2", str(out)])
+                 "-frames:v", "1", "-vf", f"scale={width}:-2", str(out)])
         if not out.exists():                       # clips shorter than 1 s
             r = run(["ffmpeg", "-hide_banner", "-loglevel", "error", "-y", "-i", path,
-                     "-frames:v", "1", "-vf", "scale=640:-2", str(out)])
+                     "-frames:v", "1", "-vf", f"scale={width}:-2", str(out)])
         if not out.exists():
             raise RuntimeError((r.stderr or "ffmpeg failed").strip().splitlines()[-1][:80])
     return str(out)

@@ -72,12 +72,20 @@ class Screen:
         self.out = []
 
 
+def matrix_speed() -> int:
+    try:
+        return max(1, min(10, int(settings.load()["power"].get("saver_speed", 5))))
+    except (TypeError, ValueError, SystemExit):
+        return 5
+
+
 def scene_matrix(sc: Screen):
     chars = "ｱｲｳｴｵｶｷｸｹｺｻｼｽｾｿﾀﾁﾂﾃﾅﾆﾇﾈﾊﾋﾎﾏﾐﾑﾒﾓﾔﾕﾗﾘﾜ0123456789:.=*+-<>"
     cols = sc.w // 2                                  # wide characters take two cells
     drops = [random.randint(-sc.h, 0) for _ in range(cols)]
     speed = [random.choice((1, 1, 2)) for _ in range(cols)]
     tail = [random.randint(6, max(8, sc.h - 2)) for _ in range(cols)]
+    delay = 0.15 * 0.74 ** (matrix_speed() - 1)       # 5 → 0.045 s per step (the old pace), 10 → 0.01 s
     tick = 0
     while True:
         tick += 1
@@ -95,7 +103,7 @@ def scene_matrix(sc: Screen):
                 drops[i] = random.randint(-8, 0)
                 tail[i] = random.randint(6, max(8, sc.h - 2))
         sc.flush()
-        yield 0.045
+        yield delay
 
 
 def scene_starfield(sc: Screen):
@@ -257,10 +265,11 @@ def run_scene(name: str, any_key_quits: bool) -> int:
         colour = min(("green", "red", "blue", "yellow", "cyan", "magenta", "white"),
                      key=lambda n: _dist(a, {"green": "#00ff00", "red": "#ff0000", "blue": "#0000ff", "yellow": "#ffff00",
                                               "cyan": "#00ffff", "magenta": "#ff00ff", "white": "#ffffff"}[n]))
+        delay = str(round((10 - matrix_speed()) * 0.9))  # cmatrix -u: 0 = fastest … 9 = slowest, 4 = its default
         if any_key_quits:
-            return subprocess.call(["cmatrix", "-s", "-b", "-C", colour])
+            return subprocess.call(["cmatrix", "-s", "-b", "-u", delay, "-C", colour])
         # real saver: cmatrix would quit on any key – feed it nothing, it just keeps running until killed
-        return subprocess.call(["cmatrix", "-b", "-C", colour], stdin=subprocess.DEVNULL)
+        return subprocess.call(["cmatrix", "-b", "-u", delay, "-C", colour], stdin=subprocess.DEVNULL)
     scene = SCENES.get(name) or SCENES["matrix"]
     fd = sys.stdin.fileno()
     old = termios.tcgetattr(fd) if sys.stdin.isatty() else None

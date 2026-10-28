@@ -2,18 +2,26 @@
 "use strict";
 
 const Savers = (() => {
+  let speed = 5;
+  function matrixStep(ctx, w, h, c, st) {
+    const cs = 10, cols = Math.ceil(w / cs);
+    st.y = st.y || Array.from({ length: cols }, () => Math.random() * -h / cs);
+    ctx.fillStyle = Desk.rgba(c.crust, 0.22); ctx.fillRect(0, 0, w, h);
+    ctx.font = `${cs}px monospace`;
+    st.y.forEach((y, i) => {
+      const ch = String.fromCharCode(0x30a0 + Math.floor(Math.random() * 96));
+      ctx.fillStyle = Math.random() < 0.08 ? c.text : c.accent;
+      ctx.fillText(ch, i * cs, y * cs);
+      st.y[i] = y * cs > h && Math.random() > 0.96 ? 0 : y + 1;
+    });
+  }
   const scenes = {
     matrix(ctx, w, h, c, st) {
-      const cs = 10, cols = Math.ceil(w / cs);
-      st.y = st.y || Array.from({ length: cols }, () => Math.random() * -h / cs);
-      ctx.fillStyle = Desk.rgba(c.crust, 0.22); ctx.fillRect(0, 0, w, h);
-      ctx.font = `${cs}px monospace`;
-      st.y.forEach((y, i) => {
-        const ch = String.fromCharCode(0x30a0 + Math.floor(Math.random() * 96));
-        ctx.fillStyle = Math.random() < 0.08 ? c.text : c.accent;
-        ctx.fillText(ch, i * cs, y * cs);
-        st.y[i] = y * cs > h && Math.random() > 0.96 ? 0 : y + 1;
-      });
+      // speed 1…10 like the real one: slow speeds skip frames, fast ones take several steps per frame
+      st.f = (st.f || 0) + 0.25 * 1.32 ** (speed - 1);
+      if (st.f < 1 && st.y) return;
+      const steps = Math.max(1, Math.floor(st.f)); st.f -= steps;
+      for (let i = 0; i < steps; i++) matrixStep(ctx, w, h, c, st);
     },
     cmatrix(ctx, w, h, c, st) { scenes.matrix(ctx, w, h, Object.assign({}, c, { accent: "#22dd44", crust: "#000000", text: "#c8ffc8" }), st); },
     starfield(ctx, w, h, c, st) {
@@ -120,5 +128,5 @@ const Savers = (() => {
     if (!reduced && !raf) raf = requestAnimationFrame(tick);
   }
   function recolour(colours) { for (const r of running.values()) { r.c = colours; r.st = {}; } }
-  return { attach, recolour };
+  return { attach, recolour, setSpeed: v => (speed = Math.max(1, Math.min(10, +v || 5))) };
 })();

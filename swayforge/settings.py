@@ -28,6 +28,7 @@ DEFAULTS: dict[str, Any] = {
         "wallpaper": "theme",         # theme | solid | /path/to/image
         "ascii": "auto",              # auto = the theme's motif, or anvil/rose/moon/bat/…
         "animate": True,              # ASCII art glints and twinkles (apps, terminal greeting, LibreWolf)
+        "motion": "wave",               # how the ASCII art moves: wave | float | drift | glint
         "live_fps": 0,                # animated wallpaper: 0 = as the video is, else limit (uses more CPU: no hardware decoding)
         "live_pause_fullscreen": True,   # pause the animation while a fullscreen window covers it
         "live_pause_battery": True,      # pause on battery
@@ -101,6 +102,7 @@ DEFAULTS: dict[str, Any] = {
         "screen_off_after": 15,
         "suspend_after": 0,           # 0 = never (desktop); the installer sets 30 on laptops
         "screensaver": "off",         # animated full-screen scene instead of a plain lock (see screensaver.py)
+        "saver_speed": 5,             # Matrix / cmatrix: 1 = slow … 10 = fast
         "lock_before_sleep": True,
         "inhibit_fullscreen": True,   # don't lock while gaming / watching videos
         "nightlight": False,

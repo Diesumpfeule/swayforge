@@ -43,13 +43,15 @@ button, input, select { font: inherit; color: inherit; }
 }
 .nav button:hover { background: color-mix(in srgb, var(--ink) 7%, transparent); color: var(--ink); }
 .nav button[aria-current="page"] { background: var(--raise); color: var(--ink); box-shadow: inset 3px 0 0 var(--acc); }
-.nav .ico { width: 18px; text-align: center; color: var(--acc); }
+.nav .ico { width: 18px; height: 18px; flex: none; color: var(--muted); }
+.nav button[aria-current="page"] .ico, .nav button:hover .ico { color: var(--acc); }
 .rail-preview { margin: auto 0 0; padding-top: 8px; display: grid; gap: 8px; }
 .rail-preview figcaption { font: 12px var(--mono); color: var(--muted); line-height: 1.45; }
 
 /* ── Desk frames: the mock desktop is 640×360, scaled to fit ───────── */
 .desk-frame { position: relative; aspect-ratio: 16 / 9; overflow: hidden; border-radius: var(--r); background: var(--deep); }
-.desk-frame > .desk-screen { position: absolute; left: 0; top: 0; transform-origin: 0 0; transform: scale(var(--k, .4)); }
+/* zoom (not transform) re-renders the mini desktop at its real size – sharp when it is shown big */
+.desk-frame > .desk-screen { position: absolute; left: 0; top: 0; zoom: var(--k, .4); }
 .desk-frame.big { border-radius: var(--r-big); box-shadow: 0 1px 0 color-mix(in srgb, var(--ink) 10%, transparent) inset,
   0 24px 60px -24px rgb(0 0 0 / .65); }
 .desk-caret { animation: caret 1.1s steps(1) infinite; }
@@ -175,12 +177,112 @@ input[type=search] { min-width: 260px; padding: 8px 12px; border-radius: var(--r
 .toast b { font-family: var(--mono); }
 @keyframes toast { from { opacity: 0; transform: translateY(8px); } }
 
-/* The app's own buttons follow a few layouts, like the terminal app does */
-body[data-skin="win98"] .btn, body[data-skin="win98"] .seg { border-radius: 0; border: 2px solid; border-color: var(--hi) var(--lo) var(--lo) var(--hi); }
-body[data-skin="win98"] .btn:active:not(:disabled) { border-color: var(--lo) var(--hi) var(--hi) var(--lo); }
-body[data-skin="wired"] .btn::before { content: "["; } body[data-skin="wired"] .btn::after { content: "]"; }
-body[data-skin="wired"] .btn, body[data-skin="wired"] .desk-frame, body[data-skin="wired"] .seg button { border-radius: 0; }
-body[data-skin="dread"] .btn, body[data-skin="cathedral"] .btn { border-radius: 0; }
+/* ── Controls drawn by us, so the layout can shape them ─────────────────── */
+input[type=range] { appearance: none; -webkit-appearance: none; height: 22px; background: transparent; cursor: pointer; }
+input[type=range]::-webkit-slider-runnable-track { height: 6px; border-radius: var(--r); background:
+  linear-gradient(to right, var(--acc) var(--fill, 50%), var(--line) var(--fill, 50%)); }
+input[type=range]::-moz-range-track { height: 6px; border-radius: var(--r); background: var(--line); }
+input[type=range]::-moz-range-progress { height: 6px; border-radius: var(--r); background: var(--acc); }
+input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; margin-top: -6px; width: 18px; height: 18px;
+  border-radius: var(--thumb-r, 50%); background: var(--ink); border: 3px solid var(--acc); }
+input[type=range]::-moz-range-thumb { width: 12px; height: 12px; border-radius: var(--thumb-r, 50%); background: var(--ink); border: 3px solid var(--acc); }
+select { appearance: none; -webkit-appearance: none; padding-right: 28px !important; cursor: pointer;
+  background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%) !important;
+  background-position: calc(100% - 15px) 52%, calc(100% - 10px) 52% !important; background-size: 5px 5px !important; background-repeat: no-repeat !important; }
+.switch { border-radius: var(--switch-r, 11px); }
+.switch::after { border-radius: var(--switch-r, 50%); }
+
+/* ── Layout skins: the app wears the layout too ─────────────────────────── */
+/* square layouts */
+body[data-skin="win98"], body[data-skin="dread"], body[data-skin="wired"], body[data-skin="cathedral"] {
+  --r: 0px; --r-big: 0px; --thumb-r: 0; --switch-r: 0; }
+
+/* Classic 98: raised bevels, sunken fields, checkbox-like switches */
+body[data-skin="win98"] .btn, body[data-skin="win98"] .seg, body[data-skin="win98"] .chip, body[data-skin="win98"] .more button {
+  border: 2px solid; border-color: var(--hi) var(--lo) var(--lo) var(--hi); background: var(--raise); }
+body[data-skin="win98"] .btn:active:not(:disabled), body[data-skin="win98"] .seg button[aria-pressed="true"] {
+  border-color: var(--lo) var(--hi) var(--hi) var(--lo); }
+body[data-skin="win98"] .btn.primary { background: var(--raise); color: var(--ink); outline: 1px solid var(--ink); outline-offset: -5px; }
+body[data-skin="win98"] input[type=text], body[data-skin="win98"] input[type=search], body[data-skin="win98"] input[type=number],
+body[data-skin="win98"] input[type=password], body[data-skin="win98"] select, body[data-skin="win98"] textarea {
+  border: 2px solid; border-color: var(--lo) var(--hi) var(--hi) var(--lo); background-color: var(--deep); }
+body[data-skin="win98"] .switch { width: 20px; height: 20px; border: 2px solid; border-color: var(--lo) var(--hi) var(--hi) var(--lo); background: var(--deep); }
+body[data-skin="win98"] .switch::after { content: "✓"; inset: 0; width: auto; height: auto; background: none; color: transparent;
+  display: grid; place-items: center; font: 700 13px var(--mono); transform: none !important; top: 0; left: 0; }
+body[data-skin="win98"] .switch:checked { background: var(--deep); } body[data-skin="win98"] .switch:checked::after { color: var(--ink); }
+body[data-skin="win98"] input[type=range]::-webkit-slider-runnable-track { height: 4px; background: var(--deep); border: 1px solid; border-color: var(--lo) var(--hi) var(--hi) var(--lo); }
+body[data-skin="win98"] input[type=range]::-webkit-slider-thumb { width: 11px; height: 21px; margin-top: -10px; background: var(--raise);
+  border: 2px solid; border-color: var(--hi) var(--lo) var(--lo) var(--hi); }
+body[data-skin="win98"] .nav button[aria-current="page"] { background: linear-gradient(to right, var(--acc), color-mix(in srgb, var(--acc) 45%, var(--bg)));
+  color: var(--on-acc); box-shadow: none; }
+body[data-skin="win98"] .nav button[aria-current="page"] .ico { color: var(--on-acc); }
+body[data-skin="win98"] .block-title, body[data-skin="win98"] .top h1 { font-family: var(--sans); font-weight: 700; }
+body[data-skin="win98"] .desk-frame, body[data-skin="win98"] .card-plain, body[data-skin="win98"] dialog {
+  border: 2px solid; border-color: var(--hi) var(--lo) var(--lo) var(--hi); box-shadow: none; }
+
+/* Luna XP: rounded glossy buttons, green go button, blue title strips */
+body[data-skin="winxp"] { --r: 4px; --r-big: 8px; }
+body[data-skin="winxp"] .btn { border: 1px solid color-mix(in srgb, var(--acc) 60%, #000); border-radius: 3px;
+  background: linear-gradient(to bottom, #fff 0%, color-mix(in srgb, var(--raise) 85%, #fff) 60%, var(--raise)); color: var(--ink); }
+body[data-skin="winxp"] .btn:hover:not(:disabled) { box-shadow: inset 0 0 0 2px #f8b636; }
+body[data-skin="winxp"] .btn.primary { background: linear-gradient(to bottom, color-mix(in srgb, var(--green) 55%, #fff), var(--green) 55%,
+  color-mix(in srgb, var(--green) 80%, #000)); color: #fff; border-color: color-mix(in srgb, var(--green) 50%, #000); text-shadow: 0 1px 1px rgb(0 0 0 / .4); }
+body[data-skin="winxp"] .nav button[aria-current="page"] { background: linear-gradient(to bottom, color-mix(in srgb, var(--acc) 65%, #fff), var(--acc));
+  color: #fff; box-shadow: none; border-radius: 4px; }
+body[data-skin="winxp"] .nav button[aria-current="page"] .ico { color: #fff; }
+body[data-skin="winxp"] .block-title { padding: 4px 10px; border-radius: 6px 6px 0 0; color: #fff;
+  background: linear-gradient(to bottom, color-mix(in srgb, var(--acc) 70%, #fff), var(--acc) 45%, color-mix(in srgb, var(--acc) 82%, #000)); }
+body[data-skin="winxp"] input[type=range]::-webkit-slider-thumb { width: 11px; height: 20px; margin-top: -7px; border-radius: 2px 2px 6px 6px;
+  border: 1px solid color-mix(in srgb, var(--acc) 60%, #000); background: linear-gradient(to bottom, #fff, var(--raise)); }
+
+/* Glass 7: frosted, highlight line, soft glow */
+body[data-skin="win7"] { --r: 4px; --r-big: 8px; }
+body[data-skin="win7"] .btn { background: linear-gradient(to bottom, rgb(255 255 255 / .22), rgb(255 255 255 / .06) 50%, rgb(0 0 0 / .08) 51%, rgb(255 255 255 / .05));
+  border: 1px solid rgb(255 255 255 / .28); box-shadow: inset 0 1px 0 rgb(255 255 255 / .35); }
+body[data-skin="win7"] .btn.primary { background: linear-gradient(to bottom, color-mix(in srgb, var(--acc) 60%, #fff), var(--acc) 50%, color-mix(in srgb, var(--acc) 80%, #000) 51%, var(--acc)); }
+body[data-skin="win7"] .btn:hover:not(:disabled) { box-shadow: 0 0 12px color-mix(in srgb, var(--acc) 60%, transparent), inset 0 1px 0 rgb(255 255 255 / .35); }
+body[data-skin="win7"] .rail { background: color-mix(in srgb, var(--panel) 80%, transparent); backdrop-filter: blur(14px); }
+
+/* Modern 11 / Touch: soft pills, accent underline */
+body[data-skin="win11"] { --r: 6px; --r-big: 10px; }
+body[data-skin="win11"] .nav button[aria-current="page"] { box-shadow: inset 3px 0 0 var(--acc); border-radius: 6px; }
+body[data-skin="touch"] { --r: 12px; --r-big: 18px; font-size: 16px; }
+body[data-skin="touch"] .btn { padding: 12px 22px; font-size: 15px; }
+body[data-skin="touch"] .nav button { padding: 11px 14px; font-size: 15px; }
+body[data-skin="touch"] .switch { width: 54px; height: 30px; } body[data-skin="touch"] .switch::after { width: 24px; height: 24px; }
+body[data-skin="touch"] .switch:checked::after { transform: translateX(24px); }
+body[data-skin="touch"] input[type=range]::-webkit-slider-thumb { width: 28px; height: 28px; margin-top: -11px; }
+
+/* Dread: worn slots, inset darkness, blood-red focus */
+body[data-skin="dread"] .btn, body[data-skin="dread"] input, body[data-skin="dread"] select, body[data-skin="dread"] .card-plain {
+  box-shadow: inset 0 0 10px rgb(0 0 0 / .65); }
+body[data-skin="dread"] .btn:hover:not(:disabled), body[data-skin="dread"] .btn:focus-visible { border-color: var(--red); box-shadow: inset 0 0 10px rgb(0 0 0 / .65), 0 0 10px color-mix(in srgb, var(--red) 45%, transparent); }
+body[data-skin="dread"] .btn.primary { background: color-mix(in srgb, var(--red) 70%, #000); border-color: var(--red); color: var(--ink); }
+body[data-skin="dread"] .nav button[aria-current="page"] { box-shadow: inset 3px 0 0 var(--red), 0 0 12px color-mix(in srgb, var(--red) 25%, transparent); }
+body[data-skin="dread"] .block-title { letter-spacing: .08em; border-bottom: 2px solid color-mix(in srgb, var(--red) 40%, var(--deep)); padding-bottom: 4px; }
+
+/* Wired: terminal – brackets, mono, [x] switches, block thumbs */
+body[data-skin="wired"] { --sans: var(--mono); }
+body[data-skin="wired"] .btn { background: transparent; border: 1px solid var(--acc); color: var(--acc); }
+body[data-skin="wired"] .btn::before { content: "[ "; } body[data-skin="wired"] .btn::after { content: " ]"; }
+body[data-skin="wired"] .btn.primary { background: var(--acc); color: var(--on-acc); }
+body[data-skin="wired"] .switch { width: auto; height: auto; background: none; }
+body[data-skin="wired"] .switch::after { content: "[ ]"; position: static; display: inline; width: auto; height: auto; background: none;
+  color: var(--muted); font: 600 14px var(--mono); transform: none !important; }
+body[data-skin="wired"] .switch:checked::after { content: "[x]"; color: var(--acc); background: none; }
+body[data-skin="wired"] input[type=range]::-webkit-slider-runnable-track { height: 2px; }
+body[data-skin="wired"] input[type=range]::-webkit-slider-thumb { width: 10px; height: 16px; margin-top: -7px; background: var(--acc); border: 0; }
+body[data-skin="wired"] .nav button[aria-current="page"]::before { content: "> "; color: var(--acc); }
+body[data-skin="wired"] .block-title::before { content: "// "; color: var(--dim); }
+body[data-skin="wired"] main { background-image: repeating-linear-gradient(to bottom, transparent 0 2px, color-mix(in srgb, var(--acc) 4%, transparent) 2px 3px); }
+
+/* Cathedral: serif headings, double rules */
+body[data-skin="cathedral"] .block-title, body[data-skin="cathedral"] .top h1, body[data-skin="cathedral"] .card-name {
+  font-family: "DejaVu Serif", Georgia, serif; letter-spacing: .03em; }
+body[data-skin="cathedral"] .block-title { border-bottom: 3px double var(--acc); padding-bottom: 4px; }
+body[data-skin="cathedral"] .btn { border: 3px double var(--line); }
+body[data-skin="cathedral"] .btn.primary { border-color: color-mix(in srgb, var(--acc) 70%, #000); }
+body[data-skin="cathedral"] .desk-frame, body[data-skin="cathedral"] .card-plain { outline: 1px solid var(--line); outline-offset: 3px; }
 
 @media (max-width: 900px) {
   .app { grid-template-columns: 1fr; }

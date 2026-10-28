@@ -1,5 +1,10 @@
 """Animated ASCII art – the same effect everywhere (apps, terminal greeting, LibreWolf).
 
+The art itself moves (theme.motion):
+- wave  – every row sways a little later than the one above, like a flag in the wind,
+- float – the whole motif drifts up and down and side to side, slowly,
+- drift – it glides sideways through its box and comes back in on the other side,
+- glint – it stays put (only the light effects below).
 Two layers on top of any motif, so your own art animates too:
 - a band of light sweeps diagonally across it every few seconds ("glint"),
 - sparks and stars (* + . ' `) twinkle on their own.
@@ -28,6 +33,35 @@ def _hash(*v: int) -> float:
     for x in v:
         h = ((h ^ (x & 0xFFFFFFFF)) * 16777619) & 0xFFFFFFFF
     return h / 0xFFFFFFFF
+
+
+MOTIONS = {"wave": "Wave like a flag", "float": "Float gently", "drift": "Drift sideways", "glint": "Stay put (only glint)"}
+AMP = 2               # how far (columns) wave/float move – the box is that much wider on both sides
+
+
+def move(lines: list[str], t: float, motion: str = "wave") -> list[str]:
+    """The art displaced for time t. The result always has the same size, so nothing around it jumps."""
+    import math
+    if motion not in ("wave", "float", "drift") or not lines:
+        return lines
+    width = max(map(len, lines), default=0)
+    rows = [l.ljust(width) for l in lines]
+    if motion == "drift":
+        span = width + 6
+        off = int(t * 6) % span                                  # 6 columns per second
+        return [(r + " " * 6)[off:] + (r + " " * 6)[:off] for r in rows]
+    out = []
+    if motion == "wave":
+        for i, r in enumerate(rows):
+            dx = round(AMP * math.sin(t * 2.2 - i * 0.55))
+            out.append(" " * (AMP + dx) + r + " " * (AMP - dx))
+        return out
+    # float: sideways sway plus one row of vertical bob
+    dx = round(AMP * math.sin(t * 0.9))
+    up = math.sin(t * 1.3) > 0
+    out = [" " * (AMP + dx) + r + " " * (AMP - dx) for r in rows]
+    blank = " " * (width + 2 * AMP)
+    return ([blank] + out) if up else (out + [blank])
 
 
 def cells(lines: list[str], t: float, intro: float | None = None):
@@ -65,11 +99,12 @@ def cells(lines: list[str], t: float, intro: float | None = None):
 
 
 # ── Textual / Rich ───────────────────────────────────────────────────
-def rich_frame(lines: list[str], t: float, styles: dict[str, str], intro: float | None = None):
+def rich_frame(lines: list[str], t: float, styles: dict[str, str], intro: float | None = None,
+               motion: str = "glint"):
     from rich.text import Text
     out = Text(no_wrap=True)
     row = 0
-    for r, _c, ch, kind in cells(lines, t, intro):
+    for r, _c, ch, kind in cells(move(lines, t, motion), t, intro):
         while row < r:
             out.append("\n")
             row += 1
@@ -91,7 +126,8 @@ def _key_pressed() -> bool:
         return False
 
 
-def greet(lines: list[str], colors: dict[str, str], duration: float = 1.1, fps: int = 30) -> None:
+def greet(lines: list[str], colors: dict[str, str], duration: float = 1.1, fps: int = 30,
+          motion: str = "glint") -> None:
     """Ignite the motif in the terminal, then clear it (fastfetch prints the final one).
     Any key skips. Nothing happens when output isn't a terminal."""
     if not sys.stdout.isatty() or not lines:
@@ -100,7 +136,8 @@ def greet(lines: list[str], colors: dict[str, str], duration: float = 1.1, fps: 
     lines = [l[:cols - 1] for l in lines]
     sty = {"face": _sgr(colors["face"], True), "shade": _sgr(colors["shade"]),
            "glint": _sgr(colors["glint"], True), "hot": _sgr(colors["hot"], True), "off": ""}
-    n = len(lines)
+    orig = lines
+    n = len(move(orig, 0.0, motion))                     # float needs one extra row to bob in
     fd = sys.stdin.fileno() if sys.stdin.isatty() else None
     old = termios.tcgetattr(fd) if fd is not None else None
     try:
@@ -111,7 +148,7 @@ def greet(lines: list[str], colors: dict[str, str], duration: float = 1.1, fps: 
         while True:
             t = time.monotonic() - start
             buf, row = ["\0337"], 0
-            for r, _c, ch, kind in cells(lines, t / duration * SWEEP, intro=t):   # one glint during the intro
+            for r, _c, ch, kind in cells(move(orig, t, motion), t / duration * SWEEP, intro=t):   # one glint during the intro
                 while row < r:
                     buf.append("\033[0m\n")
                     row += 1
@@ -146,9 +183,11 @@ def hello() -> int:
         t = themes.get(s["theme"]["name"])
         c = t.with_accent(s["theme"]["accent"])
         try:
+            motion = s["theme"].get("motion", "wave")
             greet(asc.art(asc.resolve(s, t)),
                   {"face": c["accent"], "shade": mix(c["accent"], c["base"], 0.45),
-                   "glint": c["text"], "hot": c["yellow"]})
+                   "glint": c["text"], "hot": c["yellow"]},
+                  duration=1.1 if motion == "glint" else 1.8, motion=motion)
         except KeyboardInterrupt:
             pass
     if shutil.which("fastfetch"):

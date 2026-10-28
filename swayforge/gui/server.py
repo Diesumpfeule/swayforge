@@ -23,6 +23,7 @@ from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
 from .. import __version__, layouts, paths, settings, themes
+from ..anim import MOTIONS
 
 STATIC = Path(__file__).resolve().parent / "static"
 THUMBS = Path(os.environ.get("XDG_CACHE_HOME") or paths.HOME / ".cache") / "swayforge/studio-thumbs"
@@ -57,6 +58,8 @@ def _from_fields() -> None:
             EDITABLE.setdefault(f.path, kind)
             if f.kind == "choice":
                 CHOICES[f.path] = [v for _, v in f.options]
+    EDITABLE["theme.motion"] = "choice"
+    CHOICES["theme.motion"] = list(MOTIONS)
     EDITABLE.update({"display.allow_tearing": "bool", "boot.style": "str", "boot.text": "str",
                      "theme.ascii": "str"})
 
@@ -139,7 +142,7 @@ def thumbnail(path: Path, width: int = 480) -> tuple[bytes, str]:
         src = path
         from .. import livewall
         if livewall.is_video(path):
-            src = Path(livewall.thumb(str(path)))
+            src = Path(livewall.thumb(str(path), max(640, width)))
         try:
             from PIL import Image
         except ImportError:                       # no Pillow: send the original
@@ -247,6 +250,7 @@ def make_handler(state: State, token: str):
                     "keys": [{"id": a, "label": lab, "default": k} for a, lab, k, _c in st.KEY_ACTIONS],
                     "prompt_sections": st.PROMPT_SECTIONS,
                     "art": list(__import__("swayforge.ascii", fromlist=["all_art"]).all_art()),
+                    "motions": MOTIONS,
                     "color_keys": themes.COLOR_KEYS, "color_labels": themes.COLOR_LABELS})
             if name == "page":
                 from . import actions
@@ -283,7 +287,11 @@ def make_handler(state: State, token: str):
                     state.walls = scan_walls(paths.WALLPAPER_DIR)
                 if p not in state.walls:              # only pictures from your wallpaper folder
                     return self._send(404, b"not found", "text/plain")
-                body, mime = thumbnail(p)
+                try:
+                    w = max(200, min(1920, int(q.get("w", ["480"])[0])))
+                except ValueError:
+                    w = 480
+                body, mime = thumbnail(p, w - w % 160)          # few sizes → few cache files
                 return self._send(200, body, mime, cache=True)
             if name == "themewall":
                 tid = q.get("id", [""])[0]

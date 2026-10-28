@@ -35,6 +35,35 @@ const api = {
 };
 
 const S = { data: null, s: null, themes: {}, fields: null, page: "overview", dirty: false, applying: false };
+// one consistent line-icon set (24×24, drawn in the text colour) – no emoji, no mixed glyphs
+const ICONS = {
+  overview: '<path d="M3 11 12 4l9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>',
+  themes: '<path d="M12 3a9 9 0 1 0 0 18c1.1 0 1.5-.8 1.2-1.6-.4-1 .2-2.4 1.6-2.4H17a4 4 0 0 0 4-4c0-5-4-10-9-10z"/><circle cx="7.5" cy="11" r="1"/><circle cx="10" cy="7" r="1"/><circle cx="15" cy="7.5" r="1"/>',
+  layouts: '<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 16h18M8 16v5"/>',
+  wallpapers: '<rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="m21 17-5-5-9 8"/>',
+  look: '<path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/>',
+  bar: '<rect x="3" y="4" width="18" height="5" rx="1.5"/><path d="M6 6.5h2M10 6.5h2M3 14h18M3 18h12"/>',
+  widgets: '<rect x="3" y="3" width="8" height="8" rx="2"/><circle cx="17" cy="7" r="4"/><rect x="3" y="14" width="18" height="7" rx="2"/>',
+  display: '<rect x="2" y="4" width="20" height="13" rx="2"/><path d="M9 21h6M12 17v4"/>',
+  audio: '<path d="M4 9v6h4l5 4V5L8 9z"/><path d="M17 8a5 5 0 0 1 0 8M19.5 5.5a8.5 8.5 0 0 1 0 13"/>',
+  sound: '<path d="M6 16v-5a6 6 0 0 1 12 0v5l2 2H4z"/><path d="M10 20a2 2 0 0 0 4 0"/>',
+  bluetooth: '<path d="m7 7 10 10-5 4V3l5 4L7 17"/>',
+  network: '<path d="M2 9a15 15 0 0 1 20 0M5 12.5a10 10 0 0 1 14 0M8.5 16a5 5 0 0 1 7 0"/><circle cx="12" cy="19.5" r="1"/>',
+  input: '<rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M7 14h10"/>',
+  shell: '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="m7 9 3 3-3 3M12 15h5"/>',
+  keys: '<path d="M9 6a3 3 0 1 0-3 3h12a3 3 0 1 0-3-3v12a3 3 0 1 0 3-3H6a3 3 0 1 0 3 3z"/>',
+  apps: '<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>',
+  games: '<path d="M6 8h12a4 4 0 0 1 4 4l-1 4a3 3 0 0 1-5 1l-1.5-1.5h-5L8 17a3 3 0 0 1-5-1l-1-4a4 4 0 0 1 4-4z"/><path d="M7 11v3M5.5 12.5h3M16 11.5h.01M18 13h.01"/>',
+  power: '<path d="M12 3v9"/><path d="M6.3 7a8 8 0 1 0 11.4 0"/>',
+  boot: '<rect x="6" y="6" width="12" height="12" rx="1.5"/><path d="M9 2v4M15 2v4M9 18v4M15 18v4M2 9h4M2 15h4M18 9h4M18 15h4"/>',
+  security: '<path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6z"/><path d="m9 12 2 2 4-4"/>',
+  cleanup: '<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6"/>',
+  mounts: '<rect x="3" y="13" width="18" height="7" rx="2"/><path d="M5 13 7 5h10l2 8M7 16.5h.01"/>',
+  system: '<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/>',
+  about: '<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5h.01"/>',
+  found: '<path d="m9 6 6 6-6 6"/>',
+};
+const icon = id => `<svg class="ico" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${ICONS[id] || ICONS.found}</svg>`;
 const PAGES = {};          // id → {title, group, icon, render(view), keywords}
 const GROUPS = [["Look", ["overview", "themes", "layouts", "wallpapers", "look", "bar"]],
   ["Devices", ["display", "audio", "sound", "bluetooth", "network", "input"]],
@@ -50,11 +79,12 @@ const theme = () => S.themes[S.s.theme.name] || Object.values(S.themes)[0];
 const colours = () => Desk.colours(theme(), S.s.theme.accent);
 const layoutOf = id => S.data.layouts.find(l => l.id === id) || S.data.layouts[0];
 const get = path => path.split(".").reduce((o, k) => (o || {})[k], S.s);
-function wallUrl(themeId) {
+function wallUrl(themeId, big) {
   const w = S.s.theme.wallpaper;
   if (w === "solid") return null;
   if (!w || w === "theme") return `/api/themewall?id=${encodeURIComponent(themeId || S.s.theme.name)}&t=${TOKEN}`;
-  return `/api/thumb?p=${encodeURIComponent(w)}&t=${TOKEN}`;
+  // big previews get a big picture – a small thumbnail stretched over 1100 px looks blurry
+  return `/api/thumb?p=${encodeURIComponent(w)}&w=${big ? 1760 : 480}&t=${TOKEN}`;
 }
 function toast(html, err = false) {
   const t = $("#toast");
@@ -147,6 +177,7 @@ function setDirty(d) {
 const sendQueue = new Map();
 let sendTimer = 0;
 function change(path, value) {
+  if (path === "power.saver_speed") Savers.setSpeed(value);
   path.split(".").reduce((o, k, i, arr) => (i === arr.length - 1 ? (o[k] = value) : (o[k] = o[k] || {})), S.s);
   setDirty(true);
   railRedraw();
@@ -241,6 +272,15 @@ function busy(btn, promise) {
 }
 function loading(view, text = "Looking …") { view.replaceChildren(h(`<p class="hint loading">${esc(text)}</p>`)); }
 
+// sliders show how far they are filled (WebKit/Chromium need it as a variable)
+function fill(inp) {
+  const mn = +inp.min || 0, mx = +inp.max || 100;
+  inp.style.setProperty("--fill", `${((+inp.value - mn) / (mx - mn || 1)) * 100}%`);
+}
+document.addEventListener("input", e => { if (e.target.matches?.("input[type=range]")) fill(e.target); });
+new MutationObserver(ms => ms.forEach(m => m.addedNodes.forEach(n => n.querySelectorAll?.("input[type=range]").forEach(fill))))
+  .observe(document.body, { childList: true, subtree: true });
+
 // ── navigation ────────────────────────────────────────────────────────
 function buildNav() {
   const nav = $("#nav");
@@ -249,7 +289,7 @@ function buildNav() {
     const sec = h(`<div class="navgroup"><span class="navhead">${esc(g)}</span><ul class="nav" role="list"></ul></div>`);
     for (const id of ids) {
       const p = PAGES[id]; if (!p) continue;
-      sec.querySelector("ul").append(h(`<li><button data-go="${id}"><span class="ico" aria-hidden="true">${p.icon}</span>${esc(p.title)}</button></li>`));
+      sec.querySelector("ul").append(h(`<li><button data-go="${id}">${icon(id)}${esc(p.title)}</button></li>`));
     }
     nav.append(sec);
   }
@@ -293,7 +333,7 @@ function findSetting(q) {
   }
   nav.replaceChildren(h(`<div class="navgroup"><span class="navhead">${hits.length ? "Found" : "Nothing found"}</span><ul class="nav" role="list"></ul></div>`));
   hits.slice(0, 30).forEach(x => nav.querySelector("ul").append(
-    h(`<li><button data-go="${x.id}" ${x.path ? `data-path="${x.path}"` : ""}><span class="ico">›</span><span>${esc(x.label)}<small class="navsub">${esc(x.sub || "")}</small></span></button></li>`)));
+    h(`<li><button data-go="${x.id}" ${x.path ? `data-path="${x.path}"` : ""}>${icon("found")}<span>${esc(x.label)}<small class="navsub">${esc(x.sub || "")}</small></span></button></li>`)));
 }
 
 document.addEventListener("click", e => {

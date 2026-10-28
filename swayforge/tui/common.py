@@ -56,9 +56,16 @@ class AnimatedArt(Static):
     """ASCII art that glints and twinkles (see anim.py). Static when animate=False."""
 
     def __init__(self, lines: list[str], styles: dict[str, str], animate: bool = True, fps: int = 12,
-                 **kw) -> None:
+                 motion: str | None = None, banner: bool = False, **kw) -> None:
         super().__init__("", **kw)
         self.lines, self.palette, self.animate, self.fps = lines, styles, animate, fps
+        if motion is None:                       # default: what you picked in the settings
+            try:
+                motion = settings.load()["theme"].get("motion", "wave")
+            except SystemExit:
+                motion = "wave"
+        self.motion = motion
+        self.banner = banner                     # block lettering: moves as a whole, letters stay intact
         self._timer = None
 
     def on_mount(self) -> None:
@@ -72,7 +79,13 @@ class AnimatedArt(Static):
         import time
         from ..anim import rich_frame
         t = (time.monotonic() - self._t0) if self.animate else 10_000.0
-        self.update(rich_frame(self.lines, t + 3.0 if self.animate else t, self.palette))
+        self.update(rich_frame(self.lines, t + 3.0 if self.animate else t, self.palette,
+                               motion=("float" if self.banner and self.motion == "wave" else self.motion)
+                               if self.animate else "glint"))
+
+    def set_motion(self, motion: str) -> None:
+        self.motion = motion
+        self._draw()
 
     def set_animate(self, on: bool) -> None:
         self.animate = on
@@ -155,7 +168,9 @@ Screen { layout: vertical; }
 .pagetitle { text-style: bold; color: $accent; padding: 0 1; margin-bottom: 1; border-bottom: heavy $accent; }
 .section { text-style: bold; color: $text; background: $panel; padding: 0 1; margin-top: 1; margin-bottom: 1; }
 .frow { height: auto; margin-bottom: 0; padding: 0 0 0 1; }
-.frow:hover { background: $boost; }
+/* zebra rows: every switch/field sits on the same band as its label */
+.frow:odd { background: $panel 45%; }
+.frow:hover { background: $accent 15%; }
 .flabelbox { width: 1fr; height: auto; }
 .flabel { padding-top: 0; }
 .fhelp { color: $text-muted; }

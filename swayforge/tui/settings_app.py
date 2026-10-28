@@ -23,6 +23,7 @@ from .common import (BASE_CSS, HOLD, AnimatedArt, Field, art_styles, coerce, fie
 from .games import GamesPanel
 from .maintenance import AboutPanel, AppsPanel, CleanupPanel, MountsPanel
 from .wallpapers import WallpapersPanel
+from ..anim import MOTIONS
 from ..fields import FIELDS, ON_OFF, PAGES, SAVER_OPTS  # noqa: F401
 from .panels import AudioPanel, BluetoothPanel, NetworkPanel
 
@@ -125,10 +126,19 @@ class SettingsApp(App):
     """
     BINDINGS = [
         Binding("ctrl+s", "save", "Save & apply", priority=True),
+        Binding("ctrl+g", "open_gui", "swayforge app", priority=True),
         Binding("ctrl+l", "redraw", "Redraw", priority=True),
         Binding("ctrl+q", "quit_app", "Quit", priority=True),
         Binding("escape", "quit_app", "Quit", show=False),
     ]
+
+    def action_open_gui(self) -> None:
+        """Open the graphical swayforge app (unsaved changes here are saved first)."""
+        if self.dirty:
+            self.save_and_apply(quiet=True)
+        subprocess.Popen([render.LAUNCHER, "gui"], start_new_session=True,
+                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        self.notify("Opening the swayforge app …", timeout=4)
 
     def action_redraw(self) -> None:
         """Repaint everything – for when the terminal shows leftovers after resizing."""
@@ -207,9 +217,11 @@ class SettingsApp(App):
         art_opts = [("Theme's motif", "auto")] + [(n, n) for n in asc.all_art()]
         return self.page(
             "theme",
+            Horizontal(Button("Open the swayforge app (graphical)", id="open_gui", variant="primary"),
+                       Static("  live previews of every theme and layout · Ctrl+G", classes="hint"), classes="btnrow"),
             AnimatedArt(asc.best_banner("swayforge", 78), art_styles(t.with_accent(self.s["theme"]["accent"]),
                                                                       bold=True),
-                        animate=self.s["theme"]["animate"], id="hero_banner"),
+                        animate=self.s["theme"]["animate"], banner=True, id="hero_banner"),
             Horizontal(AnimatedArt(asc.art(asc.resolve(self.s, t)),
                                    art_styles(t.with_accent(self.s["theme"]["accent"]), "accent2"),
                                    animate=self.s["theme"]["animate"], id="hero_art"),
@@ -226,6 +238,9 @@ class SettingsApp(App):
                       self.s),
             field_row(Field("theme.animate", "Animate the ASCII art", "bool",
                             help="glint + twinkling sparks · terminal greeting · LibreWolf"), self.s),
+            field_row(Field("theme.motion", "How it moves", "choice",
+                            [(v, k) for k, v in MOTIONS.items()]),
+                      self.s),
             section("Edit colours → your own theme"),
             Static("Everything else (gaps, font, bar, shortcuts …) stays when you switch themes. "
                    "Colours are changed here: edit, give it a name, save – it then shows up above as "
@@ -567,6 +582,9 @@ class SettingsApp(App):
         elif f.path == "theme.animate":
             for w in self.query(AnimatedArt):
                 w.set_animate(bool(val))
+        elif f.path == "theme.motion":
+            for w in self.query(AnimatedArt):
+                w.set_motion(str(val))
             self.live_apply()
         elif f.path == "look.ui_opacity":
             self.live_apply()
@@ -814,7 +832,9 @@ class SettingsApp(App):
         bid = ev.button.id or ""
         name = ev.button.name or ""
         hold = HOLD
-        if name.startswith("edit:"):
+        if bid == "open_gui":
+            self.action_open_gui()
+        elif name.startswith("edit:"):
             path = name[5:]
             key = "sway" if path == "general.keys" else render.file_for(path, self.s)
             self.open_file(render.CONFIG_FILES[key][1])

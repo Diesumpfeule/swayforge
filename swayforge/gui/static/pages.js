@@ -11,7 +11,7 @@ Studio.page("overview", {
   },
   live() {
     const hd = $("#hero-desk"); if (!hd) return;
-    desk(hd, { theme: theme(), layout: S.s.bar.layout, wallpaperUrl: wallUrl(), notify: true });
+    desk(hd, { theme: theme(), layout: S.s.bar.layout, wallpaperUrl: wallUrl(null, true), notify: true });
     const t = theme(), lay = layoutOf(S.s.bar.layout), w = S.s.theme.wallpaper;
     const see = Math.round((1 - (S.s.look.ui_opacity ?? 1)) * 100);
     const rows = [
@@ -100,7 +100,8 @@ function artRows() {
   const box = h(`<div class="controls"></div>`);
   const opts = [["Theme's motif", "auto"], ...S.fields.art.map(a => [a, a])];
   box.append(fieldRow({ path: "theme.ascii", label: "ASCII art", kind: "choice", options: opts, help: "fastfetch, login, boot screen · your own: ~/.config/swayforge/ascii" }));
-  box.append(fieldRow({ path: "theme.animate", label: "Animate the ASCII art", kind: "bool", help: "glint and sparks in the terminal greeting and in LibreWolf" }));
+  box.append(fieldRow({ path: "theme.animate", label: "Animate the ASCII art", kind: "bool", help: "the terminal app, the terminal greeting and the LibreWolf start page" }));
+  box.append(fieldRow({ path: "theme.motion", label: "How it moves", kind: "choice", options: Object.entries(S.fields.motions).map(([k, v]) => [v, k]) }));
   return box;
 }
 
@@ -217,7 +218,7 @@ Studio.page("look", {
     view.append(split);
     this.live();
   },
-  live() { const d = $("#look-desk"); if (d) desk(d, { theme: theme(), layout: S.s.bar.layout, wallpaperUrl: wallUrl(), notify: true }); },
+  live() { const d = $("#look-desk"); if (d) desk(d, { theme: theme(), layout: S.s.bar.layout, wallpaperUrl: wallUrl(null, true), notify: true }); },
 });
 
 function sliderRow(path, label, o, help) {
@@ -578,6 +579,7 @@ Studio.page("power", {
   async render(view) {
     const sv = section("Screensaver", "Instead of a plain lock, a scene starts after the lock time. The first key or mouse move locks the screen and ends it.");
     const grid = h(`<div class="grid savers"></div>`), c = colours();
+    Savers.setSpeed(S.s.power.saver_speed ?? 5);
     for (const [id, label] of Object.entries(S.data.savers)) {
       const on = id === S.s.power.screensaver;
       const card = h(`<button class="card" aria-pressed="${on}"><div class="saver"><canvas width="320" height="200"></canvas></div>

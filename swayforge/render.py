@@ -527,12 +527,25 @@ def enable_discord_theme(client: Path) -> None:
         pass
 
 
+def exo_helper_ok(name: str) -> bool:
+    """Is an exo helper (helpers.rc TerminalEmulator=NAME) installed and its program present?"""
+    if name == "swayforge-terminal":
+        return True
+    for d in (paths.XDG_DATA / "xfce4/helpers", Path("/usr/share/xfce4/helpers"), Path("/usr/local/share/xfce4/helpers")):
+        f = d / f"{name}.desktop"
+        if f.is_file():
+            m = re.search(r"^X-XFCE-Binaries=(.*)$", f.read_text(errors="replace"), re.M)
+            return bool(m and any(shutil.which(b) for b in m.group(1).split(";") if b))
+    return False
+
+
 def palette_json(ctx: Ctx) -> str:
     """The active look as plain data – wolfforge (LibreWolf) and other tools read this."""
     return json.dumps({
         "theme": ctx.theme.id, "label": ctx.theme.label, "dark": ctx.theme.dark, "colors": ctx.c,
         "ansi": ctx.theme.ansi, "bevel": bevel(ctx.c), "font": ctx.s["theme"]["font"], "font_size": ctx.s["theme"]["font_size"],
         "radius": ctx.s["look"]["radius"], "layout": ctx.s["bar"]["layout"], "art": ctx.art_name,
+        "animate": ctx.s["theme"]["animate"], "motion": ctx.s["theme"].get("motion", "wave"),
         "art_lines": asc.art(ctx.art_name),
     }, indent=2, ensure_ascii=False) + "\n"
 
@@ -921,16 +934,31 @@ def render_all(s: dict | None = None, dry: bool = False, si: SysInfo | None = No
     term = s["general"]["terminal"]
     desktop_id = {"alacritty": "Alacritty.desktop"}.get(term, f"{term}.desktop")
     w.owned(C / "xdg-terminals.list", f"# {MARK} – your terminal for apps that need one\n{desktop_id}\n")
-    run_flag = "-e " if term == "alacritty" else ""
+    # exo (Thunar "Open Terminal Here") only uses a helper whose X-XFCE-Binaries exist – without that
+    # line it reports "could not find fallback terminal emulator"
+    run_cmd = '%B -e sh -c "%s"' if term == "alacritty" else '%B sh -c "%s"'
     w.owned(paths.XDG_DATA / "xfce4/helpers/swayforge-terminal.desktop",
-            f"# {MARK}\n[Desktop Entry]\nNoDisplay=true\nVersion=1.0\nType=X-XFCE-Helper\n"
+            f"# {MARK}\n[Desktop Entry]\nNoDisplay=true\nVersion=1.0\nEncoding=UTF-8\nType=X-XFCE-Helper\n"
             f"X-XFCE-Category=TerminalEmulator\nName={term}\nIcon={term}\n"
-            f"X-XFCE-Commands={term}\nX-XFCE-CommandsWithParameter={term} {run_flag}%s\n")
+            f"X-XFCE-Binaries={term};\nX-XFCE-Commands=%B\nX-XFCE-CommandsWithParameter={run_cmd}\n")
+    # GLib (text files that open in nvim, any Terminal=true app) asks xdg-terminal-exec first
+    shim = paths.HOME / ".local/bin/xdg-terminal-exec"
+    if not dry and not shutil.which("xdg-terminal-exec", path="/usr/bin:/usr/local/bin") and (
+            not shim.exists() or has_mark(shim.read_text(errors="replace"))):
+        shim.parent.mkdir(parents=True, exist_ok=True)
+        flag = "-e " if term == "alacritty" else ""
+        shim.write_text(f"#!/bin/sh\n# {MARK} – opens a command in your terminal ({term})\n"
+                        f'[ "$1" = "-e" ] && shift\n[ $# -eq 0 ] && exec {term}\nexec {term} {flag}"$@"\n')
+        shim.chmod(0o755)
     helpers = C / "xfce4/helpers.rc"
     old = helpers.read_text(errors="replace") if helpers.exists() else ""
-    if "TerminalEmulator=" not in old and not dry:   # don't override a choice you made in Thunar
+    # keep a choice you made in Thunar – unless it points at a terminal that isn't installed
+    chosen = re.search(r"^TerminalEmulator=(.*)$", old, re.M)
+    usable = chosen and exo_helper_ok(chosen.group(1).strip())
+    if not usable and not dry:
         helpers.parent.mkdir(parents=True, exist_ok=True)
-        helpers.write_text(old + ("" if not old or old.endswith("\n") else "\n")
+        rest = re.sub(r"^TerminalEmulator=.*\n?", "", old, flags=re.M)
+        helpers.write_text(rest + ("" if not rest or rest.endswith("\n") else "\n")
                            + "TerminalEmulator=swayforge-terminal\n")
 
     # Shell + prompt + fastfetch
