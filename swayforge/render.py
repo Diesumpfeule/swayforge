@@ -22,6 +22,8 @@ from pathlib import Path
 
 import jinja2
 
+from .fsutil import atomic_write
+
 from . import art_svg
 from . import ascii as asc
 from . import layouts, livewall, paths, settings, themes
@@ -740,8 +742,7 @@ class Writer:
                     return
                 self._backup(path)                  # foreign file (old rice) → back up
         if not self.dry:
-            path.parent.mkdir(parents=True, exist_ok=True)
-            path.write_text(content)
+            atomic_write(path, content)
         self.manifest.add(str(path))
         self.res.written.append(str(path))
 
@@ -754,14 +755,13 @@ class Writer:
             self._backup(path)
             self.res.notes.append(f"{path} replaced (old version in backup)")
         if not self.dry:
-            path.parent.mkdir(parents=True, exist_ok=True)
-            path.write_text(content)
+            atomic_write(path, content)
         self.res.written.append(str(path))
 
     def save_manifest(self) -> None:
         if not self.dry:
             MANIFEST.parent.mkdir(parents=True, exist_ok=True)
-            MANIFEST.write_text(json.dumps(sorted(self.manifest), indent=0))
+            atomic_write(MANIFEST, json.dumps(sorted(self.manifest), indent=0))
 
 
 def prune_backups(keep: int = 15) -> None:

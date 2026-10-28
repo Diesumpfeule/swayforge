@@ -544,6 +544,14 @@ chat): launch option `-netconport 2121`, then `Super+Ctrl+T`. Details: [extras/c
 - Install Proton-GE via **ProtonPlus**, then pick it per game in Steam.
 - Turn on FreeSync under Displays; "Allow tearing in games" lowers input lag.
 
+## Tests
+
+```bash
+python3 -m unittest discover -s tests
+```
+
+Everything runs in a throw-away HOME – no root, no Sway needed. The audit report is in [docs/AUDIT.md](docs/AUDIT.md).
+
 ## Credits
 
 The bundled colour themes are based on these palettes – all credit for the colours goes to

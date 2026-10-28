@@ -42,8 +42,13 @@ sudo dnf install -y --skip-unavailable python3-gobject gtk4 webkitgtk6.0 >/dev/n
 bold "Copying swayforge to $APP …"
 mkdir -p "$APP" "$(dirname "$BIN")"
 if [ "$HERE" != "$APP" ]; then
-  rm -rf "$APP/swayforge"
-  cp -r "$HERE/swayforge" "$APP/"
+  # copy next to the installed version, check it, then swap – a failed copy never leaves a broken app
+  rm -rf "$APP/swayforge.new" "$APP/swayforge.old"
+  cp -r "$HERE/swayforge" "$APP/swayforge.new" || fail "Copying failed – the installed version is unchanged."
+  python3 -m compileall -q "$APP/swayforge.new" >/dev/null || { rm -rf "$APP/swayforge.new"; fail "The new version has a syntax error – the installed version is unchanged."; }
+  [ -d "$APP/swayforge" ] && mv "$APP/swayforge" "$APP/swayforge.old"
+  mv "$APP/swayforge.new" "$APP/swayforge"
+  rm -rf "$APP/swayforge.old"
   mkdir -p "$APP/extras"
   cp -r "$HERE/extras/." "$APP/extras/" 2>/dev/null || true
   cp "$HERE/install.sh" "$HERE/README.md" "$APP/" 2>/dev/null || true

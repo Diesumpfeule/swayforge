@@ -224,11 +224,36 @@ KEY_ACTIONS: list[tuple[str, str, str, str]] = [
 ]
 
 
+def _fits(default, value):
+    """A hand-edited value of the wrong type falls back to the default instead of breaking the
+    config generation later (e.g. radius = "round"). Returns the value to keep."""
+    if default is None or value is None:
+        return value
+    if isinstance(default, bool):
+        return value if isinstance(value, bool) else default
+    if isinstance(default, (int, float)) and not isinstance(default, bool):
+        if isinstance(value, bool) or not isinstance(value, (int, float)):
+            try:
+                return type(default)(value)
+            except (TypeError, ValueError):
+                return default
+        return type(default)(value) if isinstance(default, float) else value
+    if isinstance(default, str):
+        return value if isinstance(value, str) else default
+    if isinstance(default, list):
+        return value if isinstance(value, list) else default
+    return value
+
+
 def _merge(base: dict, over: dict) -> dict:
     out = copy.deepcopy(base)
     for k, v in over.items():
         if isinstance(v, dict) and isinstance(out.get(k), dict) and k not in ("outputs", "keys", "style_backup"):
             out[k] = _merge(out[k], v)
+        elif k in out and not isinstance(out[k], dict):
+            out[k] = copy.deepcopy(_fits(out[k], v))
+        elif k in out and isinstance(out[k], dict) and not isinstance(v, dict) and k not in ("outputs", "keys", "style_backup"):
+            pass                                    # a section replaced by a plain value – keep the defaults
         else:
             out[k] = copy.deepcopy(v)
     return out
@@ -252,13 +277,33 @@ def _migrate(data: dict) -> dict:
     return data
 
 
+LOAD_ERRORS: list[str] = []          # what went wrong reading settings.toml (shown by the apps)
+
+
 def load() -> dict:
+    """Your settings on top of the defaults. A settings.toml with a syntax error is kept aside
+    (settings.toml.broken-DATE) and the defaults are used, so no app is locked out by a typo."""
     data = {}
     if paths.SETTINGS_FILE.exists():
         try:
             data = tomllib.loads(paths.SETTINGS_FILE.read_text())
-        except tomllib.TOMLDecodeError as e:
-            raise SystemExit(f"Error in {paths.SETTINGS_FILE}: {e}")
+        except (tomllib.TOMLDecodeError, UnicodeDecodeError) as e:
+            import shutil
+            import time
+            raw = paths.SETTINGS_FILE.read_bytes()
+            same = [p for p in paths.SETTINGS_FILE.parent.glob("settings.toml.broken-*") if p.read_bytes() == raw]
+            keep = same[0] if same else paths.SETTINGS_FILE.with_name(f"settings.toml.broken-{time.strftime('%Y%m%d-%H%M%S')}")
+            if not same:                            # one copy per broken version, not one per read
+                try:
+                    shutil.copy2(paths.SETTINGS_FILE, keep)
+                except OSError:
+                    pass
+            msg = f"{paths.SETTINGS_FILE} has an error ({e}) – using the defaults; your file is kept as {keep.name}"
+            if msg not in LOAD_ERRORS:
+                LOAD_ERRORS.append(msg)
+            import sys
+            print("swayforge: " + msg, file=sys.stderr)
+            data = {}
     return _merge(DEFAULTS, _migrate(data))
 
 
@@ -266,7 +311,8 @@ def save(s: dict) -> None:
     paths.ensure_dirs()
     header = ("# swayforge settings – safe to edit by hand,\n"
               "# then run `swayforge apply` (or save in the app).\n\n")
-    paths.SETTINGS_FILE.write_text(header + tomlw.dumps(s))
+    from .fsutil import atomic_write
+    atomic_write(paths.SETTINGS_FILE, header + tomlw.dumps(s))
 
 
 def get(s: dict, path: str, default=None):

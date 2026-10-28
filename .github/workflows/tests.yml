@@ -1,0 +1,27 @@
+name: tests
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  unit:
+    # No root, no Sway, no real HOME – every test uses a throw-away directory.
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python: ["3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - run: pip install jinja2 pillow textual pyflakes
+      - name: syntax
+        run: |
+          python -m compileall -q swayforge tests
+          bash -n install.sh
+          python -m pyflakes swayforge tests
+      - name: unit tests
+        run: python -m unittest discover -s tests -v
