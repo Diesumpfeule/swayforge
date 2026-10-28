@@ -75,6 +75,24 @@ def describe(name: str, info: dict, rem: str, verdict: str) -> str:
 DONE_MARK = paths.STATE_DIR / "update-done"
 
 
+def pull_cmd(name: str, q: str) -> str:
+    """Bring the source copy to the newest version, whatever happened to it locally.
+    Own edits are never lost: they go into `git stash` (git -C SRC stash list / stash pop),
+    a copy that drifted apart gets a backup branch before it is reset to GitHub's version."""
+    stamp = "$st"
+    return (
+        f"st=$(date +%Y%m%d-%H%M); git -C {q} pull --ff-only -q || {{ "
+        f"echo '! {name}: your copy has own changes – saving them with git stash, then updating'; "
+        f"git -C {q} stash push --include-untracked -m \"before update {stamp}\" >/dev/null 2>&1; "
+        f"git -C {q} pull --ff-only -q || {{ "
+        f"echo \"! {name}: your copy went its own way – keeping it as branch local-backup-{stamp}\"; "
+        f"git -C {q} branch \"local-backup-{stamp}\" >/dev/null 2>&1; "
+        f"git -C {q} fetch -q origin && git -C {q} reset -q --hard \"origin/$(git -C {q} rev-parse --abbrev-ref HEAD)\"; }}; "
+        f"git -C {q} stash list | grep -q 'before update' && "
+        f"echo '  your changes: git -C {q.strip(chr(39))} stash list   (get them back: stash pop)'; }}"
+    )
+
+
 def script(names: list[str] | None = None) -> str:
     """Shell commands: pull (or clone) each repo, then run its installer without questions.
     Ends with exit status 0 only if every step worked."""
@@ -89,8 +107,7 @@ def script(names: list[str] | None = None) -> str:
         q = shlex.quote(src)
         parts.append(
             f"echo; echo '── {name} ──'; "
-            f"if [ -d {q}/.git ]; then git -C {q} pull --ff-only "
-            f"|| echo '! {name}: your copy in {src} has own changes – pull skipped, installing what is there'; "
+            f"if [ -d {q}/.git ]; then {pull_cmd(name, q)}; "
             f"else mkdir -p {shlex.quote(str(Path(src).parent))} && git clone -q {url(name)}.git {q}; fi; "
             f"if bash {q}/install.sh {flag} </dev/null; then echo '✓ {name} updated'; "
             f"else echo '✗ {name}: install step failed'; fail=1; fi")
