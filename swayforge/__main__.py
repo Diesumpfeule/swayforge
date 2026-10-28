@@ -1,7 +1,8 @@
 """swayforge – command line.
 
   swayforge                    settings app (TUI)
-  swayforge gui                swayforge Studio – graphical settings with live previews
+  swayforge gui                swayforge app – graphical settings with live previews
+  swayforge screenshare        check and repair screen sharing (Discord/Vesktop, browsers)
   swayforge install            installer (TUI)
   swayforge install --yes      install the saved profile without questions
   swayforge apply              regenerate configs from settings.toml + reload
@@ -62,7 +63,8 @@ def main(argv: list[str] | None = None) -> int:
     p = sub.add_parser("restore", help="restore a backup")
     p.add_argument("file")
 
-    p = sub.add_parser("gui", help="swayforge Studio – graphical settings with live previews")
+    p = sub.add_parser("screenshare", help="check and repair screen sharing (Discord/Vesktop, browsers)")
+    p = sub.add_parser("gui", help="swayforge app – graphical settings with live previews")
     p.add_argument("--browser", action="store_true", help="open in a browser instead of a native window")
     p.add_argument("--serve", action="store_true", help="only serve and print the address")
     p = sub.add_parser("settings", help="settings app (default)")
@@ -118,6 +120,10 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("mode", choices=["area", "output", "edit"], nargs="?", default="area")
 
     a = ap.parse_args(argv)
+
+    if a.cmd == "screenshare":
+        from . import render
+        return render.screenshare_check(fix=True)
 
     if a.cmd == "gui":
         from .gui import main as gui_main

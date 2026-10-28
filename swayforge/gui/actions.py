@@ -516,6 +516,9 @@ def system_action(state, verb: str, d: dict) -> str:
     if verb == "update":
         term(state, f"sudo dnf upgrade --refresh; flatpak update 2>/dev/null; {HOLD}")
         return "System update runs in a terminal"
+    if verb == "screenshare":
+        term(state, f"{L()} screenshare; {HOLD}")
+        return "Checking screen sharing in a terminal"
     if verb == "firmware":
         term(state, f"fwupdmgr refresh; fwupdmgr get-updates; {HOLD}")
         return ""
@@ -576,7 +579,7 @@ def about_action(state, verb: str) -> str:
     if verb == "update":
         update.DONE_MARK.unlink(missing_ok=True)
         term(state, update.terminal_command(HOLD))
-        return "Updating in a terminal – restart Studio when it says it's done"
+        return "Updating in a terminal – restart the app when it says it's done"
     if verb in ("gh_swayforge", "gh_wolfforge"):
         _spawn("xdg-open", update.url(verb[3:]))
         return ""

@@ -1,4 +1,4 @@
-"""CS2 translator + Steam helper settings, shared by the terminal app and swayforge Studio."""
+"""CS2 translator + Steam helper settings, shared by the terminal app and swayforge app."""
 from __future__ import annotations
 
 import importlib.util

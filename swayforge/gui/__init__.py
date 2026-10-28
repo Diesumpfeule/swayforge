@@ -1,4 +1,4 @@
-"""swayforge Studio – graphical settings next to the terminal app (`swayforge gui`)."""
+"""swayforge app – graphical settings next to the terminal app (`swayforge gui`)."""
 from __future__ import annotations
 
 import os
@@ -7,7 +7,7 @@ import subprocess
 import sys
 import time
 
-APP_ID = "swayforge-studio"
+APP_ID = "swayforge-app"
 
 
 def _native_window(url: str) -> bool:
@@ -26,7 +26,7 @@ def _native_window(url: str) -> bool:
     app = Gtk.Application(application_id="org.swayforge.Studio")
 
     def activate(a):
-        win = Gtk.ApplicationWindow(application=a, title="swayforge Studio")
+        win = Gtk.ApplicationWindow(application=a, title="swayforge app")
         win.set_default_size(1280, 820)
         view = WebKit.WebView()
         if os.environ.get("SWAYFORGE_DEBUG"):
@@ -63,7 +63,7 @@ def _browser_window(url: str) -> bool:
 def main(argv: list[str] | None = None) -> int:
     import argparse
     from .server import IDLE_EXIT, serve
-    ap = argparse.ArgumentParser(prog="swayforge gui", description="swayforge Studio – graphical settings")
+    ap = argparse.ArgumentParser(prog="swayforge gui", description="swayforge app – graphical settings")
     ap.add_argument("--port", type=int, default=0)
     ap.add_argument("--browser", action="store_true", help="open in the browser instead of a native window")
     ap.add_argument("--serve", action="store_true", help="only print the URL and keep serving (Ctrl+C ends)")
@@ -81,7 +81,7 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     if not _browser_window(url):
         print("No window toolkit or browser found. Open this address yourself:\n" + url)
-    print("swayforge Studio runs at", url, flush=True)
+    print("swayforge app runs at", url, flush=True)
     # The page pings every few seconds; when the window is gone, stop (but never mid-apply).
     state.last_ping = time.time() + 30          # give the browser time to start
     while time.time() - state.last_ping < IDLE_EXIT or state.applying:

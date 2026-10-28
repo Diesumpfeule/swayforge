@@ -1,4 +1,4 @@
-/* swayforge Studio – the app wears the theme you are editing.
+/* swayforge app – the app wears the theme you are editing.
    All colours come from the staged theme (set as custom properties by studio.js). */
 :root {
   --bg: #1e1e2e; --panel: #181825; --deep: #11111b; --raise: #313244; --line: #45475a;
@@ -283,3 +283,9 @@ dialog::backdrop { background: rgb(0 0 0 / .55); backdrop-filter: blur(3px); }
 .colgrid label { display: flex; align-items: center; gap: 8px; font-size: 12.5px; }
 .colgrid input[type=color] { width: 30px; height: 30px; padding: 0; border: 1px solid var(--line); border-radius: 6px; background: none; }
 .colgrid code { margin-left: auto; color: var(--dim); }
+
+.saver-ov { position: fixed; inset: 0; z-index: 50; background: #000; cursor: none; animation: toast .25s var(--ease); }
+.saver-ov canvas { width: 100%; height: 100%; display: block; image-rendering: pixelated; }
+.saver-hint { position: absolute; bottom: 18px; left: 50%; transform: translateX(-50%); font: 12px var(--mono); color: rgb(255 255 255 / .45);
+  animation: fadehint 3s forwards; }
+@keyframes fadehint { 70% { opacity: 1; } 100% { opacity: 0; } }

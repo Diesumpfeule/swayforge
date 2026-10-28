@@ -1,4 +1,4 @@
-// swayforge Studio – core: server calls, staged settings, skin, navigation, form building.
+// swayforge app – core: server calls, staged settings, skin, navigation, form building.
 // The pages themselves live in pages.js and register with Studio.page().
 "use strict";
 
@@ -317,7 +317,7 @@ window.addEventListener("load", async () => {
     await reloadSettings();
     S.fields = await api.get("fields");
   } catch (e) {
-    document.body.innerHTML = `<p style="padding:40px;font:15px monospace">swayforge Studio could not reach its server (${esc(e.message)}). Start it again with <b>swayforge gui</b>.</p>`;
+    document.body.innerHTML = `<p style="padding:40px;font:15px monospace">swayforge app could not reach its server (${esc(e.message)}). Start it again with <b>swayforge gui</b>.</p>`;
     return;
   }
   buildNav(); skin();

@@ -1,4 +1,4 @@
-"""Settings forms shared by the terminal app and swayforge Studio: every editable option with its
+"""Settings forms shared by the terminal app and swayforge app: every editable option with its
 label, kind, choices and hint. Pure data – no UI toolkit imported here."""
 from __future__ import annotations
 

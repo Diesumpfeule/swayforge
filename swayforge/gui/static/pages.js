@@ -1,4 +1,4 @@
-// swayforge Studio – the pages. Each one builds its view from the staged settings and the server.
+// swayforge app – the pages. Each one builds its view from the staged settings and the server.
 "use strict";
 
 // ═══ LOOK ═════════════════════════════════════════════════════════════
@@ -247,7 +247,7 @@ Studio.page("display", {
     const g = section("Games");
     g.append(fieldRow({ path: "display.allow_tearing", label: "Allow tearing in games", kind: "bool", help: "lower input lag in fullscreen games" }));
     if (!d.outputs.length) {
-      view.append(h(`<p class="hint">Screens can only be read inside Sway. Start Studio from your Sway desktop.</p>`), g);
+      view.append(h(`<p class="hint">Screens can only be read inside Sway. Start the app from your Sway desktop.</p>`), g);
       return;
     }
     const outs = d.outputs.map(o => Object.assign({}, o));
@@ -587,7 +587,12 @@ Studio.page("power", {
       grid.append(card);
       Savers.attach(card.querySelector("canvas"), id, c);
     }
-    sv.append(grid, button("Preview full screen", "", () => api.post("preview-saver", { name: S.s.power.screensaver === "off" ? "matrix" : S.s.power.screensaver })));
+    const pick = () => (S.s.power.screensaver === "off" ? "matrix" : S.s.power.screensaver);
+    const r = h(`<div class="btnrow"></div>`);
+    r.append(button("Preview here", "primary", () => saverOverlay(pick())),
+      button("Preview the real one (terminal, full screen)", "ghost", () => api.post("preview-saver", { name: pick() })));
+    sv.append(grid, r, h(`<p class="hint">Double-click a screensaver to watch it big. Any key or click ends the preview.</p>`));
+    grid.addEventListener("dblclick", e => { const c = e.target.closest(".card"); if (c) saverOverlay(Object.keys(S.data.savers)[[...grid.children].indexOf(c)]); });
     view.append(sv, form("power", { skip: ["power.screensaver"] }));
     const pp = await api.get("page", { id: "power" }).catch(() => null);
     if (pp && pp.profiles.length) {
@@ -731,6 +736,7 @@ Studio.page("system", {
     const sy = section("System");
     const r = h(`<div class="btnrow"></div>`);
     r.append(button("Update the system", "primary", () => api.act("system", { verb: "update" })), button("Check firmware", "", () => api.act("system", { verb: "firmware" }, true)),
+      button("Check screen sharing", "", () => api.act("system", { verb: "screenshare" })),
       button("Installer", "ghost", () => api.act("system", { verb: "installer" })),
       button("Terminal settings app", "ghost", () => api.post("classic", { page: "" }).then(() => toast("Opening the terminal settings app …"))));
     sy.append(r);
@@ -782,3 +788,18 @@ Studio.page("about", {
     view.append(up, cr, ab);
   },
 });
+
+// full-window screensaver preview inside the app (fullscreen when allowed)
+function saverOverlay(name) {
+  const ov = h(`<div class="saver-ov" role="dialog" aria-label="Screensaver preview" tabindex="-1"><canvas></canvas><span class="saver-hint">any key or click ends the preview</span></div>`);
+  document.body.append(ov);
+  const cv = ov.querySelector("canvas");
+  const fit = () => { cv.width = Math.round(innerWidth / 2); cv.height = Math.round(innerHeight / 2); };
+  fit();
+  Savers.attach(cv, name === "off" ? "matrix" : name, colours());
+  ov.focus();
+  ov.requestFullscreen?.().catch(() => {});
+  const close = () => { ov.remove(); document.removeEventListener("keydown", close, true); if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); };
+  setTimeout(() => { ov.addEventListener("click", close); document.addEventListener("keydown", close, true); }, 400);
+  addEventListener("resize", fit, { once: true });
+}

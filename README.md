@@ -8,12 +8,15 @@
 
 > ⚠ **Proof of concept, written by Claude (AI) – no warranty, use at your own risk.** See [Disclaimer](#disclaimer).
 
-Set up Fedora Sway in one go – then tweak everything from a terminal app, like KDE's
-System Settings but for Sway. Built for the Fedora Sway Spin on AMD graphics, with a focus on
+Set up Fedora Sway in one go – then tweak everything from the **swayforge app** (graphical, with
+live previews) or the terminal app, like KDE's System Settings but for Sway. Built for the Fedora Sway Spin on AMD graphics, with a focus on
 gaming, IT tools, keyboard-driven use and **frequent resets**.
 
 - **Installer** – pick apps, clean-up, theme and layout, run once, reboot.
-- **Settings** (`Super+I`) – theme, layout, appearance, bar, displays, audio, system sounds, Bluetooth,
+- **swayforge app** (`Super+Ctrl+I`) – every setting in a real window: themes and layouts as live
+  mini desktops, wallpapers, screensavers playing as previews, devices, apps, system tools.
+  [More below](#swayforge-app-graphical-settings).
+- **Terminal settings** (`Super+I`) – theme, layout, appearance, bar, displays, audio, system sounds, Bluetooth,
   network, keyboard/mouse, terminal & prompt, shortcuts, power, boot & login, security,
   apps (installed + find & install), cleanup & drive wiping, files.
 - **System sounds** – generated sound packs (gothic church bells, classic bleeps, glass chimes …),
@@ -138,9 +141,9 @@ Missing something? Add it to `~/.config/swayforge/catalog.toml` – see
 swayforge also switches dnf to **Enter = yes** (`[Y/n]` instead of `[y/N]`). That applies to
 `dnf remove` too – read before pressing Enter.
 
-## swayforge Studio (graphical settings)
+## swayforge app (graphical settings)
 
-`swayforge gui`, `Super+Ctrl+I` or *swayforge Studio* in the app launcher opens the graphical
+`swayforge gui`, `Super+Ctrl+I` or *swayforge app* in the app launcher opens the graphical
 settings app. It does everything the terminal app does – the terminal app stays as it is, both
 work on the same settings.
 
@@ -152,7 +155,8 @@ work on the same settings.
   Bluetooth, Wi-Fi and VPN, keyboard and mouse
 - **Work & play:** terminal and prompt, every shortcut and the autostart, apps (what is installed,
   find and install from Fedora / COPR / RPM Fusion / Flathub), CS2 translator and Steam cache
-- **System:** screensavers playing as small animations, power and lock, boot and login screens,
+- **System:** screensavers playing as small animations (watch one full screen with *Preview here*
+  or a double-click, or the real terminal one), power and lock, boot and login screens,
   security scans and reports, cleanup and wiping USB sticks, mounting drives, backups and config
   files, updates
 - **Find a setting** (`Ctrl+F`) searches every option; **Apply to desktop** (`Ctrl+S`) writes
@@ -160,17 +164,17 @@ work on the same settings.
 
 <table>
   <tr>
-    <td><img src="docs/img/studio_themes.png" alt="Studio – themes"></td>
-    <td><img src="docs/img/studio_display.png" alt="Studio – displays"></td>
+    <td><img src="docs/img/studio_themes.png" alt="swayforge app – themes"></td>
+    <td><img src="docs/img/studio_display.png" alt="swayforge app – displays"></td>
   </tr>
   <tr>
-    <td><img src="docs/img/studio_saver.png" alt="Studio – screensavers"></td>
-    <td><img src="docs/img/studio_network.png" alt="Studio – network"></td>
+    <td><img src="docs/img/studio_saver.png" alt="swayforge app – screensavers"></td>
+    <td><img src="docs/img/studio_network.png" alt="swayforge app – network"></td>
   </tr>
 </table>
 
 Anything that needs your password (installing, scanning, the boot screen …) opens a terminal with
-the exact command, like in the terminal app. Studio runs as a small local server (127.0.0.1 only,
+the exact command, like in the terminal app. The app runs as a small local server (127.0.0.1 only,
 with a random key) in a GTK window (`python3-gobject` + `webkitgtk6.0`, installed by
 `install.sh`); without those it opens in a Chromium-type browser window or your normal browser.
 
@@ -407,7 +411,7 @@ read the report before acting.
 | `Super+1…0` / `+Shift` | workspace / move window to workspace |
 | `Super+A` | focus parent container |
 | `Super+Shift+C` / `Super+Shift+E` | reload Sway / exit (asks first) |
-| `Super+I` / `Super+Ctrl+I` | swayforge settings (terminal) / swayforge Studio (graphical) |
+| `Super+I` / `Super+Ctrl+I` | swayforge settings (terminal) / swayforge app (graphical) |
 | `Super+F1` | show all shortcuts |
 | `Ctrl+Shift+Esc` | task manager (btop) – also a bar button |
 | `Super+Shift+G` | gaming mode on/off – also a bar button |
@@ -497,6 +501,12 @@ Vesktop is in the app catalog (Apps page). Plain Discord from the official packa
 Screen sharing works out of the box: swayforge routes the screen-cast portal to `xdg-desktop-portal-wlr`
 (`~/.config/xdg-desktop-portal/sway-portals.conf`) and gives Flatpak Vesktop/Discord access to PipeWire.
 After the first apply, quit and restart the client once.
+
+Screen sharing on Sway needs a screen picker behind the scenes: swayforge sets one up
+(`~/.config/xdg-desktop-portal-wlr/config` – one screen is shared directly, with several a Rofi menu
+asks which) and starts Flatpak Vesktop/Discord on Wayland. Still nothing happens when you press
+*Share screen*? Run `swayforge screenshare` (or *System & files → Check screen sharing* in the
+app): it checks every piece, restarts the portals and tells you what is missing.
 
 ## Screensavers
 

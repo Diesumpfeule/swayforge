@@ -870,6 +870,7 @@ def render_all(s: dict | None = None, dry: bool = False, si: SysInfo | None = No
     w.owned(C / "xdg-desktop-portal/sway-portals.conf",
             f"# {MARK} – don't edit\n[preferred]\ndefault=gtk\n"
             "org.freedesktop.impl.portal.ScreenCast=wlr\norg.freedesktop.impl.portal.Screenshot=wlr\n")
+    w.owned(C / "xdg-desktop-portal-wlr/config", portal_wlr_config(ctx))
 
     # Waybar: generated base + your config that includes it (your values win)
     w.owned(C / "waybar/swayforge.jsonc",
@@ -905,12 +906,15 @@ def render_all(s: dict | None = None, dry: bool = False, si: SysInfo | None = No
            '[general]\nimport = ["~/.config/alacritty/swayforge.toml"]\n\n# Your own Alacritty settings below.\n',
            "swayforge.toml")
 
-    # swayforge Studio (graphical settings) in the app launcher
-    w.owned(paths.XDG_DATA / "applications/swayforge-studio.desktop",
-            f"# {MARK}\n[Desktop Entry]\nType=Application\nName=swayforge Studio\n"
-            "Comment=Themes, layouts, wallpapers and looks with live previews\n"
+    # swayforge app (graphical settings) in the app launcher
+    w.owned(paths.XDG_DATA / "applications/swayforge-app.desktop",
+            f"# {MARK}\n[Desktop Entry]\nType=Application\nName=swayforge app\n"
+            "Comment=All swayforge settings with live previews of themes and layouts\n"
             f"Exec={LAUNCHER} gui\nIcon=preferences-desktop-theme\nTerminal=false\n"
-            "Categories=Settings;DesktopSettings;\nStartupWMClass=swayforge-studio\n")
+            "Categories=Settings;DesktopSettings;\nStartupWMClass=swayforge-app\n")
+    old_entry = paths.XDG_DATA / "applications/swayforge-studio.desktop"      # the app's earlier name
+    if not dry and old_entry.exists() and has_mark(old_entry.read_text(errors="replace")):
+        old_entry.unlink()
 
     # Your terminal for other apps: Thunar "Open Terminal Here", text files that open in a
     # terminal editor (GLib/gio asks xdg-terminal-exec), anything that uses exo-open
@@ -1051,24 +1055,89 @@ def fade_css(css: str, ui: float, skip: tuple[str, ...] = ("tooltip",)) -> str:
     return "\n".join(out)
 
 
-def fix_screenshare() -> None:
-    """Screen share fixes that need no root: Flatpak clients get PipeWire access (Vesktop, Discord),
-    and the portals are restarted once so they pick up the Sway routing."""
-    stamp = paths.CONFIG_DIR / ".portal-restarted"
-    if not stamp.exists() and have("systemctl"):
-        run(["systemctl", "--user", "restart", "xdg-desktop-portal-wlr", "xdg-desktop-portal"])
+def portal_wlr_config(ctx: "Ctx") -> str:
+    """xdg-desktop-portal-wlr: how to pick the screen to share. Without a working chooser the share
+    request dies silently (no picker in Discord/Vesktop at all). One screen → shared directly;
+    several → a Rofi menu in your theme lists them."""
+    outs = 1
+    if os.environ.get("SWAYSOCK"):
         try:
-            stamp.parent.mkdir(parents=True, exist_ok=True)
-            stamp.write_text("1")
+            outs = len([o for o in json.loads(run(["swaymsg", "-t", "get_outputs", "-r"]).stdout or "[]")
+                        if o.get("active", True)]) or 1
+        except ValueError:
+            outs = 1
+    chooser = ("chooser_type=none\n" if outs <= 1 else
+               "chooser_type=dmenu\n"
+               "chooser_cmd=rofi -dmenu -i -p 'Share which screen?' -theme-str 'window {width: 460px;} listview {lines: 4;}'\n")
+    return (f"# {MARK} – don't edit\n[screencast]\nmax_fps=60\n{chooser}")
+
+
+SCREENSHARE_STAMP = paths.STATE_DIR / "portal-config.sha"
+
+
+def fix_screenshare(force: bool = False) -> None:
+    """Screen share fixes that need no root: Flatpak clients run on Wayland with PipeWire access
+    (Vesktop, Discord), and the portals restart whenever their config changed."""
+    import hashlib
+    cfgs = [C / "xdg-desktop-portal/sway-portals.conf", C / "xdg-desktop-portal-wlr/config"]
+    sha = hashlib.sha1(b"".join(p.read_bytes() for p in cfgs if p.exists())).hexdigest()
+    try:
+        old = SCREENSHARE_STAMP.read_text().strip()
+    except OSError:
+        old = ""
+    if (force or sha != old) and have("systemctl"):
+        run(["systemctl", "--user", "restart", "xdg-desktop-portal-wlr", "xdg-desktop-portal"], timeout=20)
+        try:
+            SCREENSHARE_STAMP.parent.mkdir(parents=True, exist_ok=True)
+            SCREENSHARE_STAMP.write_text(sha)
         except OSError:
             pass
     if not have("flatpak"):
         return
-    r = run(["flatpak", "list", "--app", "--columns=application"])
+    r = run(["flatpak", "list", "--app", "--columns=application"], timeout=20)
     for app in ("dev.vencord.Vesktop", "com.discordapp.Discord"):
         if app in r.stdout.split():
-            run(["flatpak", "override", "--user", "--filesystem=xdg-run/pipewire-0",
-                 "--socket=wayland", app])
+            run(["flatpak", "override", "--user", "--filesystem=xdg-run/pipewire-0", "--socket=wayland",
+                 "--env=ELECTRON_OZONE_PLATFORM_HINT=auto", app], timeout=20)
+
+
+def screenshare_check(fix: bool = True) -> int:
+    """`swayforge screenshare` – what screen sharing needs, checked one by one (and repaired)."""
+    ok_all = True
+
+    def line(ok: bool, text: str, hint: str = "") -> None:
+        nonlocal ok_all
+        ok_all &= ok
+        print(("  ✓ " if ok else "  ✗ ") + text + ("" if ok or not hint else f"\n      → {hint}"))
+
+    print("Screen sharing (Discord/Vesktop, browsers, OBS) on Sway:\n")
+    env = run(["systemctl", "--user", "show-environment"]).stdout if have("systemctl") else ""
+    line("XDG_CURRENT_DESKTOP=sway" in env, "the portals know they run on Sway (XDG_CURRENT_DESKTOP)",
+         "log out and in again – swayforge's Sway config exports it")
+    line("WAYLAND_DISPLAY=" in env, "the portals can reach Wayland (WAYLAND_DISPLAY)", "log out and in again")
+    for pkg in ("xdg-desktop-portal", "xdg-desktop-portal-wlr", "pipewire", "wireplumber"):
+        line(run(["rpm", "-q", pkg]).returncode == 0, f"{pkg} installed", f"sudo dnf install {pkg}")
+    for svc in ("pipewire", "wireplumber"):
+        line(run(["systemctl", "--user", "is-active", svc]).stdout.strip() == "active", f"{svc} running",
+             f"systemctl --user restart {svc}")
+    line((C / "xdg-desktop-portal/sway-portals.conf").exists(), "screen sharing goes to the wlr portal (sway-portals.conf)",
+         "swayforge apply")
+    line((C / "xdg-desktop-portal-wlr/config").exists(), "a screen picker is set up (xdg-desktop-portal-wlr/config)",
+         "swayforge apply")
+    if fix:
+        print("\nRestarting the portals and fixing Flatpak permissions …")
+        fix_screenshare(force=True)
+    for svc in ("xdg-desktop-portal", "xdg-desktop-portal-wlr"):
+        r = run(["systemctl", "--user", "is-active", svc])
+        line(r.stdout.strip() == "active", f"{svc} running", f"journalctl --user -u {svc} -n 30   shows why")
+    if have("flatpak"):
+        apps = run(["flatpak", "list", "--app", "--columns=application"]).stdout.split()
+        if "dev.vencord.Vesktop" in apps:
+            o = run(["flatpak", "override", "--user", "--show", "dev.vencord.Vesktop"]).stdout
+            line("pipewire-0" in o and "wayland" in o, "Vesktop (Flatpak) may use PipeWire and Wayland")
+    print("\n" + ("All good. Quit Vesktop/Discord completely (also from the tray) and start it again." if ok_all else
+                  "Fix the ✗ lines, then quit Vesktop/Discord completely and start it again."))
+    return 0 if ok_all else 1
 
 
 def _step(name: str, fn, *args) -> None:

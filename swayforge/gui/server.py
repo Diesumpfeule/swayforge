@@ -1,4 +1,4 @@
-"""swayforge Studio – the graphical settings app.
+"""swayforge app – the graphical settings app.
 
 A small local web server (standard library only) serves the interface from ./static and a JSON
 API on top of the same modules the terminal app uses (settings, themes, layouts, render). It only
@@ -161,7 +161,7 @@ def theme_wallpaper_svg(s: dict, theme_id: str) -> str:
 
 def make_handler(state: State, token: str):
     class Handler(BaseHTTPRequestHandler):
-        server_version = "swayforge-studio"
+        server_version = "swayforge-app"
 
         def log_message(self, *a) -> None:      # quiet
             pass
