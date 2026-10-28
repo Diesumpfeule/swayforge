@@ -905,6 +905,13 @@ def render_all(s: dict | None = None, dry: bool = False, si: SysInfo | None = No
            '[general]\nimport = ["~/.config/alacritty/swayforge.toml"]\n\n# Your own Alacritty settings below.\n',
            "swayforge.toml")
 
+    # swayforge Studio (graphical settings) in the app launcher
+    w.owned(paths.XDG_DATA / "applications/swayforge-studio.desktop",
+            f"# {MARK}\n[Desktop Entry]\nType=Application\nName=swayforge Studio\n"
+            "Comment=Themes, layouts, wallpapers and looks with live previews\n"
+            f"Exec={LAUNCHER} gui\nIcon=preferences-desktop-theme\nTerminal=false\n"
+            "Categories=Settings;DesktopSettings;\nStartupWMClass=swayforge-studio\n")
+
     # Your terminal for other apps: Thunar "Open Terminal Here", text files that open in a
     # terminal editor (GLib/gio asks xdg-terminal-exec), anything that uses exo-open
     term = s["general"]["terminal"]

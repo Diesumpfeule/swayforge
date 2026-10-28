@@ -36,6 +36,8 @@ sudo -v
 
 bold "Packages swayforge itself needs …"
 sudo dnf install -y --skip-unavailable python3 python3-textual python3-jinja2 python3-pillow git >/dev/null
+# swayforge Studio's own window (optional: without it, it opens in a browser window)
+sudo dnf install -y --skip-unavailable python3-gobject gtk4 webkitgtk6.0 >/dev/null 2>&1 || true
 
 bold "Copying swayforge to $APP …"
 mkdir -p "$APP" "$(dirname "$BIN")"

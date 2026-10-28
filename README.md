@@ -138,6 +138,26 @@ Missing something? Add it to `~/.config/swayforge/catalog.toml` – see
 swayforge also switches dnf to **Enter = yes** (`[Y/n]` instead of `[y/N]`). That applies to
 `dnf remove` too – read before pressing Enter.
 
+## swayforge Studio (graphical settings)
+
+`swayforge gui`, `Super+Ctrl+I` or *swayforge Studio* in the app launcher opens a graphical
+settings app next to the terminal one (which stays as it is). Every theme and every layout is shown
+as a small live desktop – bar, start menu, window frames, notification and wallpaper – so you see
+the result before you apply it, and the app itself recolours to the theme you are trying.
+
+- **Themes** with accent colours, **Layouts**, **Wallpapers** (paged thumbnails, videos too)
+- **Look & feel**: transparency, corners, gaps, borders, SwayFX effects, terminal opacity – with
+  a live preview next to the sliders
+- **Screensaver**: every saver plays as a small animation; pick one and set the times
+- **Apply to desktop** (or `Ctrl+S`) writes everything at once; *Undo changes* goes back
+- Hardware, shortcuts, apps and system tools open the matching page of the terminal app
+
+<p align="center"><img src="docs/img/studio_themes.png" alt="swayforge Studio – themes" width="100%"></p>
+
+It runs as a small local server (127.0.0.1 only, with a random key) and shows itself in a GTK
+window (`python3-gobject` + `webkitgtk6.0`, installed by `install.sh`); without those it opens
+in a Chromium-type browser window or your normal browser.
+
 ## Themes
 
 | Theme | Style |
@@ -371,7 +391,7 @@ read the report before acting.
 | `Super+1…0` / `+Shift` | workspace / move window to workspace |
 | `Super+A` | focus parent container |
 | `Super+Shift+C` / `Super+Shift+E` | reload Sway / exit (asks first) |
-| `Super+I` | swayforge settings |
+| `Super+I` / `Super+Ctrl+I` | swayforge settings (terminal) / swayforge Studio (graphical) |
 | `Super+F1` | show all shortcuts |
 | `Ctrl+Shift+Esc` | task manager (btop) – also a bar button |
 | `Super+Shift+G` | gaming mode on/off – also a bar button |
@@ -452,8 +472,10 @@ scripts/make_screenshots.py renders README screenshots in a headless Sway (throw
 ## Discord & screen sharing
 
 swayforge writes a Discord theme (`swayforge.theme.css`, colours, font and corner radius of your current theme) into the
-theme folder of every Vesktop / Vencord / BetterDiscord it finds (the client must have been started once). Enable it once
-in the client under *Settings → Themes*; after that it follows every theme change (Vesktop reloads it live).
+theme folder of every Vesktop / Vencord / BetterDiscord it finds (the client must have been started once), and switches it
+on in Vesktop/Vencord by itself (BetterDiscord: enable it once under *Settings → Themes*). It follows every theme change
+(Vesktop reloads it live) and the layout too: bevelled buttons and title-bar headers for Classic 98 / Luna XP, a mono
+terminal look for Wired, worn slots for Dread, double rules for Cathedral, hairline glass for Glass.
 Vesktop is in the app catalog (Apps page). Plain Discord from the official package cannot load themes.
 
 Screen sharing works out of the box: swayforge routes the screen-cast portal to `xdg-desktop-portal-wlr`

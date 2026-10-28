@@ -168,6 +168,7 @@ KEY_ACTIONS: list[tuple[str, str, str, str]] = [
     ("browser", "Browser", "$mod+w", "exec {browser}"),
     ("files", "File manager", "$mod+d", "exec {files}"),
     ("settings", "swayforge settings", "$mod+i", "exec {settings}"),
+    ("studio", "swayforge Studio (graphical)", "$mod+Ctrl+i", "exec {sf} gui"),
     ("power", "Power menu", "$mod+Escape", "exec {sf} power"),
     ("exit", "Exit Sway (asks first)", "$mod+Shift+e",
      "exec swaynag -t warning -m 'Exit Sway? This ends your Wayland session.' -B 'Yes, exit' 'swaymsg exit'"),

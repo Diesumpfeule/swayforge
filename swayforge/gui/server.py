@@ -1,0 +1,363 @@
+"""swayforge Studio – the graphical settings app.
+
+A small local web server (standard library only) serves the interface from ./static and a JSON
+API on top of the same modules the terminal app uses (settings, themes, layouts, render). It only
+listens on 127.0.0.1 and every API call needs the random token from the start URL.
+
+The classic terminal settings app is untouched: this is a second front end, not a replacement.
+"""
+from __future__ import annotations
+
+import copy
+import hashlib
+import json
+import mimetypes
+import os
+import re
+import secrets
+import threading
+import time
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path
+from urllib.parse import parse_qs, urlparse
+
+from .. import __version__, layouts, paths, settings, themes
+
+STATIC = Path(__file__).resolve().parent / "static"
+THUMBS = Path(os.environ.get("XDG_CACHE_HOME") or paths.HOME / ".cache") / "swayforge/studio-thumbs"
+MAX_WALLS = 4000
+PAGE = 24
+IDLE_EXIT = 25.0            # seconds without a heartbeat from the window → quit (browser fallback)
+
+# Settings the Studio may change directly (path → kind). Everything else stays in the terminal app.
+EDITABLE = {
+    "theme.accent": "str", "theme.font_size": "int", "theme.animate": "bool", "theme.wallpaper": "str",
+    "theme.live_pause_fullscreen": "bool", "theme.live_pause_battery": "bool",
+    "bar.layout": "str", "bar.height": "int",
+    "look.radius": "int", "look.gaps_inner": "int", "look.gaps_outer": "int", "look.border": "int",
+    "look.ui_opacity": "float", "look.terminal_opacity": "float", "look.fx_blur": "bool",
+    "look.fx_shadows": "bool", "look.fx_dim_inactive": "float", "look.title_bars": "bool",
+    "look.smart_gaps": "bool", "look.terminal_padding": "int",
+    "power.screensaver": "str", "power.lock_after": "int", "power.screen_off_after": "int",
+    "power.suspend_after": "int", "power.lock_before_sleep": "bool", "power.inhibit_fullscreen": "bool",
+    "sound.enabled": "bool", "sound.volume": "float",
+}
+RANGES = {"look.ui_opacity": (0.2, 1.0), "look.terminal_opacity": (0.3, 1.0), "look.fx_dim_inactive": (0.0, 0.5),
+          "look.radius": (0, 24), "look.gaps_inner": (0, 40), "look.gaps_outer": (0, 40), "look.border": (0, 8),
+          "theme.font_size": (8, 20), "bar.height": (20, 60), "sound.volume": (0.0, 1.0),
+          "power.lock_after": (0, 240), "power.screen_off_after": (0, 240), "power.suspend_after": (0, 480),
+          "look.terminal_padding": (0, 40)}
+
+
+class State:
+    """Settings being edited (staged) next to the saved ones."""
+
+    def __init__(self) -> None:
+        self.lock = threading.Lock()
+        self.s = settings.load()
+        self.saved = copy.deepcopy(self.s)
+        self.applying = False
+        self.last_result: dict = {}
+        self.last_ping = time.time()
+        self.walls: list[Path] | None = None
+
+    @property
+    def dirty(self) -> bool:
+        return self.s != self.saved
+
+
+def _theme_json(t: themes.Theme) -> dict:
+    return {"id": t.id, "label": t.label, "dark": t.dark, "colors": t.colors, "ansi": t.ansi,
+            "style": t.style, "custom": t.custom}
+
+
+def _coerce(kind: str, value):
+    if kind == "bool":
+        return bool(value)
+    if kind == "int":
+        return int(float(value))
+    if kind == "float":
+        return round(float(value), 2)
+    return str(value)
+
+
+def scan_walls(root: Path, limit: int = MAX_WALLS) -> list[Path]:
+    out: list[Path] = []
+    if not root.is_dir():
+        return out
+    for dp, dn, fn in os.walk(root):
+        dn.sort()
+        for f in fn:
+            if Path(f).suffix.lower() in paths.WALLPAPER_EXT:
+                out.append(Path(dp) / f)
+                if len(out) >= limit:
+                    return sorted(out, key=lambda p: str(p).lower())
+    return sorted(out, key=lambda p: str(p).lower())
+
+
+def thumbnail(path: Path, width: int = 480) -> tuple[bytes, str]:
+    """(bytes, mime) – cached JPEG for pictures, the first frame for videos, SVG as is."""
+    if path.suffix.lower() == ".svg":
+        return path.read_bytes(), "image/svg+xml"
+    st = path.stat()
+    key = hashlib.sha1(f"{path}{st.st_mtime_ns}{st.st_size}{width}".encode()).hexdigest()[:20]
+    out = THUMBS / f"{key}.jpg"
+    if not out.exists():
+        THUMBS.mkdir(parents=True, exist_ok=True)
+        src = path
+        from .. import livewall
+        if livewall.is_video(path):
+            src = Path(livewall.thumb(str(path)))
+        try:
+            from PIL import Image
+        except ImportError:                       # no Pillow: send the original
+            return src.read_bytes(), mimetypes.guess_type(src.name)[0] or "application/octet-stream"
+        with Image.open(src) as im:
+            im.thumbnail((width, width * 10 // 16))
+            im.convert("RGB").save(out, "JPEG", quality=82)
+    return out.read_bytes(), "image/jpeg"
+
+
+def theme_wallpaper_svg(s: dict, theme_id: str) -> str:
+    """The theme's own generated wallpaper as SVG (what 'Theme wallpaper' shows)."""
+    from .. import render
+    s2 = copy.deepcopy(s)
+    s2["theme"]["name"] = theme_id
+    ctx = render.make_ctx(s2)
+    return render.tpl(f"wallpaper-{ctx.theme.wallpaper_style}.svg.j2", ctx.as_dict())
+
+
+def make_handler(state: State, token: str):
+    class Handler(BaseHTTPRequestHandler):
+        server_version = "swayforge-studio"
+
+        def log_message(self, *a) -> None:      # quiet
+            pass
+
+        # ── helpers ────────────────────────────────────────────────
+        def _send(self, code: int, body: bytes, mime: str, cache: bool = False) -> None:
+            self.send_response(code)
+            self.send_header("Content-Type", mime)
+            self.send_header("Content-Length", str(len(body)))
+            self.send_header("Cache-Control", "max-age=3600" if cache else "no-store")
+            self.send_header("X-Content-Type-Options", "nosniff")
+            self.end_headers()
+            self.wfile.write(body)
+
+        def _json(self, data, code: int = 200) -> None:
+            self._send(code, json.dumps(data, ensure_ascii=False).encode(), "application/json")
+
+        def _authorised(self, q: dict) -> bool:
+            return secrets.compare_digest(self.headers.get("X-Token", "") or q.get("t", [""])[0], token)
+
+        def _body(self) -> dict:
+            n = int(self.headers.get("Content-Length") or 0)
+            if n <= 0 or n > 1_000_000:
+                return {}
+            try:
+                data = json.loads(self.rfile.read(n))
+            except ValueError:
+                return {}
+            return data if isinstance(data, dict) else {}
+
+        # ── GET ────────────────────────────────────────────────────
+        def do_GET(self) -> None:                 # noqa: N802
+            u = urlparse(self.path)
+            q = parse_qs(u.query)
+            if u.path in ("/", "/index.html"):
+                return self._static("index.html")
+            if u.path.startswith("/static/"):
+                return self._static(u.path[len("/static/"):])
+            if not u.path.startswith("/api/"):
+                return self._send(404, b"not found", "text/plain")
+            if not self._authorised(q):
+                return self._send(403, b"forbidden", "text/plain")
+            try:
+                self._api_get(u.path[5:], q)
+            except Exception as e:              # noqa: BLE001 – report, don't crash the server
+                self._json({"error": f"{type(e).__name__}: {e}"}, 500)
+
+        def _static(self, rel: str) -> None:
+            f = (STATIC / rel).resolve()
+            if not f.is_relative_to(STATIC) or not f.is_file():
+                return self._send(404, b"not found", "text/plain")
+            mime = mimetypes.guess_type(f.name)[0] or "application/octet-stream"
+            if f.suffix == ".js":
+                mime = "text/javascript"
+            self._send(200, f.read_bytes(), mime + ("; charset=utf-8" if mime.startswith("text") else ""))
+
+        def _api_get(self, name: str, q: dict) -> None:
+            state.last_ping = time.time()
+            if name == "state":
+                from ..screensaver import SAVERS
+                from ..system import detect
+                si = detect()
+                with state.lock:
+                    s = copy.deepcopy(state.s)
+                    dirty = state.dirty
+                return self._json({
+                    "version": __version__, "settings": s, "dirty": dirty, "editable": EDITABLE, "ranges": RANGES,
+                    "themes": [_theme_json(t) for t in themes.all_themes().values()],
+                    "layouts": [{"id": l.id, "label": l.label, "desc": l.desc, "position": l.position}
+                                for l in layouts.LAYOUTS.values()],
+                    "accents": themes.ACCENT_CHOICES, "savers": SAVERS,
+                    "swayfx": si.swayfx, "in_sway": bool(os.environ.get("SWAYSOCK")),
+                    "user": os.environ.get("USER", "user"),
+                    "applying": state.applying, "result": state.last_result,
+                })
+            if name == "status":
+                return self._json({"applying": state.applying, "result": state.last_result, "dirty": state.dirty})
+            if name == "wallpapers":
+                if state.walls is None or q.get("rescan"):
+                    state.walls = scan_walls(paths.WALLPAPER_DIR)
+                needle = (q.get("q", [""])[0]).lower()
+                items = [p for p in state.walls if needle in str(p).lower()] if needle else state.walls
+                page = max(0, int(q.get("page", ["0"])[0]))
+                chunk = items[page * PAGE:(page + 1) * PAGE]
+                from .. import livewall
+                return self._json({
+                    "total": len(items), "page": page, "pages": max(1, -(-len(items) // PAGE)),
+                    "folder": str(paths.WALLPAPER_DIR),
+                    "items": [{"path": str(p), "name": p.name, "video": livewall.is_video(p),
+                               "folder": str(p.parent.relative_to(paths.WALLPAPER_DIR))
+                               if p.parent != paths.WALLPAPER_DIR else ""} for p in chunk]})
+            if name == "thumb":
+                p = Path(q.get("p", [""])[0])
+                if state.walls is None:
+                    state.walls = scan_walls(paths.WALLPAPER_DIR)
+                if p not in state.walls:              # only pictures from your wallpaper folder
+                    return self._send(404, b"not found", "text/plain")
+                body, mime = thumbnail(p)
+                return self._send(200, body, mime, cache=True)
+            if name == "themewall":
+                tid = q.get("id", [""])[0]
+                if tid not in themes.all_themes():
+                    return self._send(404, b"unknown theme", "text/plain")
+                with state.lock:
+                    s = copy.deepcopy(state.s)
+                body = theme_wallpaper_svg(s, tid).encode()
+                return self._send(200, body, "image/svg+xml", cache=True)
+            return self._json({"error": "unknown"}, 404)
+
+        # ── POST ───────────────────────────────────────────────────
+        def do_POST(self) -> None:                # noqa: N802
+            u = urlparse(self.path)
+            if not u.path.startswith("/api/") or not self._authorised({}):
+                return self._send(403, b"forbidden", "text/plain")
+            data = self._body()
+            try:
+                self._api_post(u.path[5:], data)
+            except Exception as e:              # noqa: BLE001
+                self._json({"error": f"{type(e).__name__}: {e}"}, 500)
+
+        def _api_post(self, name: str, d: dict) -> None:
+            state.last_ping = time.time()
+            if name == "ping":
+                return self._json({"ok": True})
+            if name == "set":
+                path, value = str(d.get("path", "")), d.get("value")
+                kind = EDITABLE.get(path)
+                if not kind:
+                    return self._json({"error": f"{path} can't be changed here"}, 400)
+                val = _coerce(kind, value)
+                if path in RANGES:
+                    lo, hi = RANGES[path]
+                    val = type(val)(min(hi, max(lo, val)))
+                if path == "bar.layout" and val not in layouts.LAYOUTS:
+                    return self._json({"error": "unknown layout"}, 400)
+                if path == "power.screensaver":
+                    from ..screensaver import SAVERS
+                    if val not in SAVERS:
+                        return self._json({"error": "unknown screensaver"}, 400)
+                if path == "theme.wallpaper" and val not in ("theme", "solid"):
+                    if state.walls is None:
+                        state.walls = scan_walls(paths.WALLPAPER_DIR)
+                    if Path(val) not in state.walls:
+                        return self._json({"error": "not in your wallpaper folder"}, 400)
+                with state.lock:
+                    settings.set_(state.s, path, val)
+                return self._json({"ok": True, "value": val, "dirty": state.dirty})
+            if name == "theme":
+                tid = str(d.get("id", ""))
+                all_t = themes.all_themes()
+                if tid not in all_t:
+                    return self._json({"error": "unknown theme"}, 400)
+                with state.lock:
+                    old = all_t.get(state.s["theme"]["name"])
+                    changed = themes.apply_style(state.s, all_t[tid], old)
+                    state.s["theme"]["name"] = tid
+                    s = copy.deepcopy(state.s)
+                return self._json({"ok": True, "changed": changed, "settings": s, "dirty": state.dirty})
+            if name == "revert":
+                with state.lock:
+                    state.s = copy.deepcopy(state.saved)
+                    s = copy.deepcopy(state.s)
+                return self._json({"ok": True, "settings": s, "dirty": False})
+            if name == "apply":
+                if state.applying:
+                    return self._json({"ok": False, "busy": True})
+                threading.Thread(target=_apply, args=(state,), daemon=True).start()
+                return self._json({"ok": True})
+            if name == "classic":
+                page = str(d.get("page", ""))
+                if not re.fullmatch(r"[a-z]{0,20}", page):
+                    return self._json({"error": "unknown page"}, 400)
+                _open_classic(state, page)
+                return self._json({"ok": True})
+            if name == "preview-saver":
+                name_ = str(d.get("name", "matrix"))
+                from .. import render
+                from ..screensaver import SAVERS
+                if name_ in SAVERS and name_ != "off":
+                    _spawn_term(state, f"{render.LAUNCHER} screensaver preview {name_}")
+                return self._json({"ok": True})
+            return self._json({"error": "unknown"}, 404)
+
+    return Handler
+
+
+def _apply(state: State) -> None:
+    from .. import render
+    state.applying = True
+    t0 = time.time()
+    try:
+        with state.lock:
+            snap = copy.deepcopy(state.s)
+        settings.save(snap)
+        res = render.apply(snap)
+        with state.lock:
+            state.saved = snap
+        state.last_result = {"ok": not res.errors, "errors": res.errors[:5], "notes": res.notes[:8],
+                             "seconds": round(time.time() - t0, 1), "at": time.time()}
+    except Exception as e:                      # noqa: BLE001
+        state.last_result = {"ok": False, "errors": [f"{type(e).__name__}: {e}"], "notes": [], "at": time.time()}
+    finally:
+        state.applying = False
+
+
+def _spawn_term(state: State, cmd: str) -> None:
+    import shlex
+    import subprocess
+    from .. import render
+    full = render.terminal_cmd(state.s, "swayforge-task", f"sh -c {shlex.quote(cmd)}")
+    subprocess.Popen(shlex.split(full), start_new_session=True,
+                     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+
+def _open_classic(state: State, page: str) -> None:
+    import shlex
+    import subprocess
+    from .. import render
+    subprocess.Popen(shlex.split(render.settings_cmd(state.s, page)), start_new_session=True,
+                     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+
+def serve(port: int = 0) -> tuple[ThreadingHTTPServer, str, State]:
+    """Start the server in a thread. Returns (server, start URL, state)."""
+    state = State()
+    token = secrets.token_urlsafe(18)
+    srv = ThreadingHTTPServer(("127.0.0.1", port), make_handler(state, token))
+    srv.daemon_threads = True
+    threading.Thread(target=srv.serve_forever, daemon=True).start()
+    url = f"http://127.0.0.1:{srv.server_address[1]}/#t={token}"
+    return srv, url, state
