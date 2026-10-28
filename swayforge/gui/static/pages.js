@@ -805,3 +805,147 @@ function saverOverlay(name) {
   setTimeout(() => { ov.addEventListener("click", close); document.addEventListener("keydown", close, true); }, 400);
   addEventListener("resize", fit, { once: true });
 }
+
+// ═══ Desktop widgets – the same drawing as widgets.py, on a canvas ════════
+const WidgetArt = (() => {
+  const DIG = {
+    "0": [".###.", "#...#", "#..##", "#.#.#", "##..#", "#...#", ".###."], "1": ["..#..", ".##..", "..#..", "..#..", "..#..", "..#..", ".###."],
+    "2": [".###.", "#...#", "....#", "...#.", "..#..", ".#...", "#####"], "3": ["#####", "...#.", "..#..", "...#.", "....#", "#...#", ".###."],
+    "4": ["...#.", "..##.", ".#.#.", "#..#.", "#####", "...#.", "...#."], "5": ["#####", "#....", "####.", "....#", "....#", "#...#", ".###."],
+    "6": ["..##.", ".#...", "#....", "####.", "#...#", "#...#", ".###."], "7": ["#####", "....#", "...#.", "..#..", ".#...", ".#...", ".#..."],
+    "8": [".###.", "#...#", "#...#", ".###.", "#...#", "#...#", ".###."], "9": [".###.", "#...#", "#...#", ".####", "....#", "...#.", ".##.."],
+    ":": [".", ".", "#", ".", "#", ".", "."],
+  };
+  const SIZE = { dots: [372, 150], digital: [330, 140], analog: [210, 230], player: [340, 118], sysmon: [280, 120], clippy: [330, 190] };
+  const rr = (g, x, y, w, h, r) => { r = Math.max(0, Math.min(r, w / 2, h / 2)); g.beginPath(); g.roundRect ? g.roundRect(x, y, w, h, r) : g.rect(x, y, w, h); };
+  function card(g, c, w, h, o) { rr(g, .5, .5, w - 1, h - 1, o.radius + 4); g.fillStyle = Desk.rgba(c.base, o.alpha); g.fill(); g.strokeStyle = c.surface2; g.lineWidth = 1; g.stroke(); }
+  function text(g, c, x, y, s, size, key = "text", bold = false, maxw, font = "monospace") {
+    g.font = `${bold ? "700 " : ""}${size}px ${font}`; g.fillStyle = c[key] || key;
+    if (maxw) while (s.length > 2 && g.measureText(s).width > maxw) s = s.slice(0, -2) + "…";
+    g.fillText(s, x, y); return g.measureText(s).width;
+  }
+  function clock(g, c, w, h, o, now) {
+    const style = o.clock, hhmm = now.toTimeString().slice(0, 5), sec = now.getSeconds();
+    const date = now.toLocaleDateString("en-GB", { weekday: "long", day: "2-digit", month: "long" });
+    if (style === "analog") {
+      const cx = w / 2, cy = w / 2, R = w / 2 - 8;
+      g.beginPath(); g.arc(cx, cy, R, 0, Math.PI * 2); g.fillStyle = Desk.rgba(c.base, o.alpha); g.fill(); g.strokeStyle = c.surface2; g.lineWidth = 1.5; g.stroke();
+      for (let i = 0; i < 60; i++) { const a = i / 60 * Math.PI * 2, inner = R - (i % 5 ? 5 : 12);
+        g.beginPath(); g.moveTo(cx + Math.sin(a) * inner, cy - Math.cos(a) * inner); g.lineTo(cx + Math.sin(a) * (R - 3), cy - Math.cos(a) * (R - 3));
+        g.strokeStyle = i % 5 ? c.overlay : c.text; g.lineWidth = i % 5 ? 1 : 2.4; g.stroke(); }
+      const s = sec + now.getMilliseconds() / 1000, m = now.getMinutes() + s / 60, hr = now.getHours() % 12 + m / 60;
+      for (const [v, len, lw, k] of [[hr / 12, .5, 5, "text"], [m / 60, .75, 3.2, "text"], [s / 60, .85, 1.4, "accent"]]) {
+        const a = v * Math.PI * 2; g.beginPath(); g.moveTo(cx - Math.sin(a) * R * .12, cy + Math.cos(a) * R * .12); g.lineTo(cx + Math.sin(a) * R * len, cy - Math.cos(a) * R * len);
+        g.strokeStyle = c[k]; g.lineWidth = lw; g.lineCap = "round"; g.stroke(); }
+      g.beginPath(); g.arc(cx, cy, 4, 0, Math.PI * 2); g.fillStyle = c.accent; g.fill();
+      text(g, c, cx - 34, h - 4, now.toLocaleDateString("en-GB", { weekday: "short", day: "2-digit", month: "2-digit" }), 13, "subtext", false, 0, o.font);
+      return;
+    }
+    card(g, c, w, h, o);
+    if (style === "digital") {
+      text(g, c, 22, h * .58, hhmm, h * .46, "text", true, 0, o.font);
+      text(g, c, w - 62, h * .58, ":" + String(sec).padStart(2, "0"), h * .2, "accent", true, 0, o.font);
+      g.fillStyle = c.accent; g.fillRect(22, h * .67, (w - 44) * (sec + now.getMilliseconds() / 1000) / 60, 3);
+      text(g, c, 22, h * .87, date, h * .12, "subtext", false, 0, o.font);
+      return;
+    }
+    const cell = (w - 40) / 27, r = cell * .36, y0 = 18 + cell / 2;
+    let x = 20 + cell / 2;
+    for (const ch of hhmm) {
+      const gl = DIG[ch], blink = ch === ":" && sec % 2;
+      gl.forEach((row, yy) => [...row].forEach((v, xx) => {
+        g.beginPath(); g.arc(x + xx * cell, y0 + yy * cell, r, 0, Math.PI * 2);
+        g.fillStyle = v === "#" && !blink ? c.accent : Desk.rgba(c.surface2, .35); g.fill(); }));
+      x += (gl[0].length + 1) * cell;
+    }
+    const sy = y0 + 7 * cell + cell * .3, step = (w - 40) / 60;
+    for (let s2 = 0; s2 < 60; s2++) { g.beginPath(); g.arc(20 + step * (s2 + .5), sy, Math.max(1.2, r * .32), 0, Math.PI * 2);
+      g.fillStyle = s2 <= sec ? c.accent : Desk.rgba(c.surface2, .4); g.fill(); }
+    text(g, c, 20, h - 12, date, Math.max(10, h * .09), "subtext", false, 0, o.font);
+  }
+  function player(g, c, w, h, o) {
+    card(g, c, w, h, o);
+    text(g, c, 20, 32, "Midnight City", 16, "text", true, w - 40, o.font);
+    text(g, c, 20, 54, "M83", 13, "subtext", false, w - 40, o.font);
+    rr(g, 20, 66, w - 40, 4, 2); g.fillStyle = c.surface2; g.fill(); rr(g, 20, 66, (w - 40) * .42, 4, 2); g.fillStyle = c.accent; g.fill();
+    const mid = w / 2; [["⏮", mid - 70, "text"], ["⏸", mid - 16, "accent"], ["⏭", mid + 38, "text"]].forEach(([s, x, k]) => text(g, c, x, h - 16, s, 22, k, true));
+  }
+  function sysmon(g, c, w, h, o, t) {
+    card(g, c, w, h, o);
+    [["CPU", .25 + .15 * Math.sin(t)], ["RAM", .58], ["TEMP", .52]].forEach(([lab, v], i) => {
+      const y = 30 + i * 30; text(g, c, 18, y, lab, 12, "subtext", true, 0, o.font);
+      rr(g, 70, y - 9, w - 140, 8, 4); g.fillStyle = Desk.rgba(c.surface2, .7); g.fill();
+      rr(g, 70, y - 9, (w - 140) * v, 8, 4); g.fillStyle = v > .85 ? c.red : v > .65 ? c.yellow : c.accent; g.fill();
+      text(g, c, w - 60, y, lab === "TEMP" ? `${Math.round(v * 100)}°` : `${Math.round(v * 100)}%`, 12, "text", true, 0, o.font);
+    });
+  }
+  function clippy(g, c, w, h, o, t) {
+    const bw = w - 84, bh = h - 30;
+    rr(g, 4, 4, bw, bh, 10); g.fillStyle = Desk.rgba(c.base, Math.max(o.alpha, .92)); g.fill(); g.strokeStyle = c.accent; g.lineWidth = 1.5; g.stroke();
+    g.beginPath(); g.moveTo(bw - 18, bh + 4); g.lineTo(bw + 10, bh + 18); g.lineTo(bw - 34, bh + 4); g.closePath(); g.fill();
+    g.font = `13.5px ${o.font}`; g.fillStyle = c.text;
+    let line = "", ly = 30;
+    for (const word of "It looks like you're writing a config. Would you like a backup first?".split(" ")) {
+      const test = (line + " " + word).trim();
+      if (g.measureText(test).width > bw - 26 && line) { g.fillText(line, 16, ly); line = word; ly += 18; } else line = test;
+    }
+    g.fillText(line, 16, ly);
+    text(g, c, 16, bh - 6, "click for another tip", 10.5, "overlay", false, 0, o.font);
+    const x0 = w - 62, y0 = h - 150 + Math.sin(t * 1.5) * 3;
+    g.strokeStyle = c.subtext; g.lineWidth = 5; g.lineCap = "round"; g.beginPath();
+    g.moveTo(x0 + 14, y0 + 120); g.lineTo(x0 + 14, y0 + 30); g.bezierCurveTo(x0 + 14, y0 + 6, x0 + 46, y0 + 6, x0 + 46, y0 + 30);
+    g.lineTo(x0 + 46, y0 + 128); g.bezierCurveTo(x0 + 46, y0 + 150, x0 + 4, y0 + 150, x0 + 4, y0 + 128); g.lineTo(x0 + 4, y0 + 46);
+    g.bezierCurveTo(x0 + 4, y0 + 34, x0 + 30, y0 + 34, x0 + 30, y0 + 46); g.lineTo(x0 + 30, y0 + 110); g.stroke();
+    const blink = (t % 5) < .15;
+    for (const ex of [x0 + 10, x0 + 40]) {
+      g.beginPath(); g.arc(ex, y0 + 62, 9, 0, Math.PI * 2); g.fillStyle = c.text; g.fill();
+      if (!blink) { g.beginPath(); g.arc(ex + 2, y0 + 63, 4, 0, Math.PI * 2); g.fillStyle = c.crust; g.fill(); }
+      g.beginPath(); g.moveTo(ex - 8, y0 + 48); g.lineTo(ex + 6, y0 + 45); g.strokeStyle = c.crust; g.lineWidth = 3; g.stroke();
+    }
+  }
+  // the whole screen: wallpaper colour wash + widgets in their corners
+  function scene(cv, o, t) {
+    const g = cv.getContext("2d"), W = cv.width, H = cv.height, c = colours(), k = (o.scale || 1) * W / 1920;
+    g.clearRect(0, 0, W, H);
+    const list = [];
+    if (o.clock !== "off") list.push(["clock", o.clock_pos, SIZE[o.clock] || SIZE.dots]);
+    for (const kind of ["player", "sysmon", "clippy"]) if (o[kind]) list.push([kind, o[kind + "_pos"], SIZE[kind]]);
+    // keep clear of the bar like the real widgets do (they respect its reserved space)
+    const pos = layoutOf(S.s.bar.layout).position, barH = 1080 * ({ touch: 36, win7: 28 }[S.s.bar.layout] || 28) / 360;
+    const top = pos === "top" ? barH : 0, bottom = pos === "bottom" ? barH : 0, left = pos === "left" ? 1920 * 28 / 640 : 0;
+    const stack = {}, gap = 18;
+    for (const [kind, corner, [bw, bh]] of list) {
+      const off = stack[corner] || 0; stack[corner] = off + bh + 12;
+      let x = left + gap, y = top + gap + off;
+      if (corner === "center") { x = (W / k - bw) / 2; y = (H / k - bh) / 2; }
+      else { if (corner.endsWith("right")) x = W / k - bw - gap; if (corner.startsWith("bottom")) y = H / k - bh - gap - off - bottom; }
+      g.save(); g.scale(k, k); g.translate(x, y);
+      const now = new Date();
+      ({ clock: () => clock(g, c, bw, bh, o, now), player: () => player(g, c, bw, bh, o), sysmon: () => sysmon(g, c, bw, bh, o, t), clippy: () => clippy(g, c, bw, bh, o, t) })[kind]();
+      g.restore();
+    }
+  }
+  return { scene };
+})();
+
+Studio.page("widgets", {
+  title: "Desktop widgets", icon: "◫", keywords: "widget clock dot matrix digital analog player music spotify system monitor cpu clippy desktop",
+  render(view) {
+    const split = h(`<div class="split"><div class="col"></div><div class="sticky"><div class="widget-preview"><div class="desk-frame big" id="wg-desk"></div><canvas id="wg-canvas" width="1280" height="720"></canvas></div>
+      <p class="hint">Preview with your theme. The real widgets sit on the desktop under your windows; they need gtk-layer-shell (installed with swayforge's base packages).</p></div></div>`);
+    split.querySelector(".col").append(form("widgets"));
+    view.append(split);
+    const fr = $("#wg-desk");
+    desk(fr, { theme: theme(), layout: S.s.bar.layout, wallpaperUrl: wallUrl(null, true), empty: true });
+    const cv = $("#wg-canvas"), t0 = performance.now();
+    const loop = () => {
+      if (!cv.isConnected) return;
+      const o = Object.assign({ font: `"${S.s.theme.font}", monospace`, radius: Math.min(S.s.look.radius, 12) }, S.s.widgets, { alpha: S.s.widgets.opacity });
+      cv.style.opacity = S.s.widgets.enabled ? 1 : .35;
+      WidgetArt.scene(cv, o, (performance.now() - t0) / 1000);
+      setTimeout(() => requestAnimationFrame(loop), 120);
+    };
+    loop();
+  },
+  live() { const fr = $("#wg-desk"); if (fr) desk(fr, { theme: theme(), layout: S.s.bar.layout, wallpaperUrl: wallUrl(null, true), empty: true }); },
+});

@@ -3,6 +3,7 @@
   swayforge                    settings app (TUI)
   swayforge gui                swayforge app – graphical settings with live previews
   swayforge screenshare        check and repair screen sharing (Discord/Vesktop, browsers)
+  swayforge widgets [restart|stop]  desktop widgets (clock, player, system monitor, Clippy)
   swayforge install            installer (TUI)
   swayforge install --yes      install the saved profile without questions
   swayforge apply              regenerate configs from settings.toml + reload
@@ -63,6 +64,8 @@ def main(argv: list[str] | None = None) -> int:
     p = sub.add_parser("restore", help="restore a backup")
     p.add_argument("file")
 
+    p = sub.add_parser("widgets", help="desktop widgets: run | restart | stop")
+    p.add_argument("action", nargs="?", default="run", choices=["run", "restart", "stop"])
     p = sub.add_parser("screenshare", help="check and repair screen sharing (Discord/Vesktop, browsers)")
     p = sub.add_parser("gui", help="swayforge app – graphical settings with live previews")
     p.add_argument("--browser", action="store_true", help="open in a browser instead of a native window")
@@ -120,6 +123,10 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("mode", choices=["area", "output", "edit"], nargs="?", default="area")
 
     a = ap.parse_args(argv)
+
+    if a.cmd == "widgets":
+        from . import widgets
+        return widgets.main(a.action)
 
     if a.cmd == "screenshare":
         from . import render

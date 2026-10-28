@@ -239,7 +239,8 @@ const Desk = (() => {
     const [w2, b2] = frame(lay, c, o, "Files", false);
     Object.assign(w2.style, { left: (a.left + leftW + g / 2) + "px", top: a.top + "px", width: (fullW - leftW - g / 2) + "px", height: fullH + "px" });
     files(b2, c);
-    if (opts.compact) screen.append(w1, bar(lay, c, o));
+    if (opts.empty) screen.append(bar(lay, c, o));          // an empty workspace (widget preview)
+    else if (opts.compact) screen.append(w1, bar(lay, c, o));
     else screen.append(w1, w2, bar(lay, c, o));
     if (opts.notify) screen.append(notification(lay, c, o));
     host.replaceChildren(screen);

@@ -65,7 +65,7 @@ const ICONS = {
 };
 const icon = id => `<svg class="ico" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${ICONS[id] || ICONS.found}</svg>`;
 const PAGES = {};          // id → {title, group, icon, render(view), keywords}
-const GROUPS = [["Look", ["overview", "themes", "layouts", "wallpapers", "look", "bar"]],
+const GROUPS = [["Look", ["overview", "themes", "layouts", "wallpapers", "look", "bar", "widgets"]],
   ["Devices", ["display", "audio", "sound", "bluetooth", "network", "input"]],
   ["Work & play", ["shell", "keys", "apps", "games"]],
   ["System", ["power", "boot", "security", "cleanup", "mounts", "system", "about"]]];

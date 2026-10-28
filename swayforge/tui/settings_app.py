@@ -29,7 +29,7 @@ from .panels import AudioPanel, BluetoothPanel, NetworkPanel
 
 # Sidebar chapters (page ids from PAGES)
 NAV_GROUPS: list[tuple[str, list[str]]] = [
-    ("LOOK", ["theme", "wallpapers", "layout", "look", "bar"]),
+    ("LOOK", ["theme", "wallpapers", "layout", "look", "bar", "widgets"]),
     ("DEVICES", ["display", "audio", "sound", "bluetooth", "network", "input"]),
     ("WORK & PLAY", ["shell", "keys", "apps", "games"]),
     ("SYSTEM", ["power", "boot", "security", "cleanup", "mounts", "system", "about"]),
@@ -169,6 +169,7 @@ class SettingsApp(App):
                 yield self.page_layout()
                 yield self.page_fields("look")
                 yield self.page_fields("bar")
+                yield self.page_fields("widgets")
                 yield self.page_display()
                 yield AudioPanel(id="page-audio", classes="page")
                 yield BluetoothPanel(id="page-bluetooth", classes="page")

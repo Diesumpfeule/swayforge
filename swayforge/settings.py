@@ -97,6 +97,19 @@ DEFAULTS: dict[str, Any] = {
         "login": True,                # chime at login
         "notify": True,               # sound for notifications
     },
+    "widgets": {                      # desktop widgets (below the windows) – see widgets.py
+        "enabled": False,
+        "clock": "dots",              # dots | digital | analog | off
+        "clock_pos": "top-right",
+        "player": True,
+        "player_pos": "bottom-right",
+        "sysmon": False,
+        "sysmon_pos": "top-left",
+        "clippy": False,
+        "clippy_pos": "bottom-left",
+        "scale": 1.0,
+        "opacity": 0.85,
+    },
     "power": {
         "lock_after": 10,             # minutes, 0 = never
         "screen_off_after": 15,

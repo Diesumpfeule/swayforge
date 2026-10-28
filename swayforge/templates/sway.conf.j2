@@ -225,6 +225,11 @@ exec_always sh -c 'pkill -x gammastep; exec gammastep -l {{ s.power.location }} 
 {% else %}
 exec_always pkill -x gammastep
 {% endif %}
+{% if s.widgets.enabled %}
+exec_always sh -c 'pkill -f "m [s]wayforge widgets run"; exec {{ sf }} widgets run'
+{% else %}
+exec_always pkill -f "m [s]wayforge widgets run"
+{% endif %}
 {% if cs2_watcher %}
 exec_always {{ cs2_watcher }}
 # CS2 write-back box (needs the launch option -netconport 2121)

@@ -39,6 +39,7 @@ def coerce(f: Field, raw: Any) -> Any:
     return raw
 
 
+CORNERS = [("Top left", "top-left"), ("Top right", "top-right"), ("Bottom left", "bottom-left"), ("Bottom right", "bottom-right"), ("Centre", "center")]
 SAVER_OPTS = [(label, key) for key, label in screensaver.SAVERS.items()]
 ON_OFF = [("always", "always"), ("only via SSH/root", "needed"), ("never", "false")]
 
@@ -65,6 +66,7 @@ PAGES: list[tuple[str, str]] = [
     ("mounts", "\U000f02ca  Mount drives"),
     ("system", "\U000f0493  System & files"),
     ("about", "\U000f02fd  About & updates"),
+    ("widgets", "\U000f072c  Desktop widgets"),
 ]
 
 
@@ -216,6 +218,24 @@ FIELDS: dict[str, list[Field | str]] = {
         Field("login.show_time", "Show date & time", "bool"),
         Field("login.remember", "Remember the last user", "bool"),
         Field("login.greeting", "Extra line under the art", help="empty = none"),
+    ],
+    "widgets": [
+        "Desktop widgets (below your windows)",
+        Field("widgets.enabled", "Show desktop widgets", "bool", help="clock, music player, system monitor, Clippy"),
+        Field("widgets.scale", "Size", "choice", [("Small", 0.8), ("Normal", 1.0), ("Large", 1.25), ("Huge", 1.5)]),
+        Field("widgets.opacity", "Background", "choice", [("See-through", 0.55), ("Soft", 0.75), ("Solid-ish", 0.85), ("Solid", 1.0)]),
+        "Clock",
+        Field("widgets.clock", "Clock", "choice", [("Dot matrix", "dots"), ("Digital", "digital"), ("Analog", "analog"), ("Off", "off")]),
+        Field("widgets.clock_pos", "Where", "choice", CORNERS),
+        "Music player",
+        Field("widgets.player", "Music player", "bool", help="Spotify, browsers, mpv … with play/pause/next"),
+        Field("widgets.player_pos", "Where", "choice", CORNERS),
+        "System monitor",
+        Field("widgets.sysmon", "CPU, memory, temperature", "bool"),
+        Field("widgets.sysmon_pos", "Where", "choice", CORNERS),
+        "Clippy",
+        Field("widgets.clippy", "Clippy with swayforge tips", "bool", help="click him for another tip"),
+        Field("widgets.clippy_pos", "Where", "choice", CORNERS),
     ],
     "security": [
         "Settings",
