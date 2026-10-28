@@ -230,6 +230,9 @@ def _migrate(data: dict) -> dict:
     sb = data.get("theme", {}).get("style_backup", {})
     if "bar_style" in sb:
         sb["layout"] = {"floating": "modern", "solid": "solid"}.get(sb.pop("bar_style"), "modern")
+    th = data.get("theme", {})
+    if th.get("name") == "onyx":                   # Onyx was merged into Noir
+        th["name"] = "noir"
     return data
 
 

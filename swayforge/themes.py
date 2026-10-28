@@ -84,9 +84,12 @@ def all_themes() -> dict[str, Theme]:
     return out
 
 
+ALIASES = {"onyx": "noir"}          # merged themes: old names keep working
+
+
 def get(name: str) -> Theme:
     themes = all_themes()
-    return themes.get(name) or themes["catppuccin-mocha"]
+    return themes.get(ALIASES.get(name, name)) or themes["catppuccin-mocha"]
 
 
 def slug(name: str) -> str:

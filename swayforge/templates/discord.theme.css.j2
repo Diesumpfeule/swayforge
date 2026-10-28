@@ -2,7 +2,7 @@
  * @name swayforge
  * @description Follows your swayforge theme ({{ theme.label }}). Generated – changes will be overwritten.
  * @author swayforge
- * @version 1.0.0
+ * @version 2.0.0
  */
 /* {{ mark }} */
 /* Your own tweaks: put them in a second theme file (e.g. my-discord.theme.css) and enable both. */
@@ -50,7 +50,10 @@
     --brand-560: {{ mix(c.accent, c.crust, 0.2) }} !important;
     --brand-600: {{ mix(c.accent, c.crust, 0.35) }} !important;
     --button-filled-brand-background: {{ c.accent }} !important;
-    --button-filled-brand-text: {{ c.crust }} !important;
+    --button-filled-brand-text: {{ on(c.accent, c.crust) }} !important;
+    --button-filled-brand-background-hover: {{ mix(c.accent, c.crust, 0.15) }} !important;
+    --button-filled-brand-background-active: {{ mix(c.accent, c.crust, 0.3) }} !important;
+    --white-500: {{ on(c.accent, "#ffffff") }} !important;
     --focus-primary: {{ c.accent }} !important;
     --mention-foreground: {{ c.accent }} !important;
     --mention-background: {{ rgba(c.accent, 0.18) }} !important;
@@ -89,6 +92,45 @@
     --border-normal: {{ c.surface2 }} !important;
     --border-strong: {{ c.overlay }} !important;
 
+    /* visual refresh (2025/26) names */
+    --background-base-lowest: {{ c.crust }} !important;
+    --app-frame-background: {{ c.crust }} !important;
+    --app-background-frame: {{ c.crust }} !important;
+    --chat-background-default: {{ c.base }} !important;
+    --panel-bg: {{ c.mantle }} !important;
+    --input-background-default: {{ c.surface }} !important;
+    --modal-background: {{ c.mantle }} !important;
+    --modal-footer-background: {{ c.crust }} !important;
+    --home-background: {{ c.base }} !important;
+    --card-background-default: {{ c.surface }} !important;
+    --card-primary-bg: {{ c.surface }} !important;
+    --bg-mod-subtle: {{ rgba(c.text, 0.05) }} !important;
+    --bg-mod-normal: {{ rgba(c.text, 0.09) }} !important;
+    --bg-mod-strong: {{ rgba(c.text, 0.14) }} !important;
+    --bg-brand: {{ c.accent }} !important;
+    --text-strong: {{ c.text }} !important;
+    --text-subtle: {{ c.subtext }} !important;
+    --text-primary: {{ c.text }} !important;
+    --icon-default: {{ c.subtext }} !important;
+    --icon-primary: {{ c.text }} !important;
+    --icon-secondary: {{ c.subtext }} !important;
+    --icon-tertiary: {{ c.overlay }} !important;
+    --channel-icon: {{ c.subtext }} !important;
+    --control-brand-foreground: {{ c.accent }} !important;
+    --control-brand-foreground-new: {{ c.accent }} !important;
+    --redesign-button-primary-background: {{ c.accent }} !important;
+    --redesign-button-primary-text: {{ on(c.accent, c.crust) }} !important;
+    --redesign-button-secondary-background: {{ c.surface2 }} !important;
+    --redesign-button-secondary-text: {{ c.text }} !important;
+    --border-faint: {{ rgba(c.text, 0.06) }} !important;
+    --border-muted: {{ rgba(c.text, 0.10) }} !important;
+    --textbox-markdown-syntax: {{ c.overlay }} !important;
+    --spoiler-revealed-background: {{ c.surface }} !important;
+    --spoiler-hidden-background: {{ c.surface2 }} !important;
+    --deprecated-card-bg: {{ c.surface }} !important;
+    --deprecated-store-bg: {{ c.base }} !important;
+    --custom-status-bubble-background: {{ c.surface }} !important;
+
     /* scroll bars */
     --scrollbar-thin-thumb: {{ c.surface2 }} !important;
     --scrollbar-thin-track: transparent !important;
@@ -108,4 +150,65 @@ body, button, input, textarea {
 [class*="channelTextArea"], [class*="card_"], [class*="popout_"], [class*="menu_"] { border-radius: 0 !important; }
 {% else %}
 [class*="channelTextArea"], [class*="card_"], [class*="popout_"], [class*="menu_"] { border-radius: {{ s.look.radius }}px !important; }
+{% endif %}
+
+/* code blocks, quotes, selections */
+code, pre, [class*="codeBlock"], .hljs { background: {{ c.crust }} !important; color: {{ c.text }} !important;
+    border-color: {{ c.surface2 }} !important; font-family: "{{ s.theme.font }}", monospace !important; }
+[class*="blockquoteDivider"] { background: {{ c.accent }} !important; }
+::selection { background: {{ rgba(c.accent, 0.35) }}; color: {{ c.text }}; }
+[class*="mentioned_"]::before { background: {{ c.accent }} !important; }
+[class*="mentioned_"] { background: {{ rgba(c.accent, 0.08) }} !important; }
+
+/* ── layout: {{ layout }} ─────────────────────────────────────────── */
+{% if layout in ("win98", "winxp") %}
+{% set raised = bv.hi ~ " " ~ bv.lo ~ " " ~ bv.lo ~ " " ~ bv.hi %}
+{% set sunken = bv.lo ~ " " ~ bv.hi ~ " " ~ bv.hi ~ " " ~ bv.lo %}
+/* bevelled buttons, sunken inputs, title-bar headers */
+button[class*="button_"], [class*="lookFilled"] { border-radius: 0 !important; border: 2px solid !important;
+    border-color: {{ raised }} !important; }
+button[class*="button_"]:active { border-color: {{ sunken }} !important; }
+[class*="channelTextArea"] [class*="scrollableContainer"], input, textarea { border-radius: 0 !important;
+    border: 2px solid !important; border-color: {{ sunken }} !important; background: {{ c.crust }} !important; }
+section[class*="title_"], [class*="container_"][class*="themed_"] {
+    background: linear-gradient(to right, {{ bv.title }}, {{ bv.title2 }}) !important; }
+section[class*="title_"] *, [class*="container_"][class*="themed_"] [class*="title_"] { color: {{ on(bv.title, c.crust) }} !important; }
+[class*="avatar_"], [class*="wrapper_"] > svg, img { border-radius: 0 !important; }
+{% if layout == "winxp" %}
+nav[class*="guilds_"], [class*="sidebar_"] { background: linear-gradient(to bottom, {{ mix(c.accent, "#ffffff", 0.2) }}, {{ c.accent }}) !important; }
+nav[class*="guilds_"] *, [class*="sidebar_"] [class*="name_"] { color: {{ on(c.accent) }}; }
+{% endif %}
+{% elif layout == "wired" %}
+/* terminal look: mono everywhere, no rounding, brackets on channels */
+* { font-family: "{{ s.theme.font }}", monospace !important; border-radius: 0 !important; }
+[class*="name_"][class*="overflow"]::before { content: "> "; color: {{ c.accent }}; }
+[class*="selected_"] [class*="name_"] { color: {{ c.accent }} !important; }
+[class*="channelTextArea"] { border: 1px solid {{ c.accent }} !important; }
+{% elif layout == "dread" %}
+/* worn slots: hard edges, rust rules, blood-red focus */
+* { border-radius: 0 !important; }
+[class*="sidebar_"], [class*="panels_"] { border-right: 2px solid {{ mix(c.orange, c.crust, 0.4) }} !important; }
+[class*="selected_"] { box-shadow: inset 3px 0 0 {{ c.red }}, 0 0 10px {{ rgba(c.red, 0.3) }} !important; }
+[class*="channelTextArea"] { border: 1px solid {{ c.surface2 }} !important; box-shadow: inset 0 0 12px {{ rgba("#000000", 0.6) }}; }
+{% elif layout == "cathedral" %}
+/* gothic: serif headings, crimson double rules */
+h1, h2, h3, section[class*="title_"] [class*="title_"] { font-family: "DejaVu Serif", serif !important; letter-spacing: 0.04em; }
+section[class*="title_"] { border-bottom: 3px double {{ c.accent }} !important; }
+[class*="sidebar_"] { border-right: 3px double {{ c.surface2 }} !important; }
+* { border-radius: 0 !important; }
+{% elif layout in ("glass", "win7") %}
+/* glass: soft hairlines, rounded floating panels, accent outline on the focus */
+[class*="channelTextArea"] { border: 1px solid {{ rgba(c.text, 0.14) }} !important; border-radius: {{ [s.look.radius, 10] | max }}px !important; }
+[class*="selected_"] { box-shadow: inset 0 0 0 1px {{ rgba(c.accent, 0.6) }} !important; }
+[class*="popout_"], [class*="menu_"] { border: 1px solid {{ rgba(c.text, 0.14) }} !important; backdrop-filter: blur(12px); }
+{% elif layout in ("win11", "touch") %}
+/* modern: roomier, round controls, accent pill on the active channel */
+[class*="selected_"] { box-shadow: inset 3px 0 0 {{ c.accent }} !important; }
+button[class*="button_"] { border-radius: 8px !important; }
+{% if layout == "touch" %}
+[class*="link_"], [class*="containerDefault_"] { min-height: 40px; }
+body { font-size: 115%; }
+{% endif %}
+{% else %}
+[class*="selected_"] { box-shadow: inset 2px 0 0 {{ c.accent }} !important; }
 {% endif %}

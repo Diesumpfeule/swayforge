@@ -293,7 +293,7 @@ def gamemode(action: str = "toggle", text: bool = False) -> None:
         return
     if not on:
         prev = run(["powerprofilesctl", "get"]).stdout.strip() if have("powerprofilesctl") else ""
-        flag.write_text(prev)
+        flag.write_text(prev + "\n" + os.environ.get("SWAYSOCK", "") + "\n")   # line 2: this session only
         run(["swaymsg", "gaps inner all set 0; gaps outer all set 0; [all] border none"])
         run(["makoctl", "mode", "-a", "do-not-disturb"])
         run(["pkill", "-x", "swayidle"])
@@ -301,7 +301,7 @@ def gamemode(action: str = "toggle", text: bool = False) -> None:
             run(["powerprofilesctl", "set", "performance"])
         notify("Gaming mode on", "No gaps, notifications muted, no locking")
     else:
-        prev = flag.read_text().strip()
+        prev = (flag.read_text().splitlines() or [""])[0].strip()
         flag.unlink()
         run(["makoctl", "mode", "-r", "do-not-disturb"])
         if prev and have("powerprofilesctl"):

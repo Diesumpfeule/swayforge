@@ -142,8 +142,11 @@ def field_row(f: Field, s: dict) -> Horizontal:
     else:
         typ = {"int": "integer", "float": "number"}.get(f.kind, "text")
         widget = Input(value="" if value is None else str(value), type=typ, id=f.wid)
-    lab = Vertical(Label(f.label, classes="flabel"),
-                   *([Label(f.help, classes="fhelp")] if f.help else []), classes="flabelbox")
+    # one line per setting: the name, then the hint dimmed behind it (wraps only when it must)
+    txt = Text(f.label)
+    if f.help:
+        txt.append("  " + f.help, style="dim")
+    lab = Vertical(Label(txt, classes="flabel"), classes="flabelbox")
     edit = Button("✎", name=f"edit:{f.path}", classes="editbtn", tooltip="Open the responsible config file")
     return Horizontal(lab, widget, edit, classes="frow")
 
@@ -177,12 +180,14 @@ Screen { layout: vertical; }
 #body { height: 1fr; }
 #sidebar { width: 26; border-right: tall $panel; padding: 0; }
 #sidebar > ListItem { padding: 0 1; height: 1; content-align: left middle; }
+#sidebar > ListItem.navgroup { color: $text-muted; text-style: bold; margin-top: 1; background: transparent; }
 #sidebar > ListItem Label { padding: 0; }
 #pages { width: 1fr; }
 .page { padding: 0 2; }
 .pagetitle { text-style: bold; color: $accent; padding: 0 1; margin-bottom: 1; border-bottom: heavy $accent; }
-.section { text-style: bold; color: $text; background: $panel; padding: 0 1; margin-top: 2; margin-bottom: 1; }
-.frow { height: auto; margin-bottom: 1; }
+.section { text-style: bold; color: $text; background: $panel; padding: 0 1; margin-top: 1; margin-bottom: 1; }
+.frow { height: auto; margin-bottom: 0; padding: 0 0 0 1; }
+.frow:hover { background: $boost; }
 .flabelbox { width: 1fr; height: auto; }
 .flabel { padding-top: 0; }
 .fhelp { color: $text-muted; }

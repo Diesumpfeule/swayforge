@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <b>Fedora Sway</b> · AMD · keyboard-first · 24 themes × 13 layouts · 97 apps · reset-friendly
+  <b>Fedora Sway</b> · AMD · keyboard-first · 23 themes × 13 layouts · 97 apps · reset-friendly
 </p>
 
 > ⚠ **Proof of concept, written by Claude (AI) – no warranty, use at your own risk.** See [Disclaimer](#disclaimer).
@@ -19,7 +19,7 @@ gaming, IT tools, keyboard-driven use and **frequent resets**.
 - **System sounds** – generated sound packs (gothic church bells, classic bleeps, glass chimes …),
   off by default.
 - **Tiling only** by default – no floating windows, no tabs or stacking; workspaces do the rest.
-- **24 colour themes × 13 layouts** (incl. *Modern 11* and a *Touch* layout with on-screen keyboard) – every theme recolours Sway, Waybar, Rofi, kitty/Alacritty,
+- **23 colour themes × 13 layouts** (incl. *Modern 11* and a *Touch* layout with on-screen keyboard) – every theme recolours Sway, Waybar, Rofi, kitty/Alacritty,
   Spaceship, fastfetch, GTK apps, Discord (Vesktop/Vencord/BetterDiscord theme), mako, swaylock, btop, cava, MangoHud, the boot screen and the
   login screen. One Nerd Font everywhere.
 - **Your tweaks always win** – every generated file has a companion file that belongs to you.
@@ -149,10 +149,9 @@ swayforge also switches dnf to **Enter = yes** (`[Y/n]` instead of `[y/N]`). Tha
 | **Type O** | gothic black & deep green · pointed-arch wallpaper |
 | **Phosphor** / **Amber** | green / amber CRT · Terminus font · BIOS wallpaper |
 | **Luna** / **Luna Olive** / **Luna Silver** | the Windows XP look: blue, olive or silver taskbar, big green Start button, beige windows · Luna XP layout · "Bliss" hill wallpaper |
-| **Noir** / **Noir Blue** | black and white with a white or blue accent, rounded corners · Glass islands layout · inspired by the look of [43PR's dotfiles](https://github.com/43PR/dotfiles) (MIT; colours and the idea only, no code or images taken) |
+| **Noir** / **Noir Blue** | pure black and white – no colour at all (Noir) or with a blue accent (Noir Blue), rounded corners · Glass islands layout · inspired by the look of [43PR's dotfiles](https://github.com/43PR/dotfiles) (MIT; colours and the idea only, no code or images taken) |
 | **Hollow Fog** / **Blood Ward** | survival-horror mood: fog-grey and rust, or black and oxblood · Dread layout · foggy dead-tree wallpaper with a lone street lamp |
 | **Wired** | full-on hacker: black, red, static, network nodes · Wired layout |
-| **Onyx** | pure black & white, square, no colour at all |
 | **Requiem** | gothic cathedral: black, bone white, crimson, a touch of deep green · Cathedral layout · plain dark wallpaper – drop your own into the wallpaper folder |
 
 Retro themes bring their own style (square corners, retro font, layout). Switch to another theme

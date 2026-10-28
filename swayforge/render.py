@@ -497,6 +497,36 @@ def discord_theme_dirs() -> list[tuple[Path, Path]]:
     return [(h / sub, h) for h, sub in homes if h.is_dir()]
 
 
+def enable_discord_theme(client: Path) -> None:
+    """Vesktop/Vencord: switch our theme on in the client's own settings (once – you can turn it off
+    again there; we only add it when it was never listed). Read while the client runs, so it may need
+    one more client restart."""
+    f = client / "settings/settings.json"
+    if not f.exists():
+        return
+    try:
+        data = json.loads(f.read_text())
+    except (OSError, ValueError):
+        return                                   # never touch a file we can't read
+    if not isinstance(data, dict):
+        return
+    themes = data.get("enabledThemes")
+    marker = client / "settings/.swayforge-theme-enabled"
+    if marker.exists() or not isinstance(themes, list) and themes is not None:
+        return
+    themes = themes or []
+    if "swayforge.theme.css" not in themes:
+        data["enabledThemes"] = [*themes, "swayforge.theme.css"]
+        try:
+            f.write_text(json.dumps(data, indent=4))
+        except OSError:
+            return
+    try:
+        marker.write_text("1")
+    except OSError:
+        pass
+
+
 def palette_json(ctx: Ctx) -> str:
     """The active look as plain data – wolfforge (LibreWolf) and other tools read this."""
     return json.dumps({
@@ -925,8 +955,10 @@ def render_all(s: dict | None = None, dry: bool = False, si: SysInfo | None = No
 
     # Discord (Vesktop / Vencord / BetterDiscord) – only where such a client has been started once
     discord_css = tpl("discord.theme.css.j2", d)
-    for folder, _client in discord_theme_dirs():
+    for folder, client in discord_theme_dirs():
         w.owned(folder / "swayforge.theme.css", discord_css)
+        if not dry:
+            enable_discord_theme(client)
 
     # btop, MangoHud, cava
     w.owned(C / "btop/themes/swayforge.theme", tpl("btop.j2", d))
@@ -1032,8 +1064,47 @@ def fix_screenshare() -> None:
                  "--socket=wayland", app])
 
 
+def _step(name: str, fn, *args) -> None:
+    """One part of the session start; a failure is logged and never stops the others."""
+    try:
+        fn(*args)
+    except Exception as e:                       # noqa: BLE001 – keep the session going
+        from . import screensaver
+        screensaver.log(f"session: {name} failed: {type(e).__name__}: {e}")
+
+
+def clear_stale_gamemode() -> None:
+    """Gaming mode is per Sway session: a flag left over from before a reboot/logout would keep
+    the idle/lock/screensaver chain off for good."""
+    flag = paths.GEN_DIR / "gamemode"
+    if not flag.exists():
+        return
+    lines = flag.read_text().splitlines()
+    sock = os.environ.get("SWAYSOCK", "")
+    if len(lines) < 2 or (sock and lines[1] != sock):
+        flag.unlink(missing_ok=True)
+
+
+def set_gtk(ctx: "Ctx") -> None:
+    s = ctx.s
+    if not have("gsettings"):
+        return
+    iface = "org.gnome.desktop.interface"
+    font = f"{ui_font(ctx)} {s['theme']['font_size']}"
+    for k, v in {
+        "gtk-theme": gtk_theme(ctx), "icon-theme": icon_theme(ctx),
+        "cursor-theme": s["theme"]["cursor_theme"], "cursor-size": str(s["theme"]["cursor_size"]),
+        "font-name": font, "document-font-name": font,
+        "monospace-font-name": f"{s['theme']['font']} {s['theme']['font_size']}",
+        "color-scheme": "prefer-dark" if ctx.theme.dark else "prefer-light",
+    }.items():
+        run(["gsettings", "set", iface, k, v], timeout=5)    # dconf may still be starting at login
+    run(["gsettings", "set", "org.gnome.desktop.wm.preferences", "button-layout", button_layout(ctx)], timeout=5)
+
+
 def session(s: dict | None = None) -> None:
-    """Runs at Sway start and after every change."""
+    """Runs at Sway start and after every change. Idle/lock/screensaver come first – nothing that
+    follows (GTK settings, portals, sounds) may keep them from starting."""
     s = s or settings.load()
     # SwayFX installed/removed since the last render? Then adapt the config.
     conf = paths.XDG_CONFIG / "sway/config"
@@ -1042,23 +1113,13 @@ def session(s: dict | None = None) -> None:
         if os.environ.get("SWAYSOCK"):
             run(["swaymsg", "reload"])
             return                     # reload calls session again
+    _step("gaming flag", clear_stale_gamemode)
+    _step("swayidle", restart_idle, s)
     ctx = make_ctx(s)
-    if have("gsettings"):
-        iface = "org.gnome.desktop.interface"
-        font = f"{ui_font(ctx)} {s['theme']['font_size']}"
-        for k, v in {
-            "gtk-theme": gtk_theme(ctx), "icon-theme": icon_theme(ctx),
-            "cursor-theme": s["theme"]["cursor_theme"], "cursor-size": str(s["theme"]["cursor_size"]),
-            "font-name": font, "document-font-name": font,
-            "monospace-font-name": f"{s['theme']['font']} {s['theme']['font_size']}",
-            "color-scheme": "prefer-dark" if ctx.theme.dark else "prefer-light",
-        }.items():
-            run(["gsettings", "set", iface, k, v])
-        run(["gsettings", "set", "org.gnome.desktop.wm.preferences", "button-layout", button_layout(ctx)])
-    restart_idle(s)
-    fix_screenshare()
-    set_primary_output(s)
-    apply_sounds(s, ctx)
+    _step("gtk", set_gtk, ctx)
+    _step("screen sharing", fix_screenshare)
+    _step("primary output", set_primary_output, s)
+    _step("sounds", apply_sounds, s, ctx)
 
 
 def set_primary_output(s: dict) -> None:
@@ -1101,10 +1162,15 @@ def restart_idle(s: dict) -> None:
     if not (os.environ.get("SWAYSOCK") and have("swayidle")):
         return
     if (paths.GEN_DIR / "gamemode").exists():
+        from . import screensaver
+        screensaver.log("swayidle not started: gaming mode is on")
         return                              # no locking in gaming mode
     run(["pkill", "-x", "swayidle"])
-    subprocess.Popen(["swayidle", *idle_args(s)], stdout=subprocess.DEVNULL,
+    args = idle_args(s)
+    subprocess.Popen(["swayidle", *args], stdout=subprocess.DEVNULL,
                      stderr=subprocess.DEVNULL, start_new_session=True)
+    from . import screensaver
+    screensaver.log("swayidle started: " + " ".join(args))
 
 
 def apply(s: dict | None = None, live: bool = True) -> Result:

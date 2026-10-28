@@ -53,6 +53,28 @@ PAGES: list[tuple[str, str]] = [
     ("about", "\U000f02fd  About & updates"),
 ]
 
+# Sidebar chapters (page ids from PAGES)
+NAV_GROUPS: list[tuple[str, list[str]]] = [
+    ("LOOK", ["theme", "wallpapers", "layout", "look", "bar"]),
+    ("DEVICES", ["display", "audio", "sound", "bluetooth", "network", "input"]),
+    ("WORK & PLAY", ["shell", "keys", "apps", "games"]),
+    ("SYSTEM", ["power", "boot", "security", "cleanup", "mounts", "system", "about"]),
+]
+
+
+def nav_items(start: str) -> tuple[list, int]:
+    """Sidebar entries with chapter headers; returns (items, index of the start page)."""
+    labels = dict(PAGES)
+    items, idx = [], 0
+    for title, pids in NAV_GROUPS:
+        items.append(ListItem(Label(title), classes="navgroup", disabled=True))
+        for pid in pids:
+            if pid == start:
+                idx = len(items)
+            items.append(ListItem(Label(labels[pid]), id=f"nav-{pid}"))
+    return items, idx
+
+
 FIELDS: dict[str, list[Field | str]] = {
     "look": [
         "Font (used everywhere)",
@@ -312,8 +334,8 @@ class SettingsApp(App):
     def compose(self) -> ComposeResult:
         yield Header()
         with Horizontal(id="body"):
-            yield ListView(*[ListItem(Label(label), id=f"nav-{pid}") for pid, label in PAGES],
-                           id="sidebar", initial_index=[p for p, _ in PAGES].index(self.start_page))
+            items, idx = nav_items(self.start_page)
+            yield ListView(*items, id="sidebar", initial_index=idx)
             with ContentSwitcher(initial=f"page-{self.start_page}", id="pages"):
                 yield self.page_theme()
                 yield WallpapersPanel(id="page-wallpapers", classes="page")
