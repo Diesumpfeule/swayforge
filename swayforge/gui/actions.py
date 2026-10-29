@@ -881,3 +881,17 @@ def privacy_action(state, verb: str, d: dict):
         return ("Back to the app's own permissions" if what == "reset" else
                 f"Done: {privacy.REVOKE[what][1]}") + " – restart the app"
     raise Fail("unknown")
+
+
+# ── Desktop widgets: is everything there? ────────────────────────────
+def widgets_action(state, verb: str):
+    from .. import widgets
+    if verb == "check":
+        return {"checks": [{"ok": ok, "what": w, "fix": f} for ok, w, f in widgets.check()], "log": widgets.last_log()}
+    if verb == "restart":
+        widgets.main("restart")
+        return "Widgets restarted – look at an empty workspace"
+    if verb == "install":
+        term(state, f"{widgets.DEPS_CMD} playerctl grim && {L()} widgets restart; {HOLD}")
+        return "Installing in a terminal"
+    raise Fail("unknown")

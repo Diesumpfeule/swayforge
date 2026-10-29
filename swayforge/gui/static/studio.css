@@ -446,3 +446,4 @@ dialog::backdrop { background: rgb(0 0 0 / .55); backdrop-filter: blur(3px); }
 .cr.ok { border-color: var(--green); } .cr.meh { border-color: var(--yellow); } .cr.bad { border-color: var(--red); }
 .cr small { opacity: .8; }
 @media (max-width: 640px) { .builder, .slots, .knobs { grid-template-columns: 1fr; } }
+.status li.no::before { color: var(--red); }

@@ -965,6 +965,65 @@ def theme_now() -> tuple[dict, dict]:
     return ({"colors": ctx.c, "font": s["theme"]["font"], "radius": s["look"]["radius"]}, dict(s.get("widgets", {})))
 
 
+DEPS_CMD = "sudo dnf install gtk3 gtk-layer-shell python3-gobject python3-cairo"
+
+
+def check() -> list[tuple[bool, str, str]]:
+    """What the widgets need, one by one: [(ok, what, how to fix)]."""
+    out: list[tuple[bool, str, str]] = []
+
+    def probe(code: str) -> str:
+        r = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, timeout=20)
+        return "" if r.returncode == 0 else (r.stderr.strip().splitlines() or ["failed"])[-1]
+    err = probe("import gi")
+    out.append((not err, "Python GObject (python3-gobject)", "sudo dnf install python3-gobject"))
+    err = probe("import gi; gi.require_version('Gtk', '3.0'); from gi.repository import Gtk")
+    out.append((not err, "GTK 3", "sudo dnf install gtk3"))
+    err = probe("import gi; gi.require_version('GtkLayerShell', '0.1'); from gi.repository import GtkLayerShell")
+    out.append((not err, "gtk-layer-shell (puts widgets on the desktop)", "sudo dnf install gtk-layer-shell"))
+    err = probe("import cairo, gi; gi.require_foreign('cairo')")
+    out.append((not err, "pycairo (draws the widgets)", "sudo dnf install python3-cairo python3-gobject"))
+    out.append((bool(os.environ.get("WAYLAND_DISPLAY") or os.environ.get("SWAYSOCK")), "running inside Sway",
+                "widgets only run in a Sway session"))
+    try:
+        enabled = bool(settings.load()["widgets"].get("enabled"))
+    except Exception:                               # noqa: BLE001
+        enabled = False
+    out.append((enabled, "switched on (Settings → Desktop widgets)", "turn on “Show desktop widgets”, then Apply"))
+    running = subprocess.run(["pgrep", "-f", "m [s]wayforge widgets run"], capture_output=True).returncode == 0
+    out.append((running, "widgets process running", "swayforge widgets restart   (errors: ~/.local/share/swayforge/widgets.log)"))
+    from shutil import which
+    out.append((bool(which("playerctl")), "playerctl (music player widget)", "sudo dnf install playerctl"))
+    out.append((bool(which("grim")), "grim (workspace pictures)", "sudo dnf install grim"))
+    return out
+
+
+def last_log(n: int = 8) -> list[str]:
+    try:
+        return LOG.read_text(errors="replace").splitlines()[-n:]
+    except OSError:
+        return []
+
+
+def check_main() -> int:
+    bad = 0
+    for ok, what, fix in check():
+        print(("  ✓ " if ok else "  ✗ ") + what + ("" if ok else f"\n      → {fix}"))
+        bad += not ok
+    lines = last_log()
+    if lines:
+        print("\nLast lines of the widgets log:\n  " + "\n  ".join(lines))
+    return 1 if bad else 0
+
+
+def _notify(title: str, body: str) -> None:
+    try:
+        subprocess.Popen(["notify-send", "-a", "swayforge", title, body], stdout=subprocess.DEVNULL,
+                         stderr=subprocess.DEVNULL)
+    except OSError:
+        pass
+
+
 def _gtk():
     import gi
     gi.require_version("Gtk", "3.0")
@@ -992,11 +1051,24 @@ def run() -> int:
     try:
         Gdk, GLib, Gtk, GtkLayerShell = _gtk()
     except (ImportError, ValueError) as e:
-        print(f"Widgets need GTK 3, gtk-layer-shell and pycairo: sudo dnf install python3-gobject gtk-layer-shell python3-cairo ({e})")
+        msg = f"Widgets need GTK 3, gtk-layer-shell and pycairo ({e}). Install: {DEPS_CMD}"
+        print(msg)
+        log(msg)
+        _notify("Desktop widgets can't start", f"Missing parts – run:\n{DEPS_CMD}")
         return 1
     if not os.environ.get("WAYLAND_DISPLAY"):
         print("Widgets only run inside Sway (Wayland).")
         return 1
+    try:
+        return _run(Gdk, GLib, Gtk, GtkLayerShell)
+    except Exception as e:                          # noqa: BLE001 – say why instead of vanishing
+        import traceback
+        log("crashed:\n" + traceback.format_exc())
+        _notify("Desktop widgets crashed", f"{type(e).__name__}: {e}\nDetails: swayforge widgets check")
+        return 1
+
+
+def _run(Gdk, GLib, Gtk, GtkLayerShell) -> int:
     import threading
     theme, cfg = theme_now()
     if not cfg.get("enabled"):
@@ -1022,7 +1094,7 @@ def run() -> int:
         win.set_app_paintable(True)
         GtkLayerShell.init_for_window(win)
         GtkLayerShell.set_namespace(win, "swayforge-widgets")
-        GtkLayerShell.set_layer(win, GtkLayerShell.Layer.BOTTOM)
+        GtkLayerShell.set_layer(win, GtkLayerShell.Layer.TOP if cfg.get("layer") == "top" else GtkLayerShell.Layer.BOTTOM)
         try:
             GtkLayerShell.set_keyboard_mode(win, GtkLayerShell.KeyboardMode.NONE)
         except AttributeError:
@@ -1101,7 +1173,9 @@ def run() -> int:
         windows.append((kind, area))
 
     if not windows:
+        log("switched on, but every widget is off")
         return 0
+    log(f"running: {', '.join(k for k, _ in kinds)}")
     on = {k for k, _ in kinds}
 
     def redraw(*which):
@@ -1319,6 +1393,8 @@ def overview() -> int:
 def main(action: str = "run") -> int:
     if action == "overview":
         return overview()
+    if action == "check":
+        return check_main()
     if action == "stop":
         subprocess.run(["pkill", "-f", "m [s]wayforge widgets run"])
         return 0

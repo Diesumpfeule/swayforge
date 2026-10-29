@@ -64,8 +64,8 @@ def main(argv: list[str] | None = None) -> int:
     p = sub.add_parser("restore", help="restore a backup")
     p.add_argument("file")
 
-    p = sub.add_parser("widgets", help="desktop widgets: run | restart | stop | overview (all workspaces big)")
-    p.add_argument("action", nargs="?", default="run", choices=["run", "restart", "stop", "overview"])
+    p = sub.add_parser("widgets", help="desktop widgets: run | restart | stop | check | overview (all workspaces big)")
+    p.add_argument("action", nargs="?", default="run", choices=["run", "restart", "stop", "overview", "check"])
     p = sub.add_parser("screenshare", help="check and repair screen sharing (Discord/Vesktop, browsers)")
     p.add_argument("--report", action="store_true", help="write everything needed to find the cause into one file")
     p = sub.add_parser("gui", help="swayforge app – graphical settings with live previews")

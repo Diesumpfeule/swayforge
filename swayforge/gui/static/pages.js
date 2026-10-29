@@ -1051,8 +1051,23 @@ Studio.page("widgets", {
   render(view) {
     const split = h(`<div class="split"><div class="col"></div><div class="sticky"><div class="widget-preview"><div class="desk-frame big" id="wg-desk"></div><canvas id="wg-canvas" width="1280" height="720"></canvas></div>
       <p class="hint">Preview with your theme. The real widgets sit on the desktop under your windows; they need gtk-layer-shell (installed with swayforge's base packages).</p></div></div>`);
-    split.querySelector(".col").append(form("widgets"));
+    const st = section("Status");
+    const box = h(`<div><p class="hint loading">Checking …</p></div>`);
+    const row = h(`<div class="btnrow"></div>`);
+    const check = async () => {
+      const r = await api.act("widgets", { verb: "check" }, true); if (!r) return;
+      const bad = r.checks.filter(c => !c.ok && !/playerctl|grim/.test(c.what));
+      box.replaceChildren(h(`<ul class="status">${r.checks.map(c => `<li class="${c.ok ? "ok" : /playerctl|grim/.test(c.what) ? "warn" : "no"}" title="${esc(c.ok ? "" : c.fix)}">${esc(c.what)}</li>`).join("")}</ul>`));
+      if (bad.length) box.append(h(`<p class="hint">${bad.map(c => `✗ ${esc(c.what)} → <code>${esc(c.fix)}</code>`).join("<br>")}</p>`));
+      if (r.log.length) box.append(h(`<pre class="out">${esc(r.log.join("\n"))}</pre>`));
+    };
+    row.append(button("Install missing parts", "primary", () => api.act("widgets", { verb: "install" })),
+      button("Restart widgets", "", async () => { await api.act("widgets", { verb: "restart" }); setTimeout(check, 2500); }),
+      button("Check again", "ghost", check));
+    st.append(box, row);
+    split.querySelector(".col").append(st, form("widgets"));
     view.append(split);
+    check();
     const fr = $("#wg-desk");
     desk(fr, { theme: theme(), layout: S.s.bar.layout, wallpaperUrl: wallUrl(null, true), empty: true });
     const cv = $("#wg-canvas"), t0 = performance.now();

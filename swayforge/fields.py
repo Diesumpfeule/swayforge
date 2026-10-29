@@ -233,6 +233,8 @@ FIELDS: dict[str, list[Field | str]] = {
     "widgets": [
         "Desktop widgets (below your windows)",
         Field("widgets.enabled", "Show desktop widgets", "bool", help="clocks, player, workspaces, calendar, weather, timer and more"),
+        Field("widgets.layer", "Show them", "choice", [("Under windows (desktop)", "bottom"), ("Above windows", "top")],
+              help="under windows: visible on an empty workspace · above: always visible, but they cover what's below"),
         Field("widgets.scale", "Size", "choice", [("Small", 0.8), ("Normal", 1.0), ("Large", 1.25), ("Huge", 1.5)]),
         Field("widgets.opacity", "Background", "choice", [("See-through", 0.55), ("Soft", 0.75), ("Solid-ish", 0.85), ("Solid", 1.0)]),
         "Clock",

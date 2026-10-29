@@ -139,6 +139,7 @@ DEFAULTS: dict[str, Any] = {
         "workspaces": False,
         "workspaces_pos": "bottom-center",
         "ws_thumbs": True,             # remember how each workspace looked (pictures stay in ~/.cache)
+        "layer": "bottom",             # bottom = under your windows (desktop) | top = above them
         "scale": 1.0,
         "opacity": 0.85,
     },

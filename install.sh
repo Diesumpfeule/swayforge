@@ -38,6 +38,8 @@ bold "Packages swayforge itself needs …"
 sudo dnf install -y --skip-unavailable python3 python3-textual python3-jinja2 python3-pillow git >/dev/null
 # swayforge app's own window (optional: without it, it opens in a browser window)
 sudo dnf install -y --skip-unavailable python3-gobject gtk4 webkitgtk6.0 >/dev/null 2>&1 || true
+# desktop widgets, clipboard history, workspace pictures (also on updates – older installs lack them)
+sudo dnf install -y --skip-unavailable gtk3 gtk-layer-shell python3-cairo wl-clipboard grim playerctl >/dev/null 2>&1 || true
 
 bold "Copying swayforge to $APP …"
 mkdir -p "$APP" "$(dirname "$BIN")"

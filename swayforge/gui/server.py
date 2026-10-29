@@ -437,6 +437,8 @@ def _dispatch(state: State, A, act: str, d: dict):
         return A.apps_search(state, str(d.get("term", "")))
     if act == "apps_install":
         return A.apps_install(state, d.get("n"))
+    if act == "widgets":
+        return A.widgets_action(state, str(v))
     if act == "clipboard":
         return A.clipboard_action(state, str(v), d)
     if act == "privacy":

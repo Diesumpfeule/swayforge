@@ -169,7 +169,7 @@ class SettingsApp(App):
                 yield self.page_layout()
                 yield self.page_fields("look")
                 yield self.page_fields("bar")
-                yield self.page_fields("widgets")
+                yield self.page_widgets()
                 yield self.page_display()
                 yield AudioPanel(id="page-audio", classes="page")
                 yield BluetoothPanel(id="page-bluetooth", classes="page")
@@ -439,6 +439,16 @@ class SettingsApp(App):
                        Button("Back to SDDM", id="login_restore", variant="warning"), classes="btnrow"),
         )
 
+    def page_widgets(self) -> VerticalScroll:
+        return self.page(
+            "widgets",
+            Static("Desktop widgets sit under your windows by default – look at an empty workspace, or set "
+                   "“Show them” to above windows. Super+O shows all workspaces big.", classes="hint"),
+            Horizontal(Button("Check", id="wg_check", variant="primary"), Button("Restart widgets", id="wg_restart"),
+                       Button("Install missing parts", id="wg_install"), classes="btnrow"),
+            Static("", id="wg_out"),
+            *self.fields("widgets"))
+
     def page_clipboard(self) -> VerticalScroll:
         return self.page(
             "clipboard",
@@ -460,6 +470,18 @@ class SettingsApp(App):
             Horizontal(Button("Check all apps", id="priv_scan", variant="primary"),
                        Button("Open in the app (take permissions away)", id="priv_gui"), classes="btnrow"),
             Static("", id="priv_out"))
+
+    @work(exclusive=True, thread=True, group="widgets")
+    def widgets_check(self) -> None:
+        from .. import widgets
+        from rich.markup import escape
+        import time as _t
+        _t.sleep(1.5)                                   # give a restart a moment
+        lines = [("[green]✓[/] " if ok else "[red]✗[/] ") + escape(w) + ("" if ok else f"  [dim]→ {escape(f)}[/]")
+                 for ok, w, f in widgets.check()]
+        log = widgets.last_log(6)
+        txt = "\n".join(lines) + ("\n\n[dim]" + escape("\n".join(log)) + "[/]" if log else "")
+        self.call_from_thread(lambda: self.query_one("#wg_out", Static).update(txt))
 
     @work(exclusive=True, thread=True, group="privacy")
     def privacy_scan(self) -> None:
@@ -950,6 +972,15 @@ class SettingsApp(App):
                     return
                 eid = item.name
             self.go_back(eid)
+        elif bid in ("wg_check", "wg_restart", "wg_install"):
+            from .. import widgets
+            if bid == "wg_install":
+                self.spawn_term(f"{widgets.DEPS_CMD} playerctl grim && {shlex.quote(render.LAUNCHER)} widgets restart; {hold}")
+                return
+            if bid == "wg_restart":
+                self.save_and_apply(quiet=True)
+                widgets.main("restart")
+            self.widgets_check()
         elif bid.startswith("clip_"):
             from .. import clipboard
             if bid == "clip_open":
