@@ -60,6 +60,11 @@ python3 -m compileall -q swayforge tests   → OK
 bash -n install.sh extras/*/*.sh           → OK (part of the suite)
 ```
 
+GitHub Actions (`.github/workflows/tests.yml`, Ubuntu, Python 3.12 and 3.13, Textual installed, so
+the TUI smoke test runs there): run 40791210329 – syntax and unit tests **passed** on both versions.
+The pyflakes step is report-only for now (it reports style findings in older modules; the run log
+could not be downloaded from the audit container, so they are not listed here).
+
 Also run during the session, outside the suite: headless Chromium (Playwright) render of every app
 page with fake `swaymsg/pactl/nmcli/bluetoothctl/ip` – no JavaScript errors; screenshots of all skins.
 
