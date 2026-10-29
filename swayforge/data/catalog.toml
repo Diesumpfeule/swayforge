@@ -309,18 +309,147 @@ label = "Gaming"
   flatpak = ["rs.ruffle.Ruffle"]
 
   [[group.items]]
-  id = "0ad"
-  label = "0 A.D."
-  desc = "Free historical real-time strategy game (Age of Empires style)"
-  default = false
-  dnf = ["0ad"]
-
-  [[group.items]]
   id = "openrgb"
   label = "OpenRGB"
   desc = "RGB lighting for mainboard, RAM, GPU, peripherals"
   default = false
   dnf = ["openrgb"]
+
+[[group]]
+id = "foss-games"
+label = "Free games"
+
+  [[group.items]]
+  id = "0ad"
+  label = "0 A.D."
+  desc = "Historical real-time strategy (Age of Empires style)"
+  default = false
+  dnf = ["0ad"]
+
+  [[group.items]]
+  id = "openra"
+  label = "OpenRA"
+  desc = "Command & Conquer, Red Alert and Dune 2000 remade, online play [Flatpak]"
+  default = false
+  needs = ["flathub"]
+  flatpak = ["net.openra.OpenRA"]
+
+  [[group.items]]
+  id = "wesnoth"
+  label = "Battle for Wesnoth"
+  desc = "Turn-based fantasy strategy with long campaigns"
+  default = false
+  dnf = ["wesnoth"]
+
+  [[group.items]]
+  id = "warzone2100"
+  label = "Warzone 2100"
+  desc = "Post-apocalyptic real-time strategy"
+  default = false
+  dnf = ["warzone2100"]
+
+  [[group.items]]
+  id = "freeciv"
+  label = "Freeciv"
+  desc = "Civilization-style empire building"
+  default = false
+  dnf = ["freeciv"]
+
+  [[group.items]]
+  id = "openttd"
+  label = "OpenTTD"
+  desc = "Transport tycoon: trains, ships, planes, cities"
+  default = false
+  dnf = ["openttd"]
+
+  [[group.items]]
+  id = "mindustry"
+  label = "Mindustry"
+  desc = "Factory building meets tower defence [Flatpak]"
+  default = false
+  needs = ["flathub"]
+  flatpak = ["com.github.Anuken.Mindustry"]
+
+  [[group.items]]
+  id = "luanti"
+  label = "Luanti"
+  desc = "Voxel sandbox (formerly Minetest) – Minecraft-like, with thousands of mods [Flatpak]"
+  default = false
+  needs = ["flathub"]
+  flatpak = ["org.luanti.luanti"]
+
+  [[group.items]]
+  id = "veloren"
+  label = "Veloren"
+  desc = "Multiplayer voxel RPG – explore, fight, build [Flatpak]"
+  default = false
+  needs = ["flathub"]
+  flatpak = ["net.veloren.veloren"]
+
+  [[group.items]]
+  id = "xonotic"
+  label = "Xonotic"
+  desc = "Fast arena shooter (Quake style) [Flatpak]"
+  default = false
+  needs = ["flathub"]
+  flatpak = ["org.xonotic.Xonotic"]
+
+  [[group.items]]
+  id = "supertuxkart"
+  label = "SuperTuxKart"
+  desc = "Kart racing with online multiplayer"
+  default = false
+  dnf = ["supertuxkart"]
+
+  [[group.items]]
+  id = "ddnet"
+  label = "DDraceNetwork"
+  desc = "Cooperative Teeworlds platformer, huge online community"
+  default = false
+  dnf = ["ddnet"]
+
+  [[group.items]]
+  id = "hedgewars"
+  label = "Hedgewars"
+  desc = "Worms-like turn-based artillery with hedgehogs"
+  default = false
+  dnf = ["hedgewars"]
+
+  [[group.items]]
+  id = "endless-sky"
+  label = "Endless Sky"
+  desc = "Space trading and combat (Escape Velocity style)"
+  default = false
+  dnf = ["endless-sky"]
+
+  [[group.items]]
+  id = "cataclysm"
+  label = "Cataclysm: Dark Days Ahead"
+  desc = "Deep survival roguelike (tiles version)"
+  default = false
+  dnf = ["cataclysm-dda"]
+
+  [[group.items]]
+  id = "shattered-pd"
+  label = "Shattered Pixel Dungeon"
+  desc = "Pixel-art roguelike dungeon crawler [Flatpak]"
+  default = false
+  needs = ["flathub"]
+  flatpak = ["com.shatteredpixel.shatteredpixeldungeon"]
+
+  [[group.items]]
+  id = "supertux"
+  label = "SuperTux"
+  desc = "Classic 2D jump'n'run"
+  default = false
+  dnf = ["supertux"]
+
+  [[group.items]]
+  id = "small-games"
+  label = "Small classics"
+  desc = "Neverball, X-Moto, Pingus, Frozen Bubble"
+  default = false
+  dnf = ["neverball", "xmoto", "pingus", "frozen-bubble"]
 
 [[group]]
 id = "browser"

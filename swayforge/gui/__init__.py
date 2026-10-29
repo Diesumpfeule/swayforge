@@ -29,8 +29,17 @@ def _native_window(url: str) -> bool:
         win = Gtk.ApplicationWindow(application=a, title="swayforge app")
         win.set_default_size(1280, 820)
         view = WebKit.WebView()
+        st = view.get_settings()
+        if not os.environ.get("SWAYFORGE_GPU"):
+            # GPU compositing renders scaled previews once at low resolution and then only stretches
+            # them – they turn blurry a moment after a page opens. Painting everything directly keeps
+            # them sharp (this app has no heavy animation that would need the GPU).
+            try:
+                st.set_hardware_acceleration_policy(WebKit.HardwareAccelerationPolicy.NEVER)
+            except (AttributeError, TypeError):
+                pass
         if os.environ.get("SWAYFORGE_DEBUG"):
-            view.get_settings().set_enable_developer_extras(True)
+            st.set_enable_developer_extras(True)
         view.load_uri(url)
         win.set_child(view)
         win.present()

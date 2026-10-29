@@ -109,6 +109,8 @@ function dialog(html, init) {
   return new Promise(res => d.addEventListener("close", () => res(d.returnValue), { once: true }));
 }
 
+// one shared blink for every preview caret (no CSS animation – keeps previews sharp)
+setInterval(() => $$(".desk-caret").forEach(c => c.classList.toggle("off")), 550);
 // fit 640×360 desktops into their frames
 const ro = new ResizeObserver(es => es.forEach(e => e.target.style.setProperty("--k", e.contentRect.width / Desk.W)));
 function desk(frame, opts) {
