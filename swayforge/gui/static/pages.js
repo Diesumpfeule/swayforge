@@ -843,7 +843,7 @@ const WidgetArt = (() => {
     "8": [".###.", "#...#", "#...#", ".###.", "#...#", "#...#", ".###."], "9": [".###.", "#...#", "#...#", ".####", "....#", "...#.", ".##.."],
     ":": [".", ".", "#", ".", "#", ".", "."],
   };
-  const SIZE = { dots: [372, 150], digital: [330, 140], analog: [210, 230], player: [340, 118], sysmon: [280, 120], clippy: [330, 190],
+  const SIZE = { binary: [300, 196], dots: [372, 150], digital: [330, 140], analog: [210, 230], player: [340, 118], sysmon: [280, 120], clippy: [330, 190],
     workspaces: [560, 128], calendar: [260, 236], weather: [300, 150], network: [300, 120], disks: [300, 132], battery: [220, 84], notes: [260, 190], timer: [220, 120] };
   const TOGGLES = ["player", "sysmon", "workspaces", "calendar", "weather", "network", "disks", "battery", "notes", "timer", "clippy"];
   const rr = (g, x, y, w, h, r) => { r = Math.max(0, Math.min(r, w / 2, h / 2)); g.beginPath(); g.roundRect ? g.roundRect(x, y, w, h, r) : g.rect(x, y, w, h); };
@@ -871,6 +871,21 @@ const WidgetArt = (() => {
       return;
     }
     card(g, c, w, h, o);
+    if (style === "binary") {
+      const dg = hhmm.replace(":", "") + String(sec).padStart(2, "0"), bits = [2, 4, 3, 4, 3, 4];
+      const top = 18, bottom = h - 44, cell = Math.min((bottom - top) / 4, (w - 70) / 6.6), r = cell * .34;
+      const x0 = (w - (6 * cell + cell)) / 2 + cell / 2;
+      [...dg].forEach((d, col) => {
+        const x = x0 + col * cell + Math.floor(col / 2) * cell * .5, v = +d;
+        for (let row = 0; row < 4; row++) { const bit = 3 - row; if (bit >= bits[col]) continue;
+          g.beginPath(); g.arc(x, top + row * cell + cell / 2, r, 0, Math.PI * 2);
+          g.fillStyle = (v >> bit) & 1 ? (col < 4 ? c.accent : c.accent2) : Desk.rgba(c.surface2, .35); g.fill(); }
+        text(g, c, x - 4, bottom + 14, d, 12, "subtext", true, 0, o.font);
+      });
+      ["8", "4", "2", "1"].forEach((l, i) => text(g, c, 10, top + i * cell + cell / 2 + 4, l, 9, "overlay", false, 0, o.font));
+      text(g, c, 18, h - 10, date, Math.max(10, h * .065), "subtext", false, 0, o.font);
+      return;
+    }
     if (style === "digital") {
       text(g, c, 22, h * .58, hhmm, h * .46, "text", true, 0, o.font);
       text(g, c, w - 62, h * .58, ":" + String(sec).padStart(2, "0"), h * .2, "accent", true, 0, o.font);

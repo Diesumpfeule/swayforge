@@ -113,7 +113,7 @@ DEFAULTS: dict[str, Any] = {
     },
     "widgets": {                      # desktop widgets (below the windows) – see widgets.py
         "enabled": False,
-        "clock": "dots",              # dots | digital | analog | off
+        "clock": "binary",            # binary | dots | digital | analog | off
         "clock_pos": "top-right",
         "player": True,
         "player_pos": "bottom-right",

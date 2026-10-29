@@ -36,7 +36,7 @@ KINDS = {
     "clippy": "Clippy",
 }
 TOGGLES = [k for k in KINDS if k != "clock"]          # on/off switches in Settings (clock has a style)
-CLOCKS = {"dots": "Dot matrix", "digital": "Digital", "analog": "Analog", "off": "Off"}
+CLOCKS = {"binary": "Binary", "dots": "Dot matrix", "digital": "Digital", "analog": "Analog", "off": "Off"}
 CORNERS = {"top-left": "Top left", "top-center": "Top centre", "top-right": "Top right", "bottom-left": "Bottom left",
            "bottom-center": "Bottom centre", "bottom-right": "Bottom right", "center": "Centre"}
 NOTES = paths.CONFIG_DIR / "notes.md"
@@ -452,7 +452,7 @@ SIZES = {"player": (340, 118), "sysmon": (280, 120), "clippy": (330, 190), "work
 
 def size_of(kind: str, cfg: dict) -> tuple[int, int]:
     k = float(cfg.get("scale", 1.0) or 1.0)
-    base = {"dots": (372, 150), "digital": (330, 140), "analog": (210, 230)}.get(cfg.get("clock", "dots"), (330, 140)) \
+    base = {"binary": (300, 196), "dots": (372, 150), "digital": (330, 140), "analog": (210, 230)}.get(cfg.get("clock", "dots"), (330, 140)) \
         if kind == "clock" else SIZES[kind]
     return int(base[0] * k), int(base[1] * k)
 
@@ -511,6 +511,8 @@ class Painter:
         self.card(cr, w, h)
         hhmm = time.strftime("%H:%M", now)
         date = time.strftime("%A, %d %B", now)
+        if style == "binary":
+            return self.binary(cr, w, h, now)
         if style == "digital":
             self.text(cr, 22, h * 0.58, hhmm, h * 0.46, "text", bold=True)
             self.text(cr, w - 62, h * 0.58, time.strftime(":%S", now), h * 0.2, "accent", bold=True)
@@ -545,6 +547,33 @@ class Painter:
             self.col(cr, "accent" if s <= now.tm_sec else "surface2", 0.95 if s <= now.tm_sec else 0.4)
             cr.fill()
         self.text(cr, 20, h - 12, date, max(10, h * 0.09), "subtext")
+
+    def binary(self, cr, w: float, h: float, now: time.struct_time) -> None:
+        """BCD binary clock: one column per digit (HH MM SS), rows worth 8 4 2 1 – add up the lit dots."""
+        digits = time.strftime("%H%M%S", now)
+        bits = [2, 4, 3, 4, 3, 4]                         # dots a column needs (tens of hours ≤ 2 …)
+        top, bottom = 18, h - 44
+        cell = min((bottom - top) / 4, (w - 70) / 6.6)
+        r = cell * 0.34
+        x0 = (w - (6 * cell + 2 * cell * 0.5)) / 2 + cell / 2
+        for col, (d, nb) in enumerate(zip(digits, bits)):
+            x = x0 + col * cell + (col // 2) * cell * 0.5
+            v = int(d)
+            for row in range(4):                          # row 0 = 8 … row 3 = 1
+                bit = 3 - row
+                if bit >= nb:
+                    continue
+                cy = top + row * cell + cell / 2
+                cr.arc(x, cy, r, 0, 2 * math.pi)
+                if v >> bit & 1:
+                    self.col(cr, "accent" if col < 4 else "accent2")
+                else:
+                    self.col(cr, "surface2", 0.35)
+                cr.fill()
+            self.text(cr, x - 4, bottom + 14, d, 12, "subtext", bold=True)
+        for i, lab in enumerate(("8", "4", "2", "1")):
+            self.text(cr, 10, top + i * cell + cell / 2 + 4, lab, 9, "overlay")
+        self.text(cr, 18, h - 10, time.strftime("%A, %d %B", now), max(10, h * 0.065), "subtext")
 
     def analog(self, cr, w: float, h: float, now: time.struct_time, frac: float) -> None:
         cx, cy, R = w / 2, w / 2, w / 2 - 8

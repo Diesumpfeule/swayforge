@@ -238,7 +238,7 @@ FIELDS: dict[str, list[Field | str]] = {
         Field("widgets.scale", "Size", "choice", [("Small", 0.8), ("Normal", 1.0), ("Large", 1.25), ("Huge", 1.5)]),
         Field("widgets.opacity", "Background", "choice", [("See-through", 0.55), ("Soft", 0.75), ("Solid-ish", 0.85), ("Solid", 1.0)]),
         "Clock",
-        Field("widgets.clock", "Clock", "choice", [("Dot matrix", "dots"), ("Digital", "digital"), ("Analog", "analog"), ("Off", "off")]),
+        Field("widgets.clock", "Clock", "choice", [("Binary", "binary"), ("Dot matrix", "dots"), ("Digital", "digital"), ("Analog", "analog"), ("Off", "off")]),
         Field("widgets.clock_pos", "Where", "choice", CORNERS),
         "Music player",
         Field("widgets.player", "Music player", "bool", help="Spotify, browsers, mpv … with play/pause/next"),
