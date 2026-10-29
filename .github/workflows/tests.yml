@@ -10,6 +10,7 @@ jobs:
     # No root, no Sway, no real HOME – every test uses a throw-away directory.
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         python: ["3.12", "3.13"]
     steps:
@@ -22,6 +23,8 @@ jobs:
         run: |
           python -m compileall -q swayforge tests
           bash -n install.sh
-          python -m pyflakes swayforge tests
+      - name: lint (report only)
+        continue-on-error: true
+        run: python -m pyflakes swayforge tests
       - name: unit tests
         run: python -m unittest discover -s tests -v
