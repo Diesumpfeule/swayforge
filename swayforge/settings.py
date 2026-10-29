@@ -97,6 +97,13 @@ DEFAULTS: dict[str, Any] = {
         "login": True,                # chime at login
         "notify": True,               # sound for notifications
     },
+    "cyberdeck": {                    # small screens / Raspberry Pi – see cyberdeck.py
+        "enabled": False,
+        "compact": True,
+        "low_power": True,
+        "touch": False,
+        "scale": 0,                   # 0 = keep each screen's own scale
+    },
     "clipboard": {
         "enabled": True,
         "max_items": 100,

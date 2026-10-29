@@ -932,7 +932,8 @@ and the login screen.
 
 def render_all(s: dict | None = None, dry: bool = False, si: SysInfo | None = None) -> Result:
     from . import boot                      # avoid import cycle
-    s = s or settings.load()
+    from .cyberdeck import effective
+    s = effective(s or settings.load())     # cyberdeck mode works on a copy – your settings stay as they are
     paths.ensure_dirs()
     ctx = make_ctx(s, si)
     w = Writer(dry)
@@ -1427,9 +1428,15 @@ def restart_idle(s: dict) -> None:
     screensaver.log("swayidle started: " + " ".join(args))
 
 
-def apply(s: dict | None = None, live: bool = True) -> Result:
+def apply(s: dict | None = None, live: bool = True, note: str = "") -> Result:
     s = s or settings.load()
     res = render_all(s)
+    if not res.errors:
+        try:                                         # keep this version for Undo (never blocks applying)
+            from . import history
+            history.record(s, note)
+        except Exception as e:                       # noqa: BLE001
+            res.notes.append(f"history: {e}")
     if live and not res.errors:
         res.notes += [f"reloaded: {x}" for x in reload(s)]
         follow_browser(res)

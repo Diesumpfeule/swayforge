@@ -30,7 +30,7 @@ from .panels import AudioPanel, BluetoothPanel, NetworkPanel
 # Sidebar chapters (page ids from PAGES)
 NAV_GROUPS: list[tuple[str, list[str]]] = [
     ("LOOK", ["theme", "wallpapers", "layout", "look", "bar", "widgets"]),
-    ("DEVICES", ["display", "audio", "sound", "bluetooth", "network", "input"]),
+    ("DEVICES", ["display", "audio", "sound", "bluetooth", "network", "input", "cyberdeck"]),
     ("WORK & PLAY", ["shell", "keys", "apps", "games", "clipboard"]),
     ("SYSTEM", ["power", "boot", "security", "privacy", "cleanup", "mounts", "system", "about"]),
 ]
@@ -176,6 +176,7 @@ class SettingsApp(App):
                 yield NetworkPanel(id="page-network", classes="page")
                 yield self.page_fields("sound")
                 yield self.page_fields("input")
+                yield self.page_fields("cyberdeck")
                 yield self.page_shell()
                 yield self.page_keys()
                 yield GamesPanel(id="page-games", classes="page")
@@ -526,8 +527,18 @@ class SettingsApp(App):
         files = [Horizontal(Label(f"{label}  [dim]{str(p).replace(str(paths.HOME), '~')}[/]"),
                             Button("Open ✎", name=f"file:{key}"), classes="filerow")
                  for key, (label, p) in render.CONFIG_FILES.items()]
+        from .. import history
+        hist = history.entries()
         return self.page(
             "system",
+            section("Undo Apply"),
+            Static("Every save keeps a copy of your settings (and your own theme/layout). Going back applies "
+                   "that version again – all generated files are exactly as they were.", classes="hint"),
+            ListView(*[ListItem(Label(f"{e['when']}{'  · now' if i == 0 else ''}  [dim]{e['theme']} / {e['layout']} – "
+                                      f"{e['summary']}[/]"), name=e["id"]) for i, e in enumerate(hist[:15])] or
+                     [ListItem(Label("nothing yet – the first save keeps the first version"))], id="histlist"),
+            Horizontal(Button("Undo last apply", id="hist_undo", variant="primary"),
+                       Button("Go back to selected", id="hist_restore"), classes="btnrow"),
             section("System"),
             Horizontal(Button("Update system", id="sys_update", variant="primary"),
                        Button("Update swayforge + wolfforge", id="sys_selfupdate"),
@@ -930,6 +941,15 @@ class SettingsApp(App):
             script = {"boot_apply": "apply-boot.sh", "login_apply": "apply-login.sh",
                       "login_restore": "restore-sddm.sh"}[bid]
             self.spawn_term(f"bash {shlex.quote(str(boot.BOOT_DIR / script))}; {hold}")
+        elif bid in ("hist_undo", "hist_restore"):
+            eid = ""
+            if bid == "hist_restore":
+                item = self.query_one("#histlist", ListView).highlighted_child
+                if not item or not item.name:
+                    self.notify("Select a version first", severity="warning")
+                    return
+                eid = item.name
+            self.go_back(eid)
         elif bid.startswith("clip_"):
             from .. import clipboard
             if bid == "clip_open":
@@ -1055,6 +1075,19 @@ class SettingsApp(App):
         self.notify(msg, timeout=8)
         self.save_and_apply(quiet=False)
 
+    @work(exclusive=True, thread=True, group="apply")
+    def go_back(self, eid: str) -> None:
+        from .. import history
+        try:
+            res = history.restore(eid) if eid else history.undo()
+        except ValueError as e:
+            self.call_from_thread(self.notify, str(e), severity="warning")
+            return
+        if res.errors:
+            self.call_from_thread(self.notify, "; ".join(res.errors[:3]), severity="error", timeout=10)
+            return
+        self.call_from_thread(self.exit, "reload-system")      # reopen with the restored settings
+
     def restore_backup(self, d: Path) -> None:
         n = 0
         for f in d.rglob("*"):
@@ -1105,3 +1138,5 @@ def main(page: str = "") -> None:
     result = crash.run_app("swayforge settings", SettingsApp(page))
     if result == "restart":                       # updated: start the new code in this same window
         os.execv(render.LAUNCHER, [render.LAUNCHER, "settings", "--page", "about"])
+    if result == "reload-system":                 # went back to an earlier version: show it
+        os.execv(render.LAUNCHER, [render.LAUNCHER, "settings", "--page", "system"])

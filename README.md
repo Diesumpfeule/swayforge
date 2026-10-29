@@ -380,6 +380,21 @@ swayforge: if a VPN needs one, a terminal opens and `nmcli` asks for it. OpenVPN
 `NetworkManager-openvpn` package (swayforge tells you if it's missing); WireGuard works out of the box.
 If Tailscale is installed, up/down/status buttons appear as well.
 
+## Undo for Apply
+
+Every Apply keeps a copy of your settings, plus your own theme and layout if one is in use (the last 15).
+*System & files → Undo Apply* (app and terminal settings) or `swayforge undo` goes back to the version
+before; the list (`swayforge history`) shows what changed each time, e.g. `theme.name: nord → rust`, and
+can go back to any of them. Going back applies that version again, so every generated file is exactly
+as it was. Your own files (custom.conf, style.css …) are never changed by Apply anyway.
+
+## Cyberdeck mode
+
+For small screens and small computers like a Raspberry Pi – **off by default**. *Settings → Cyberdeck mode*:
+*Compact* (slim bar, smaller text, tiny gaps, only the important bar modules, battery on), *Low power*
+(no blur, shadows, animations or desktop widgets), *Touch screen* (Touch layout) and one *scale* for every
+screen. It works on a copy of your settings: switching it off brings everything back exactly as before.
+
 ## Clipboard history
 
 `Super+V` opens everything you copied – type to search, Enter copies it back, `Alt+P` pins, `Alt+D`
@@ -500,6 +515,7 @@ swayforge layout NAME         switch layout  (--list, --next)
 swayforge boot / login        install boot screen / login screen
 swayforge gamemode            toggle gaming mode
 swayforge hello               animated greeting next to fastfetch (--anim spin|donut|cube|fire|video)
+swayforge undo                back to the version before the last apply (history: list | restore N)
 swayforge clip                clipboard history (list, clear, pause, resume)
 swayforge privacy             who may use camera, mic, network, files (revoke APP PERMISSION)
 swayforge widgets overview    every workspace big (Super+O)

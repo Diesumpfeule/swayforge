@@ -65,12 +65,17 @@ exec_always sh {{ gen_dir }}/livewall.sh
 exec_always sh -c "pkill -x mpvpaper; pkill -f '[l]ivewall guard'; true"
 output * bg "{{ wallpaper_path }}" fill {{ c.base }}
 {% endif %}
+{% set deck_scale = s.cyberdeck.scale if s.cyberdeck.enabled and s.cyberdeck.scale else 0 %}
+{% if deck_scale %}
+# cyberdeck mode: one scale for every screen
+output * scale {{ deck_scale }}
+{% endif %}
 {% for name, o in outputs %}
 output "{{ name }}" {
 {% if o.get("enabled", True) %}
 {% if o.get("mode") %}    mode {{ o.mode }}
 {% endif %}{% if o.get("pos") %}    position {{ o.pos }}
-{% endif %}{% if o.get("scale") %}    scale {{ o.scale }}
+{% endif %}{% if o.get("scale") and not deck_scale %}    scale {{ o.scale }}
 {% endif %}{% if o.get("transform") and o.transform != "normal" %}    transform {{ o.transform }}
 {% endif %}    adaptive_sync {{ "on" if o.get("adaptive_sync") else "off" }}
     allow_tearing {{ "yes" if s.display.allow_tearing else "no" }}

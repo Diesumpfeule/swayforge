@@ -92,6 +92,9 @@ def main(argv: list[str] | None = None) -> int:
                    help="try another animation (default: the one from Settings)")
     p.add_argument("--seconds", type=float, help="how long it plays (0 = until a key)")
     p.add_argument("--video", help="GIF or video file for --anim video")
+    sub.add_parser("undo", help="back to the version before the last apply")
+    p = sub.add_parser("history", help="earlier versions: list | restore NUMBER")
+    p.add_argument("rest", nargs=argparse.REMAINDER)
     p = sub.add_parser("privacy", help="privacy guard: which app may use camera, mic, network, files …")
     p.add_argument("rest", nargs=argparse.REMAINDER, help="[--json] | revoke APP PERMISSION")
     p = sub.add_parser("clip", help="clipboard history: (pick) | list [TEXT] | clear [--all] | pause | resume")
@@ -136,6 +139,10 @@ def main(argv: list[str] | None = None) -> int:
     if a.cmd == "widgets":
         from . import widgets
         return widgets.main(a.action)
+
+    if a.cmd in ("undo", "history"):
+        from . import history
+        return history.main(["undo"] if a.cmd == "undo" else a.rest)
 
     if a.cmd == "privacy":
         from . import privacy

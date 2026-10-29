@@ -413,7 +413,7 @@ def make_handler(state: State, token: str):
 
 
 CHANGES_SETTINGS = {"outputs", "keys", "autostart", "sections", "theme_save", "theme_from_wallpaper",
-                    "theme_delete", "theme_import", "layout_save", "layout_delete",
+                    "theme_delete", "theme_import", "layout_save", "layout_delete", "history",
                     "live_wallpaper", "shell_toggle", "boot_install", "system"}
 
 
@@ -501,6 +501,21 @@ def _dispatch(state: State, A, act: str, d: dict):
         return A.wallpacks_download(state, [str(x) for x in d.get("keys", [])])
     if act == "shell_toggle":
         return {"shell": A.shell_toggle(state)}
+    if act == "history":
+        from .. import history
+        if v == "list":
+            return {"entries": history.entries()}
+        if v not in ("undo", "restore"):
+            raise A.Fail("unknown")
+        try:
+            res = history.undo() if v == "undo" else history.restore(str(d.get("id", "")))
+        except ValueError as e:
+            raise A.Fail(str(e)) from None
+        if res.errors:
+            raise A.Fail("; ".join(res.errors[:3]))
+        state.s = settings.load()
+        state.saved = copy.deepcopy(state.s)
+        return {"msg": "Back to that version – applied", "entries": history.entries()}
     if act == "boot_install":
         if v not in ("boot", "login", "restore"):
             raise A.Fail("unknown")

@@ -742,6 +742,25 @@ Studio.page("system", {
   title: "System & files", icon: "⚙", keywords: "update upgrade firmware config files backup export restore import sway config",
   async render(view) {
     const d = await api.get("page", { id: "system" });
+    const hist = section("Undo Apply", "Every Apply keeps a copy of your settings (and your own theme/layout). Going back applies that version again – every generated file is exactly as it was then.");
+    const hl = h(`<div class="list"></div>`);
+    const drawHist = es => {
+      hl.replaceChildren();
+      if (!es.length) { hl.append(h(`<p class="hint">Nothing yet – the first Apply keeps the first version.</p>`)); return; }
+      es.forEach((e, i) => {
+        const it = h(`<div class="item"><span class="dot ${i ? "" : "on"}"></span><div class="grow"><b>${esc(e.when)}${i ? "" : " · now"}</b><small>${esc(e.theme)} / ${esc(e.layout)} – ${esc(e.summary)}</small></div></div>`);
+        if (i) it.append(button("Go back to this", "ghost", async ev => {
+          const r = await busy(ev.currentTarget, api.act("history", { verb: "restore", id: e.id }));
+          if (r) { await reloadSettings(); go("system"); } }));
+        hl.append(it); });
+    };
+    const undoRow = h(`<div class="btnrow"></div>`);
+    undoRow.append(button("Undo last apply", "primary", async ev => {
+      const r = await busy(ev.currentTarget, api.act("history", { verb: "undo" }));
+      if (r) { await reloadSettings(); go("system"); } }));
+    hist.append(undoRow, hl);
+    api.act("history", { verb: "list" }, true).then(r => r && drawHist(r.entries));
+    view.append(hist);
     const sy = section("System");
     const r = h(`<div class="btnrow"></div>`);
     r.append(button("Update the system", "primary", () => api.act("system", { verb: "update" })), button("Check firmware", "", () => api.act("system", { verb: "firmware" }, true)),
@@ -1362,5 +1381,25 @@ Studio.page("maker", {
       slots, h(`<div class="block-title">Suggestions</div>`), tray, section("Tools"), tbar, name, acts);
     this.hist = Maker.history(() => this.T, v => { this.T = v; }, draw);
     draw();
+  },
+});
+
+Studio.page("cyberdeck", {
+  title: "Cyberdeck mode", icon: "", keywords: "cyberdeck raspberry pi small screen tiny display low power touch scale compact",
+  render(view) {
+    view.append(h(`<p class="lede">For small screens and small computers like a Raspberry Pi. Off by default. When it's on, the desktop is made from a copy of your settings with a few values changed – your own settings stay as they are, and switching it off brings everything back.</p>`));
+    const split = h(`<div class="split"><div class="col"></div><div class="sticky"><div class="desk-frame big" id="cd-desk"></div><p class="hint">Preview with cyberdeck mode as set here.</p></div></div>`);
+    split.querySelector(".col").append(form("cyberdeck"));
+    view.append(split);
+    this.live();
+  },
+  live() {
+    const fr = $("#cd-desk"); if (!fr) return;
+    const s = JSON.parse(JSON.stringify(S.s)), cd = s.cyberdeck || {};
+    if (cd.enabled) {
+      if (cd.compact) { Object.assign(s.look, { gaps_inner: Math.min(2, s.look.gaps_inner), gaps_outer: 0, border: Math.min(1, s.look.border) }); s.theme.font_size = Math.max(8, s.theme.font_size - 2); }
+      if (cd.low_power) Object.assign(s.look, { fx_shadows: false, fx_blur: false });
+    }
+    desk(fr, { theme: theme(), layout: cd.enabled && cd.touch ? "touch" : S.s.bar.layout, settings: s, wallpaperUrl: wallUrl(null, true) });
   },
 });

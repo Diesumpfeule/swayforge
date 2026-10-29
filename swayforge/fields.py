@@ -69,6 +69,7 @@ PAGES: list[tuple[str, str]] = [
     ("about", "\U000f02fd  About & updates"),
     ("widgets", "\U000f072c  Desktop widgets"),
     ("clipboard", "\U000f014f  Clipboard"),
+    ("cyberdeck", "\U000f0322  Cyberdeck mode"),
     ("privacy", "\U000f0565  Privacy guard"),
 ]
 
@@ -274,6 +275,19 @@ FIELDS: dict[str, list[Field | str]] = {
         "Clippy",
         Field("widgets.clippy", "Clippy with swayforge tips", "bool", help="click him for another tip"),
         Field("widgets.clippy_pos", "Where", "choice", CORNERS),
+    ],
+    "cyberdeck": [
+        "Cyberdeck mode (small screens, Raspberry Pi)",
+        Field("cyberdeck.enabled", "Cyberdeck mode", "bool",
+              help="off = everything as usual · your own settings are never changed, off brings them all back"),
+        Field("cyberdeck.compact", "Compact", "bool",
+              help="slim bar, smaller text, tiny gaps, only the important bar modules, battery on"),
+        Field("cyberdeck.low_power", "Low power", "bool",
+              help="no blur, shadows, animations or desktop widgets – easy on a small GPU"),
+        Field("cyberdeck.touch", "Touch screen", "bool", help="Touch layout with big tap targets"),
+        Field("cyberdeck.scale", "Scale every screen", "choice",
+              [("Keep", 0), ("1.0", 1.0), ("1.25", 1.25), ("1.5", 1.5), ("1.75", 1.75), ("2.0", 2.0)],
+              help="for tiny high-resolution panels"),
     ],
     "clipboard": [
         "Clipboard history (Super+V)",

@@ -64,12 +64,13 @@ const ICONS = {
   clipboard: '<rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V3h6v1M9 10h6M9 14h6M9 18h3"/>',
   privacy: '<path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
   maker: '<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="m13.5 6.5 4 4"/>',
+  cyberdeck: '<rect x="3" y="4" width="18" height="10" rx="1.5"/><path d="M2 14h20l-1.5 6h-17zM6 17h.01M9 17h.01M12 17h.01M15 17h.01M18 17h.01"/>',
   found: '<path d="m9 6 6 6-6 6"/>',
 };
 const icon = id => `<svg class="ico" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${ICONS[id] || ICONS.found}</svg>`;
 const PAGES = {};          // id → {title, group, icon, render(view), keywords}
 const GROUPS = [["Look", ["overview", "themes", "layouts", "maker", "wallpapers", "look", "bar", "widgets"]],
-  ["Devices", ["display", "audio", "sound", "bluetooth", "network", "input"]],
+  ["Devices", ["display", "audio", "sound", "bluetooth", "network", "input", "cyberdeck"]],
   ["Work & play", ["shell", "keys", "apps", "games", "clipboard"]],
   ["System", ["power", "boot", "security", "privacy", "cleanup", "mounts", "system", "about"]]];
 

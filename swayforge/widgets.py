@@ -959,7 +959,8 @@ class Painter:
 # ── GTK runner ───────────────────────────────────────────────────────
 def theme_now() -> tuple[dict, dict]:
     from . import render
-    s = settings.load()
+    from .cyberdeck import effective
+    s = effective(settings.load())
     ctx = render.make_ctx(s)
     return ({"colors": ctx.c, "font": s["theme"]["font"], "radius": s["look"]["radius"]}, dict(s.get("widgets", {})))
 
