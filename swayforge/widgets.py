@@ -977,9 +977,10 @@ def check() -> list[tuple[bool, str, str]]:
         return "" if r.returncode == 0 else (r.stderr.strip().splitlines() or ["failed"])[-1]
     err = probe("import gi")
     out.append((not err, "Python GObject (python3-gobject)", "sudo dnf install python3-gobject"))
-    err = probe("import gi; gi.require_version('Gtk', '3.0'); from gi.repository import Gtk")
+    err = probe("import gi; gi.require_version('Gtk', '3.0'); gi.require_version('Gdk', '3.0'); "
+                "from gi.repository import Gdk, Gtk")
     out.append((not err, "GTK 3", "sudo dnf install gtk3"))
-    err = probe("import gi; gi.require_version('GtkLayerShell', '0.1'); from gi.repository import GtkLayerShell")
+    err = probe("from swayforge.widgets import _gtk; _gtk()")         # exactly what the widgets do
     out.append((not err, "gtk-layer-shell (puts widgets on the desktop)", "sudo dnf install gtk-layer-shell"))
     err = probe("import cairo, gi; gi.require_foreign('cairo')")
     out.append((not err, "pycairo (draws the widgets)", "sudo dnf install python3-cairo python3-gobject"))
@@ -1027,6 +1028,7 @@ def _notify(title: str, body: str) -> None:
 def _gtk():
     import gi
     gi.require_version("Gtk", "3.0")
+    gi.require_version("Gdk", "3.0")                 # else Gdk 4 is picked first and GTK 3 refuses to load
     gi.require_version("GtkLayerShell", "0.1")
     from gi.repository import Gdk, GLib, Gtk, GtkLayerShell
     import cairo  # noqa: F401
