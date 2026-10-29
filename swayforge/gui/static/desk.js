@@ -49,7 +49,7 @@ const Desk = (() => {
   const ROMAN = ["I", "II", "III", "IV", "V"];
 
   // ── bars ────────────────────────────────────────────────────────────
-  function bar(lay, c, o) {
+  function barOf(lay, c, o) {
     const bv = bevel(c), ui = o.ui, f = o.font, R = o.radius;
     const wrap = el("div", "position:absolute;left:0;right:0;font:600 9px/1 " + f + ";color:" + c.text);
     const islands = (bg, border, top) => {
@@ -139,10 +139,48 @@ const Desk = (() => {
     return wrap;
   }
 
+  // your own layout from the maker: any arrangement, position and size on top of a base look
+  const SAMPLE = { start: ["", "Start"], workspaces: null, mode: ["", "resize"], window: ["", "kitty — ~"], taskbar: ["▣", "kitty"],
+    clock: ["", "20:14"], media: ["♪", "Midnight City"], gamemode: ["◆", "game"], cpu: ["", "9%"], gpu: ["󰢮", "4%"], memory: ["", "40%"],
+    temperature: ["", "48°"], taskmanager: ["", "top"], network: ["", "home"], bluetooth: ["", "bt"], audio: ["", "40%"],
+    mic: ["", "mic"], backlight: ["", "80%"], battery: ["", "72%"], idle: ["", "idle"], tray: ["▤ ◈", ""], keyboard: ["⌨", "kbd"], power: ["⏻", "off"] };
+  function customBar(cl, c, o) {
+    const vert = cl.position === "left" || cl.position === "right", bv = bevel(c), sc = 360 / 1080;
+    const H = Math.max(14, Math.round(cl.height * sc * 1.15)), m = Math.round(cl.margin * sc * 1.3), R = cl.radius >= 0 ? cl.radius * sc * 1.6 : o.radius;
+    const look = cl.base, islands = ["modern", "glass", "minimal"].includes(look);
+    const fs = Math.max(6, 9 + cl.font_size * .6), pad = Math.max(2, cl.padding * .5);
+    const face = { win98: bv.face, winxp: "#245edb", win7: rgba(c.base, .55), win11: rgba(c.base, .85), touch: rgba(c.base, .92), dread: c.crust, wired: c.crust, cathedral: c.mantle }[look] || rgba(c.base, cl.opacity * o.ui);
+    const fg = look === "winxp" ? "#ffffff" : look === "win98" ? on(bv.face, c.text, c) : c.text;
+    const wrap = el("div", `position:absolute;display:flex;${vert ? "flex-direction:column;" : ""}justify-content:space-between;align-items:center;font:600 ${fs}px/1 ${o.font};color:${fg};` +
+      (vert ? `top:${m}px;bottom:${m}px;${cl.position}:${m}px;width:${H}px;padding:6px 0;` : `left:${m}px;right:${m}px;${cl.position}:${m}px;height:${H}px;padding:0 ${4 + (islands ? o.gapsOuter : 0)}px;`) +
+      (islands ? "" : `background:${face};border-radius:${m ? R : 0}px;` + (look === "win98" ? `border-${cl.position === "bottom" ? "top" : "bottom"}:2px solid ${bv.hi};` : look === "solid" || look === "dread" ? `border-${cl.position === "bottom" ? "top" : "bottom"}:2px solid ${c.surface};` : "")));
+    const ws = () => [1, 2, 3, 4].map((n, i) => {
+      const t = { numbers: String(n), roman: ["I", "II", "III", "IV"][i], dots: i ? "○" : "●", brackets: `[${n}]` }[cl.ws_style] || n;
+      return `<span style="color:${i ? (look === "winxp" ? "#dbe6ff" : c.subtext) : c.accent}">${t}</span>`; }).join(vert ? "<br>" : " ");
+    const mod = k => {
+      if (k === "workspaces") return ws();
+      const [ic, tx] = SAMPLE[k] || ["?", k];
+      const col = k === "power" ? c.red : k === "clock" ? fg : (look === "winxp" ? "#ffffff" : c.subtext);
+      const label = cl.text_mode === "icons" || vert ? ic : cl.text_mode === "text" ? `[${tx || k}]` : `${ic} ${tx}`.trim();
+      if (k === "start" && ["win98", "winxp"].includes(look)) return `<span style="padding:2px 6px;${look === "winxp" ? "background:#3c9a3c;border-radius:0 8px 8px 0;font-style:italic;color:#fff" : `border:2px solid;border-color:${bv.hi} ${bv.lo} ${bv.lo} ${bv.hi}`}">${label}</span>`;
+      return `<span style="color:${col}">${label}</span>`;
+    };
+    for (const zone of ["left", "center", "right"]) {
+      const z = el("div", `display:flex;${vert ? "flex-direction:column;" : ""}gap:${islands ? 4 : pad}px;align-items:center`);
+      for (const k of cl[zone]) {
+        const cell = el("div", islands ? `background:${look === "glass" ? rgba(c.base, .55 * o.ui) : rgba(c.base, cl.opacity * o.ui)};border:1px solid ${look === "glass" ? rgba(c.text, .14) : rgba(c.surface2, .6)};border-radius:${R}px;padding:${vert ? pad + "px 2px" : "4px " + pad + "px"};text-align:center` : "text-align:center", mod(k));
+        z.append(cell);
+      }
+      wrap.append(z);
+    }
+    return wrap;
+  }
+
   // reserved space of the bar → where windows may go
   function area(lay, o) {
     const g = o.gapsOuter + o.gapsInner;
     const a = { top: g, bottom: g, left: g, right: g };
+    if (o.custom) { const cl = o.custom, sz = Math.round(Math.max(14, cl.height / 3 * 1.15) + cl.margin / 3 * 1.3 + 4); a[cl.position] += sz; return a; }
     if (["modern", "glass", "minimal"].includes(lay)) a.top += 30;
     else if (lay === "solid" || lay === "dread" || lay === "cathedral") a.top += 26;
     else if (lay === "wired") a.top += 22;
@@ -213,13 +251,14 @@ const Desk = (() => {
   // ── public: render(container, opts) ─────────────────────────────────
   // opts: theme, layout, settings, wallpaperUrl (or null), compact, notify
   function render(host, opts) {
-    const t = opts.theme, s = opts.settings, lay = opts.layout;
+    const t = opts.theme, s = opts.settings, lay = opts.custom ? opts.custom.base : opts.layout;
     const c = colours(t, s.theme.accent);
     const o = {
       ui: s.look.ui_opacity ?? 1, radius: s.look.radius, gapsInner: Math.min(s.look.gaps_inner, 16), gapsOuter: Math.min(s.look.gaps_outer, 16),
       border: s.look.border, shadows: !!s.look.fx_shadows, titleBars: !!s.look.title_bars, termOpacity: s.look.terminal_opacity ?? .95,
-      font: `"${s.theme.font}", "JetBrainsMono Nerd Font", ui-monospace, monospace`,
+      font: `"${s.theme.font}", "JetBrainsMono Nerd Font", ui-monospace, monospace`, custom: opts.custom || null,
     };
+    const bar = (l, c2, o2) => o2.custom ? customBar(o2.custom, c2, o2) : barOf(l, c2, o2);
     const screen = el("div", `position:relative;width:${W}px;height:${H}px;overflow:hidden;background:${c.base};font-family:${o.font}`);
     screen.className = "desk-screen";
     if (opts.wallpaperUrl) {

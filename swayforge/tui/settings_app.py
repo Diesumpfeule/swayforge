@@ -31,8 +31,8 @@ from .panels import AudioPanel, BluetoothPanel, NetworkPanel
 NAV_GROUPS: list[tuple[str, list[str]]] = [
     ("LOOK", ["theme", "wallpapers", "layout", "look", "bar", "widgets"]),
     ("DEVICES", ["display", "audio", "sound", "bluetooth", "network", "input"]),
-    ("WORK & PLAY", ["shell", "keys", "apps", "games"]),
-    ("SYSTEM", ["power", "boot", "security", "cleanup", "mounts", "system", "about"]),
+    ("WORK & PLAY", ["shell", "keys", "apps", "games", "clipboard"]),
+    ("SYSTEM", ["power", "boot", "security", "privacy", "cleanup", "mounts", "system", "about"]),
 ]
 
 
@@ -182,6 +182,8 @@ class SettingsApp(App):
                 yield self.page_power()
                 yield self.page_boot()
                 yield self.page_security()
+                yield self.page_clipboard()
+                yield self.page_privacy()
                 yield AppsPanel(id="page-apps", classes="page")
                 yield CleanupPanel(id="page-cleanup", classes="page")
                 yield MountsPanel(id="page-mounts", classes="page")
@@ -254,9 +256,22 @@ class SettingsApp(App):
                        Button("Open theme file ✎", id="theme_file"), classes="btnrow"),
         )
 
+    @staticmethod
+    def layout_items() -> list:
+        """Built-in layouts + your own from the app's layout maker (as Layout objects with their own id)."""
+        out = list(layouts.LAYOUTS.values())
+        for lid, c in layouts.user_layouts().items():
+            out.append(layouts.Layout(lid, c["label"] + "  (yours)", f"Your layout · look: {layouts.LAYOUTS[c['base']].label}",
+                                      c["position"], layouts.preview_of(c)))
+        return out
+
+    def layout_index(self) -> int:
+        ids = [l.id for l in self.layout_items()]
+        cur = self.s["bar"]["layout"]
+        return ids.index(cur) if cur in ids else ids.index(layouts.get(cur).id)
+
     def page_layout(self) -> VerticalScroll:
         cur = layouts.get(self.s["bar"]["layout"])
-        ids = list(layouts.LAYOUTS)
         noctalia = self.s["general"].get("shell") == "noctalia"
         opacity = Field("look.ui_opacity", "Transparency", "choice",
                         [("Off – layout default", 1.0)] + [(f"{n}% see-through", round(1 - n / 100, 2))
@@ -269,8 +284,10 @@ class SettingsApp(App):
                    "theme. Quick switch: " + self.s.get("keys", {}).get(
                        "layout_next", next(k for a, _, k, _ in settings.KEY_ACTIONS if a == "layout_next")
                    ).replace("$mod", "Super") + ".", classes="hint"),
-            ListView(*[LayoutItem(l) for l in layouts.LAYOUTS.values()], id="layoutlist",
-                     initial_index=ids.index(cur.id)),
+            ListView(*[LayoutItem(l) for l in self.layout_items()], id="layoutlist",
+                     initial_index=self.layout_index()),
+            Static("Make your own (drag & drop, any position): swayforge app → Theme & layout maker (Ctrl+G).",
+                   classes="hint"),
             Static(cur.preview, id="layout_preview", classes="preview", markup=False),
             section("Transparency"),
             field_row(opacity, self.s),
@@ -420,6 +437,35 @@ class SettingsApp(App):
             Horizontal(Button("Install login screen", id="login_apply", variant="primary"),
                        Button("Back to SDDM", id="login_restore", variant="warning"), classes="btnrow"),
         )
+
+    def page_clipboard(self) -> VerticalScroll:
+        return self.page(
+            "clipboard",
+            Static("Everything you copy, searchable with Super+V (type to search · Enter copies · "
+                   "Alt+P pins · Alt+D deletes). Forgets on its own; pinned entries stay; passwords from "
+                   "password managers are never kept. The swayforge app shows pictures too.", classes="hint"),
+            Horizontal(Button("Open the history", id="clip_open", variant="primary"),
+                       Button("Clear (keep pinned)", id="clip_clear"),
+                       Button("Clear everything", id="clip_clear_all", variant="error"),
+                       Button("Pause / resume", id="clip_pause"), classes="btnrow"),
+            *self.fields("clipboard"))
+
+    def page_privacy(self) -> VerticalScroll:
+        return self.page(
+            "privacy",
+            Static("Which app may use camera, microphone, screen, network and your files – and who does "
+                   "right now. Flatpak apps are sandboxed (exact list, permissions can be taken away); RPM apps "
+                   "have no sandbox and can do everything you can.", classes="hint"),
+            Horizontal(Button("Check all apps", id="priv_scan", variant="primary"),
+                       Button("Open in the app (take permissions away)", id="priv_gui"), classes="btnrow"),
+            Static("", id="priv_out"))
+
+    @work(exclusive=True, thread=True, group="privacy")
+    def privacy_scan(self) -> None:
+        from .. import privacy
+        from rich.markup import escape
+        txt = privacy.report()
+        self.call_from_thread(lambda: self.query_one("#priv_out", Static).update(escape(txt)))
 
     def page_security(self) -> VerticalScroll:
         from .. import security
@@ -711,10 +757,9 @@ class SettingsApp(App):
             self.live_apply()
 
     def sync_layout_list(self) -> None:
-        ids = list(layouts.LAYOUTS)
         lv = self.query_one("#layoutlist", ListView)
         with self.prevent(ListView.Highlighted, ListView.Selected):
-            lv.index = ids.index(layouts.get(self.s["bar"]["layout"]).id)
+            lv.index = self.layout_index()
         self.query_one("#layout_preview", Static).update(layouts.get(self.s["bar"]["layout"]).preview)
 
     def load_colors(self, t: themes.Theme) -> None:
@@ -885,6 +930,25 @@ class SettingsApp(App):
             script = {"boot_apply": "apply-boot.sh", "login_apply": "apply-login.sh",
                       "login_restore": "restore-sddm.sh"}[bid]
             self.spawn_term(f"bash {shlex.quote(str(boot.BOOT_DIR / script))}; {hold}")
+        elif bid.startswith("clip_"):
+            from .. import clipboard
+            if bid == "clip_open":
+                subprocess.Popen([render.LAUNCHER, "clip"], start_new_session=True,
+                                 stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            elif bid in ("clip_clear", "clip_clear_all"):
+                clipboard.clear(keep_pinned=bid == "clip_clear")
+                self.notify("Clipboard history cleared")
+            else:
+                paused = clipboard.pause_flag().exists()
+                clipboard.set_paused(not paused)
+                self.notify("Recording again" if paused else "Paused – nothing new is kept")
+        elif bid == "priv_scan":
+            self.query_one("#priv_out", Static).update("Checking every app …")
+            self.privacy_scan()
+        elif bid == "priv_gui":
+            subprocess.Popen([render.LAUNCHER, "gui"], start_new_session=True,
+                             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            self.notify("Opening the swayforge app – System → Privacy guard")
         elif bid.startswith("sec_"):
             self.security_button(bid, hold)
         elif bid == "sys_update":

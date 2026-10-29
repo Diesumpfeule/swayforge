@@ -276,8 +276,9 @@ def tpl(name: str, d: dict) -> str:
 # ── Waybar ───────────────────────────────────────────────────────────
 def waybar_config(ctx: Ctx) -> dict:
     s, si, b, lay = ctx.s, ctx.si, ctx.s["bar"], ctx.layout.id
-    text_only = lay == "wired"
-    icons_only = lay == "sidebar"
+    mine = layouts.custom(b["layout"])                  # your own layout from the maker (or None)
+    text_only = mine["text_mode"] == "text" if mine else lay == "wired"
+    icons_only = mine["text_mode"] == "icons" if mine else lay == "sidebar"
 
     def f(icon: str, value: str, word: str = "") -> str:
         """Module format depending on the layout."""
@@ -440,6 +441,9 @@ def waybar_config(ctx: Ctx) -> dict:
     if si.gpu_busy:
         cfg["custom/gpu"] = {"exec": f"cat {si.gpu_busy}", "interval": 3, "on-click": btop_cmd(s),
                              "format": f(I["gpu"], "{}%", "gpu"), "tooltip-format": "GPU load"}
+    if mine:
+        _apply_custom(cfg, mine, ctx, status, text_only)
+        return cfg
     if lay in ("win98", "winxp", "win7", "win11", "touch"):
         cfg["custom/start"] = {"format": (f"{I['fedora']}  Start" if lay == "win98" else
                                           "\uf17a  start" if lay == "winxp" else I["fedora"]),
@@ -456,6 +460,85 @@ def waybar_config(ctx: Ctx) -> dict:
                                              "pkill -RTMIN -x wvkbd-mobintl || exec wvkbd-mobintl -L 300'"}
         cfg["group/status"] = {"orientation": "horizontal", "modules": status + ["clock"]}
     return cfg
+
+
+def _apply_custom(cfg: dict, mine: dict, ctx: "Ctx", status: list[str], text_only: bool) -> None:
+    """Your own layout: arrangement, position, size and workspace style on top of the base look."""
+    b, si = ctx.s["bar"], ctx.si
+    ok = {"gpu": bool(si.gpu_busy), "battery": si.laptop, "backlight": si.laptop, "bluetooth": si.bluetooth}
+    for zone in ("left", "center", "right"):
+        cfg[f"modules-{zone}"] = [layouts.MODULES[m][0] for m in mine[zone] if ok.get(m, True)]
+    cfg.pop("group/status", None)
+    pos = mine["position"]
+    cfg["position"] = pos
+    cfg.pop("height", None)
+    cfg.pop("width", None)
+    if pos in ("left", "right"):
+        cfg["width"] = max(40, mine["height"] + 10)
+    else:
+        cfg["height"] = mine["height"]
+    if mine["margin"]:
+        m = mine["margin"]
+        edge = {"top": "bottom", "bottom": "top", "left": "right", "right": "left"}[pos]
+        for side in ("top", "bottom", "left", "right"):
+            if side != edge:
+                cfg[f"margin-{side}"] = m
+    used = {x for z in ("left", "center", "right") for x in mine[z]}
+    if "start" in used:
+        cfg["custom/start"] = {"format": "[start]" if text_only else f"{I['fedora']}  Start" if mine["text_mode"] == "both" else I["fedora"],
+                               "tooltip-format": "Start menu – apps", "on-click": f"{LAUNCHER} start",
+                               "on-click-right": f"{LAUNCHER} power"}
+    if "taskbar" in used:
+        cfg["wlr/taskbar"] = {"format": "{icon}  {title:.22}" if mine["text_mode"] == "both" else "{icon}",
+                              "icon-size": 18, "tooltip-format": "{title}", "on-click": "activate",
+                              "on-click-middle": "close", "on-click-right": "fullscreen"}
+    if "keyboard" in used:
+        cfg["custom/osk"] = {"format": "[kbd]" if text_only else "\U000f030c", "tooltip-format": "On-screen keyboard (wvkbd)",
+                             "on-click": "sh -c 'pgrep -x wvkbd-mobintl >/dev/null && "
+                                         "pkill -RTMIN -x wvkbd-mobintl || exec wvkbd-mobintl -L 300'"}
+    ws = cfg["sway/workspaces"]
+    style = mine["ws_style"]
+    if style == "roman":
+        ws.update({"format": "{icon}", "format-icons": {str(i): r for i, r in enumerate(
+            ["", "I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X"]) if i} | {"default": "•"}})
+    elif style == "dots":
+        ws.update({"format": "{icon}", "format-icons": {"focused": "●", "urgent": "◉", "default": "○"}})
+    elif style == "brackets":
+        ws.update({"format": "[{name}]"})
+        ws.pop("format-icons", None)
+    else:
+        ws.update({"format": "{name}"})
+        ws.pop("format-icons", None)
+    del b, status
+
+
+def custom_css(ctx: "Ctx") -> str:
+    """CSS for your own layout, appended after the base look (so it wins)."""
+    mine = layouts.custom(ctx.s["bar"]["layout"])
+    if not mine:
+        return ""
+    c = ctx.c
+    mods = ("#workspaces, #mode, #window, #clock, #cpu, #memory, #temperature, #custom-gpu, #network, #pulseaudio, "
+            "#bluetooth, #battery, #backlight, #idle_inhibitor, #mpris, #tray, #custom-power, #custom-taskmanager, "
+            "#custom-gamemode, #custom-osk, #custom-start, #taskbar")
+    out = [f"\n/* ── your layout: {mine['label']} (look: {mine['base']}) ── */"]
+    if mine["font_size"]:
+        out.append(f"* {{ font-size: {ctx.s['theme']['font_size'] + 2 + mine['font_size']}px; }}")
+    out.append(f"{mods} {{ padding-left: {mine['padding']}px; padding-right: {mine['padding']}px; }}")
+    r = mine["radius"]
+    islands = mine["base"] in ("modern", "glass", "minimal")
+    ui = ctx._ui() if mine["base"] in ("modern", "minimal", "glass", "solid") else 1.0   # the others are faded later
+    if islands:
+        out.append(f"{mods} {{ background: {rgba(c['base'], mine['opacity'] * ui)}; }}")
+        if r >= 0:
+            out.append(f"{mods} {{ border-radius: {r}px; }}")
+    elif mine["base"] in ("solid", "sidebar", "dread", "wired", "cathedral"):
+        out.append(f"window#waybar {{ background: {rgba(c['base'], mine['opacity'] * ui)}; }}")
+    if not islands and r >= 0 and mine["margin"]:
+        out.append(f"window#waybar {{ border-radius: {r}px; }}")
+    if mine["position"] in ("left", "right"):
+        out.append("#workspaces button { padding: 4px 0; }")
+    return "\n".join(out) + "\n"
 
 
 # ── Small generated files ────────────────────────────────────────────
@@ -894,7 +977,8 @@ def render_all(s: dict | None = None, dry: bool = False, si: SysInfo | None = No
            '// Example: "clock": { "format": "{:%H:%M:%S}", "interval": 1 },\n'
            '{\n  "include": ["~/.config/waybar/swayforge.jsonc"]\n}\n',
            "swayforge.jsonc")
-    w.owned(C / "waybar/swayforge.css", fade_css(tpl("waybar.css.j2", d), ctx._ui() if ctx.layout.id not in ("modern", "minimal", "glass", "solid") else 1.0))
+    w.owned(C / "waybar/swayforge.css", fade_css(tpl("waybar.css.j2", d) + custom_css(ctx),
+                                                 ctx._ui() if ctx.layout.id not in ("modern", "minimal", "glass", "solid") else 1.0))
     w.stub(C / "waybar/style.css",
            '@import "swayforge.css";\n\n/* Your own Waybar rules below – they override the theme. */\n',
            '@import "swayforge.css"')
@@ -1158,6 +1242,12 @@ def screenshare_check(fix: bool = True) -> int:
     for svc in ("xdg-desktop-portal", "xdg-desktop-portal-wlr"):
         r = run(["systemctl", "--user", "is-active", svc])
         line(r.stdout.strip() == "active", f"{svc} running", f"journalctl --user -u {svc} -n 30   shows why")
+    other = [p.name for p in Path("/usr/share/xdg-desktop-portal/portals").glob("*.portal")
+             if p.stem in ("gnome", "kde", "hyprland", "cosmic", "lxqt")]
+    line(not other, "no other desktop's portal competes for screen sharing",
+         f"{', '.join(other)} installed – fine as long as sway-portals.conf exists (it does after apply)")
+    kind = vesktop_kind()
+    line(bool(kind), f"Vesktop found ({kind or 'not installed'})", "install it from swayforge's app list")
     if have("flatpak"):
         apps = run(["flatpak", "list", "--app", "--columns=application"]).stdout.split()
         if "dev.vencord.Vesktop" in apps:
@@ -1165,7 +1255,67 @@ def screenshare_check(fix: bool = True) -> int:
             line("pipewire-0" in o and "wayland" in o, "Vesktop (Flatpak) may use PipeWire and Wayland")
     print("\n" + ("All good. Quit Vesktop/Discord completely (also from the tray) and start it again." if ok_all else
                   "Fix the ✗ lines, then quit Vesktop/Discord completely and start it again."))
+    print("\nStill nothing? Test the system part on its own: open\n"
+          "  https://mozilla.github.io/webrtc-landing/gum_test.html  in LibreWolf → “Screen”.\n"
+          "Works there but not in Vesktop → it's Vesktop; fails there too → it's the portal.\n"
+          "`swayforge screenshare --report` writes everything needed to find the cause into one file.")
     return 0 if ok_all else 1
+
+
+def vesktop_kind() -> str:
+    if have("flatpak") and "dev.vencord.Vesktop" in run(["flatpak", "list", "--app", "--columns=application"]).stdout.split():
+        return "Flatpak"
+    if run(["rpm", "-q", "vesktop"]).returncode == 0:
+        return "RPM"
+    if have("vesktop"):
+        return "other (" + (shutil.which("vesktop") or "") + ")"
+    return ""
+
+
+def screenshare_report() -> int:
+    """`swayforge screenshare --report` – one text file with everything that decides whether screen
+    sharing works. Contains no passwords or tokens (only versions, service logs and config files)."""
+    out = paths.HOME / "swayforge-screenshare-report.txt"
+    parts: list[str] = []
+
+    def sec(title: str, cmd: list[str] | None = None, text: str | None = None) -> None:
+        if cmd is not None:
+            if not have(cmd[0]):
+                text = f"({cmd[0]} not installed)"
+            else:
+                r = run(cmd, timeout=20)
+                text = (r.stdout + r.stderr).strip() or f"(no output, exit {r.returncode})"
+        parts.append(f"===== {title} =====\n{text}\n")
+
+    sec("versions", ["rpm", "-q", "sway", "swayfx", "xdg-desktop-portal", "xdg-desktop-portal-wlr",
+                     "xdg-desktop-portal-gtk", "pipewire", "wireplumber", "vesktop"])
+    sec("vesktop install", text=vesktop_kind() or "not found")
+    sec("session environment", ["systemctl", "--user", "show-environment"])
+    sec("portal backends", text="\n".join(sorted(p.name for p in Path("/usr/share/xdg-desktop-portal/portals").glob("*"))))
+    for f in [C / "xdg-desktop-portal/sway-portals.conf", C / "xdg-desktop-portal/portals.conf",
+              C / "xdg-desktop-portal-wlr/config", Path("/usr/share/xdg-desktop-portal/sway-portals.conf")]:
+        sec(str(f), text=f.read_text() if f.exists() else "(missing)")
+    sec("ScreenCast portal on the bus", ["busctl", "--user", "get-property", "org.freedesktop.portal.Desktop",
+                                          "/org/freedesktop/portal/desktop", "org.freedesktop.portal.ScreenCast",
+                                          "AvailableSourceTypes"])
+    for svc in ("xdg-desktop-portal", "xdg-desktop-portal-wlr", "xdg-desktop-portal-gtk", "pipewire", "wireplumber"):
+        sec(f"journal {svc}", ["journalctl", "--user", "-u", svc, "-n", "40", "--no-pager", "-o", "short"])
+    sec("outputs", ["swaymsg", "-t", "get_outputs", "-p"])
+    if have("flatpak"):
+        sec("vesktop flatpak overrides", ["flatpak", "override", "--user", "--show", "dev.vencord.Vesktop"])
+        sec("vesktop flatpak permissions", ["flatpak", "info", "--show-permissions", "dev.vencord.Vesktop"])
+    for f in (paths.HOME / ".config/vesktop/settings.json",
+              paths.HOME / ".var/app/dev.vencord.Vesktop/config/vesktop/settings.json"):
+        if f.exists():
+            try:                                  # only Vesktop's own switches, nothing personal
+                data = json.loads(f.read_text())
+                keep = {k: v for k, v in data.items() if not isinstance(v, (dict, list)) and "token" not in k.lower()}
+                sec(str(f), text=json.dumps(keep, indent=1))
+            except ValueError:
+                sec(str(f), text="(unreadable)")
+    atomic_write(out, "\n".join(parts))
+    print(f"Written: {out}\nSend this file (it holds versions, service logs and config files – no passwords).")
+    return 0
 
 
 def _step(name: str, fn, *args) -> None:

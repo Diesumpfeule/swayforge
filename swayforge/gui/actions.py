@@ -449,7 +449,7 @@ def wipe(state, d: dict) -> str:
         raise Fail("unknown option")
     label = re.sub(r"[^A-Za-z0-9 _-]", "", str(d.get("label", "USB")))[:11] or "USB"
     term(state, f"{L()} wipe {shlex.quote(drive['name'])} --mode {mode} --fs {fs} --label {shlex.quote(label)} "
-                f"--size {drive['size']} --confirm {shlex.quote(drive['name'])}; {HOLD}")
+                f"--size {drive['size']} --serial {shlex.quote(drive['serial'])} --confirm {shlex.quote(drive['name'])}; {HOLD}")
     return f"Wiping {drive['name']} in a terminal"
 
 
@@ -518,7 +518,19 @@ def system_action(state, verb: str, d: dict) -> str:
         return "System update runs in a terminal"
     if verb == "screenshare":
         term(state, f"{L()} screenshare; {HOLD}")
-        return "Checking screen sharing in a terminal"
+        return "Checking in a terminal"
+    if verb == "hello":                         # try what you just picked, even before Apply
+        sh = state.s["shell"]
+        kind = sh.get("fetch_anim", "intro") if sh.get("fetch_anim") in (
+            "intro", "spin", "donut", "cube", "fire", "video", "off") else "intro"
+        cmd = f"{L()} hello --anim {kind} --seconds {float(sh.get('fetch_seconds', 5) or 0)}"
+        if sh.get("fetch_video"):
+            cmd += f" --video {shlex.quote(str(sh['fetch_video']))}"
+        term(state, f"{cmd}; {HOLD}")
+        return "Playing in a terminal"
+    if verb == "screenshare-report":
+        term(state, f"{L()} screenshare --report; {HOLD}")
+        return "Report goes to ~/swayforge-screenshare-report.txt"
     if verb == "firmware":
         term(state, f"fwupdmgr refresh; fwupdmgr get-updates; {HOLD}")
         return ""
@@ -566,6 +578,7 @@ def page_about(s: dict) -> dict:
     for n in update.APPS:
         info, rem, verdict = update.status(n)
         apps_.append({"name": n, "version": info.get("version", ""), "commit": info.get("commit", "")[:7],
+                      "codename": update.codename(info.get("commit", "")), "remote_name": update.codename(rem),
                       "date": info.get("date", ""), "verdict": verdict, "remote": rem[:7], "url": update.url(n)})
     crashes = []
     for r in crash.recent():
@@ -675,6 +688,70 @@ def theme_save(state, label: str, colors: dict, dark: bool | None = None) -> dic
     return {"id": t.id, "label": t.label}
 
 
+def theme_delete(state, tid: str) -> dict:
+    from .. import themes
+    t = themes.all_themes().get(tid)
+    if not t or not t.custom or not t.path:
+        raise Fail("Only your own themes can be deleted")
+    Path(t.path).unlink(missing_ok=True)
+    if state.s["theme"]["name"] == tid:
+        state.s["theme"]["name"] = "catppuccin-mocha"
+    return {"msg": f"{t.label} deleted"}
+
+
+def theme_export(tid: str) -> dict:
+    from .. import themes, tomlw
+    t = themes.all_themes().get(tid)
+    if not t:
+        raise Fail("unknown theme")
+    data = {"label": t.label, "dark": t.dark, "ansi": list(t.ansi), "colors": dict(t.colors)}
+    if t.style:
+        data["style"] = dict(t.style)
+    return {"text": f"# swayforge theme – import it in the swayforge app (Maker → Import)\n" + tomlw.dumps(data),
+            "file": f"{t.id}.toml"}
+
+
+def theme_import(state, text: str) -> dict:
+    import tomllib
+    from .. import themes
+    if len(text) > 20000:
+        raise Fail("That file is too big for a theme")
+    try:
+        data = tomllib.loads(text)
+    except tomllib.TOMLDecodeError as e:
+        raise Fail(f"Not a theme file: {e}") from None
+    cols = data.get("colors") if isinstance(data.get("colors"), dict) else {}
+    missing = [k for k in themes.COLOR_KEYS if not themes.HEX.match(str(cols.get(k, "")).lower())]
+    if missing:
+        raise Fail(f"Colours missing or wrong: {', '.join(missing[:5])}")
+    style = {k: v for k, v in (data.get("style") or {}).items() if k in themes.STYLE_KEYS} if isinstance(data.get("style"), dict) else {}
+    base = themes.get(state.s["theme"]["name"])
+    ansi = [str(x) for x in data.get("ansi", [])][:16] if isinstance(data.get("ansi"), list) else None
+    if ansi and (len(ansi) < 16 or not all(themes.HEX.match(a.lower()) for a in ansi)):
+        ansi = None
+    t = themes.save_custom(str(data.get("label", "Imported theme"))[:40] or "Imported theme", base,
+                           {k: str(cols[k]).lower() for k in themes.COLOR_KEYS}, ansi, style)
+    state.s["theme"]["name"] = t.id
+    state.s["theme"]["accent"] = ""
+    return {"id": t.id, "label": t.label}
+
+
+def layout_save(state, cfg: dict, lid: str = "") -> dict:
+    from .. import layouts
+    lid = layouts.save_user(cfg, lid)
+    state.s["bar"]["layout"] = lid
+    return {"id": lid, "layouts": layouts.all_layouts(), "msg": "Saved and selected – Apply to see it on your desktop"}
+
+
+def layout_delete(state, lid: str) -> dict:
+    from .. import layouts
+    if not layouts.delete_user(lid):
+        raise Fail("Only your own layouts can be deleted")
+    if state.s["bar"]["layout"] == lid:
+        state.s["bar"]["layout"] = "modern"
+    return {"layouts": layouts.all_layouts(), "msg": "Layout deleted"}
+
+
 def theme_from_wallpaper(state, mode: str) -> dict:
     from .. import livewall, themes, wallpalette
     img = state.s["theme"]["wallpaper"]
@@ -741,3 +818,66 @@ def term(state, cmd: str) -> None:
     full = render.terminal_cmd(state.s, "swayforge-task", f"sh -c {shlex.quote(cmd)}")
     subprocess.Popen(shlex.split(full), start_new_session=True,
                      stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+
+# ── Clipboard history ────────────────────────────────────────────────
+def page_clipboard(s: dict, query: str = "") -> dict:
+    from .. import clipboard
+    clipboard.trim()
+    return {"items": clipboard.items(query, limit=300), "paused": clipboard.pause_flag().exists(),
+            "enabled": s["clipboard"]["enabled"]}
+
+
+def clipboard_action(state, verb: str, d: dict):
+    from .. import clipboard
+    try:
+        cid = int(d.get("id", 0))
+    except (TypeError, ValueError):
+        cid = 0
+    if verb == "search":
+        return {"items": clipboard.items(str(d.get("q", ""))[:200], limit=300)}
+    if verb == "copy":
+        if not clipboard.copy(cid):
+            raise Fail("Couldn't copy (wl-copy missing?)")
+        return "Copied – paste with Ctrl+V"
+    if verb in ("pin", "unpin"):
+        clipboard.pin(cid, verb == "pin")
+        return ""
+    if verb == "delete":
+        clipboard.delete(cid)
+        return ""
+    if verb in ("clear", "clear_all"):
+        clipboard.clear(keep_pinned=verb == "clear")
+        return "History cleared" + (" (pinned entries kept)" if verb == "clear" else "")
+    if verb in ("pause", "resume"):
+        clipboard.set_paused(verb == "pause")
+        return "Paused – nothing new is kept" if verb == "pause" else "Recording again"
+    raise Fail("unknown")
+
+
+# ── Privacy guard ────────────────────────────────────────────────────
+def page_privacy(s: dict) -> dict:
+    from .. import privacy
+    d = privacy.scan()
+    d["labels"] = privacy.PERMS
+    d["revoke"] = {k: v[1] for k, v in privacy.REVOKE.items()}
+    return d
+
+
+def privacy_action(state, verb: str, d: dict):
+    from .. import privacy
+    app, what = str(d.get("app", "")), str(d.get("what", ""))
+    if verb == "now":
+        return {"now": privacy.right_now()}
+    if verb == "revoke":
+        if app not in {a["id"] for a in privacy.flatpak_apps()}:
+            raise Fail("That app is not installed as Flatpak")
+        try:
+            ok = privacy.revoke(app, what)
+        except ValueError:
+            raise Fail("unknown permission")
+        if not ok:
+            raise Fail("flatpak override failed")
+        return ("Back to the app's own permissions" if what == "reset" else
+                f"Done: {privacy.REVOKE[what][1]}") + " – restart the app"
+    raise Fail("unknown")

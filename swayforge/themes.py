@@ -103,7 +103,9 @@ def save_custom(label: str, base: Theme, colors: dict[str, str], ansi: list[str]
     """Save your own theme to ~/.config/swayforge/themes/<slug>.toml."""
     paths.ensure_dirs()
     tid = slug(label)
-    data = {"label": label, "dark": base.dark, "ansi": list(ansi or base.ansi),
+    r, g, b = (int(colors["base"][i:i + 2], 16) / 255 for i in (1, 3, 5))
+    dark = 0.2126 * r + 0.7152 * g + 0.0722 * b < 0.45           # from the background you picked
+    data = {"label": label, "dark": dark, "ansi": list(ansi or base.ansi),
             "colors": {k: colors[k] for k in COLOR_KEYS},
             "style": dict(style if style is not None else base.style)}
     if not data["style"]:

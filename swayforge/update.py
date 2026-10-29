@@ -16,6 +16,33 @@ APPS = {
 }
 
 
+# Every version gets a name instead of a number: two English words picked from its commit
+# (same commit → same name everywhere: Settings, the app, the update check).
+_ADJ = ("amber", "arctic", "ashen", "autumn", "azure", "bold", "brisk", "bronze", "calm", "cedar", "cobalt",
+        "copper", "coral", "crimson", "crystal", "dawn", "dusky", "ember", "emerald", "feral", "frosty",
+        "gentle", "gilded", "golden", "granite", "hidden", "hollow", "humble", "indigo", "iron", "ivory",
+        "jade", "keen", "lunar", "maple", "marble", "midnight", "misty", "mossy", "nimble", "noble", "ochre",
+        "onyx", "pale", "polar", "quiet", "rapid", "rustic", "sable", "scarlet", "silent", "silver", "solar",
+        "stormy", "sunny", "swift", "tidal", "velvet", "violet", "wandering", "wild", "winter", "woven", "zesty")
+_NOUN = ("badger", "beacon", "birch", "bison", "breeze", "brook", "canyon", "cinder", "comet", "condor",
+         "cove", "crane", "creek", "dune", "falcon", "fern", "fjord", "forge", "fox", "glacier", "grove",
+         "harbor", "hawk", "heron", "hollow", "ibis", "island", "jaguar", "kestrel", "lagoon", "lantern",
+         "lark", "lynx", "marten", "meadow", "mesa", "moth", "nebula", "otter", "owl", "panther", "pine",
+         "prairie", "quartz", "raven", "reef", "ridge", "river", "salmon", "sparrow", "spruce", "summit",
+         "thistle", "thunder", "tundra", "valley", "viper", "walrus", "willow", "wolf", "wren", "yak",
+         "zephyr", "orca")
+
+
+def codename(commit: str) -> str:
+    """'b248872…' → 'Silver Otter'. '' when the commit is unknown."""
+    c = (commit or "").strip().lower()
+    try:
+        n = int(c[:8], 16)
+    except ValueError:
+        return ""
+    return f"{_ADJ[n % len(_ADJ)].title()} {_NOUN[(n // len(_ADJ)) % len(_NOUN)].title()}"
+
+
 def url(name: str) -> str:
     return f"https://github.com/{OWNER}/{name}"
 
@@ -64,11 +91,11 @@ def status(name: str) -> tuple[dict, str, str]:
 def describe(name: str, info: dict, rem: str, verdict: str) -> str:
     if verdict == "missing":
         return f"{name}: not installed"
-    v = f"{name} {info['version'] or '?'}"
+    v = f"{name} “{codename(info['commit'])}”" if info["commit"] else f"{name} {info['version'] or '?'}"
     if info["commit"]:
         v += f" · {info['commit'][:7]}" + (f" ({info['date']})" if info["date"] else "")
     return v + {"current": "  [green]✓ up to date[/]",
-                "update": f"  [yellow]⬆ update available ({rem[:7]})[/]",
+                "update": f"  [yellow]⬆ update available: “{codename(rem)}”[/]",
                 "unknown": "  [dim]– can't check (offline, or installed without git)[/]"}[verdict]
 
 

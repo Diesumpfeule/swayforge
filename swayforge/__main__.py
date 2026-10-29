@@ -64,9 +64,10 @@ def main(argv: list[str] | None = None) -> int:
     p = sub.add_parser("restore", help="restore a backup")
     p.add_argument("file")
 
-    p = sub.add_parser("widgets", help="desktop widgets: run | restart | stop")
-    p.add_argument("action", nargs="?", default="run", choices=["run", "restart", "stop"])
+    p = sub.add_parser("widgets", help="desktop widgets: run | restart | stop | overview (all workspaces big)")
+    p.add_argument("action", nargs="?", default="run", choices=["run", "restart", "stop", "overview"])
     p = sub.add_parser("screenshare", help="check and repair screen sharing (Discord/Vesktop, browsers)")
+    p.add_argument("--report", action="store_true", help="write everything needed to find the cause into one file")
     p = sub.add_parser("gui", help="swayforge app – graphical settings with live previews")
     p.add_argument("--browser", action="store_true", help="open in a browser instead of a native window")
     p.add_argument("--serve", action="store_true", help="only serve and print the address")
@@ -86,8 +87,15 @@ def main(argv: list[str] | None = None) -> int:
     sub.add_parser("keys", help="shortcut overview (Rofi)")
     sub.add_parser("version", help="installed versions + whether GitHub has newer ones")
     sub.add_parser("update", help="get the newest swayforge + wolfforge from GitHub and apply them")
-    sub.add_parser("hello", help="animated ASCII greeting, then fastfetch (terminal start)")
-    sub.add_parser("clip", help="clipboard history (Rofi)")
+    p = sub.add_parser("hello", help="animated ASCII greeting, then fastfetch (terminal start)")
+    p.add_argument("--anim", choices=["intro", "spin", "donut", "cube", "fire", "video", "off"],
+                   help="try another animation (default: the one from Settings)")
+    p.add_argument("--seconds", type=float, help="how long it plays (0 = until a key)")
+    p.add_argument("--video", help="GIF or video file for --anim video")
+    p = sub.add_parser("privacy", help="privacy guard: which app may use camera, mic, network, files …")
+    p.add_argument("rest", nargs=argparse.REMAINDER, help="[--json] | revoke APP PERMISSION")
+    p = sub.add_parser("clip", help="clipboard history: (pick) | list [TEXT] | clear [--all] | pause | resume")
+    p.add_argument("rest", nargs=argparse.REMAINDER)
     sub.add_parser("session", help="at Sway start: GTK settings, swayidle")
     p = sub.add_parser("osd", help="volume/brightness with on-screen display")
     p.add_argument("kind", choices=["volume", "mic", "brightness"])
@@ -113,6 +121,7 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--fs", default="exfat", choices=["exfat", "vfat", "ext4", "none"])
     p.add_argument("--label", default="USB")
     p.add_argument("--size", type=int, default=0, help=argparse.SUPPRESS)
+    p.add_argument("--serial", default=None, help=argparse.SUPPRESS)
     p.add_argument("--confirm", default="", help=argparse.SUPPRESS)
     p = sub.add_parser("find", help="find an app and show the install command (Fedora → COPR → RPM Fusion → Flathub)")
     p.add_argument("term", nargs="+", help="e.g. fastfetch, steam, discord")
@@ -128,9 +137,13 @@ def main(argv: list[str] | None = None) -> int:
         from . import widgets
         return widgets.main(a.action)
 
+    if a.cmd == "privacy":
+        from . import privacy
+        return privacy.main(a.rest)
+
     if a.cmd == "screenshare":
         from . import render
-        return render.screenshare_check(fix=True)
+        return render.screenshare_report() if a.report else render.screenshare_check(fix=True)
 
     if a.cmd == "gui":
         from .gui import main as gui_main
@@ -298,7 +311,7 @@ def main(argv: list[str] | None = None) -> int:
 
     if a.cmd == "hello":
         from . import anim
-        return anim.hello()
+        return anim.hello(a.anim, a.seconds, a.video)
 
     if a.cmd == "steam":
         exe = Path.home() / ".local/bin/steamtune"
@@ -312,7 +325,7 @@ def main(argv: list[str] | None = None) -> int:
             drives = cleanup.wipeable_drives()
             print("\n".join(cleanup.drive_label(d) for d in drives) or "No removable drive found.")
             return 0
-        rc = cleanup.wipe_main(a.device, a.mode, a.fs, a.label, a.size, a.confirm)
+        rc = cleanup.wipe_main(a.device, a.mode, a.fs, a.label, a.size, a.confirm, a.serial)
         return rc
 
     if a.cmd == "audit":
@@ -340,7 +353,8 @@ def main(argv: list[str] | None = None) -> int:
     elif a.cmd == "keys":
         tools.keys()
     elif a.cmd == "clip":
-        tools.clip()
+        from . import clipboard
+        return clipboard.main(a.rest)
     elif a.cmd == "shot":
         tools.shot(a.mode)
     elif a.cmd == "osd":

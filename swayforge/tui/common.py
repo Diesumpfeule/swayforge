@@ -36,6 +36,8 @@ UI_STYLES = ("win98", "winxp", "win7", "wired", "dread")
 
 def use_layout(app, layout: str) -> None:
     """Button shapes follow the bar layout: bevels for Classic 98, glass for 7, text for Wired."""
+    from .. import layouts
+    layout = layouts.get(layout).id                  # your own layouts wear their base look
     for x in UI_STYLES:
         app.set_class(layout == x, f"-ui-{x}")
 

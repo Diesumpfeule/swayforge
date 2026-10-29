@@ -13,7 +13,7 @@ layout combinations render balanced CSS, valid JSON and a complete sway config.
 The real risks were in the edges around your data: a typo in `settings.toml` locked every app out,
 a wrongly typed hand-edited value crashed config generation, configs and settings were written
 non-atomically, and the installer deleted the installed app before copying the new one. These are
-fixed and covered by tests. A unit-test suite (25 tests) and a CI workflow were added.
+fixed and covered by tests. A unit-test suite (now 49 tests) and a CI workflow were added.
 
 ## 2. Confirmed bugs fixed
 
@@ -23,6 +23,8 @@ fixed and covered by tests. A unit-test suite (25 tests) and a CI workflow were 
 | 2 | High | `settings.py` `_merge()` | A hand-edited value of the wrong type (`radius = "round"`) crashed `render_all` with `TypeError: unsupported operand type(s) for -: 'str' and 'int'`. A plain value replacing a whole section did the same. | `_fits()` coerces numbers given as strings and falls back to the default otherwise; sections can't be replaced by scalars. | `test_settings.test_wrong_types_fall_back` |
 | 3 | Medium (data loss) | `settings.py` `save()`, `render.py` `Writer` | Settings and every generated config were written in place – a crash, power loss or full disk mid-write left a truncated file. | New `fsutil.atomic_write` (temp file in same dir, fsync, keep mode, `os.replace`). | `test_settings.test_save_is_atomic_and_round_trips`, `test_safety.Atomic` |
 | 4 | Medium (broken install) | `install.sh` | `rm -rf $APP/swayforge` ran before the copy – an interrupted or failed copy left no working swayforge. | Copy to `swayforge.new`, `compileall` check, then swap. | `test_safety.Install` (syntax only, see §5) |
+
+| 5 | High (data loss) | `cleanup.py` `wipeable_drives()` | A drive counted as "external" when lsblk only reported `HOTPLUG=1` – many laptops report their **internal NVMe** that way, so a second internal disk (e.g. a Windows drive) without mounted partitions could be offered for wiping. | External = USB/SD/FireWire transport or kernel `removable`; hot-plug alone no longer counts. Plus an independent kernel check (`system_disks()`: `/proc/self/mounts`, `/proc/swaps`, `/etc/fstab`, `/sys` partitions and dm/md slaves) that refuses any disk in use and runs again before every wipe step; the drive's serial number must match too. | `tests/test_disks.py` (fake `/sys`, `/proc`, `/dev`) |
 
 Fixed earlier in the same work session (already pushed, listed for completeness):
 updater blocked by edited files → stash + backup branch (`ce96078`, covered by

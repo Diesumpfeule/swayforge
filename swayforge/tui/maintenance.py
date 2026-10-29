@@ -516,7 +516,7 @@ class CleanupPanel(Panel):
                     return
                 L = shlex.quote(render.LAUNCHER)
                 app.spawn_term(f"{L} wipe {shlex.quote(d['name'])} --mode {mode} --fs {fs} "  # type: ignore[attr-defined]
-                               f"--label {shlex.quote(label)} --size {d['size']} --confirm {shlex.quote(d['name'])}; "
+                               f"--label {shlex.quote(label)} --size {d['size']} --serial {shlex.quote(d['serial'])} --confirm {shlex.quote(d['name'])}; "
                                f"{hold}")
                 app.notify(f"Wiping {d['name']} in a terminal")
             app.push_screen(WipeConfirm(d, mode, fs, label), go)

@@ -114,10 +114,12 @@ Everything is optional except the Sway base.
 | Group | Apps |
 |---|---|
 | Desktop | **Sway base**, **Thunar file manager**, **Image & video viewers**, **Terminal tools**, **cava**, SwayFX (effects) |
-| Gaming | **Steam**, **GameMode + MangoHud**, **Protontricks**, **ProtonPlus**, **Prism Launcher**, **Heroic Games Launcher**, **Discord**, Vesktop*, Lutris, Bottles, Gamescope, CoreCtrl, RetroArch, ProtonUp-Qt*, Dolphin, PCSX2*, Ruffle*, OpenRGB |
+| Gaming | **Steam**, **GameMode + MangoHud**, **Protontricks**, **ProtonPlus**, **Prism Launcher**, **Heroic Games Launcher**, **Discord**, Vesktop*, Lutris, Bottles, Gamescope, CoreCtrl, RetroArch, ProtonUp-Qt*, Dolphin, PCSX2*, Ruffle*, 0 A.D., OpenRGB |
 | Browser | **Firefox**, Brave, **LibreWolf**, **[wolfforge](https://github.com/Diesumpfeule/wolfforge)** (LibreWolf overhaul), Chromium, Zen Browser* |
 | Dev | **Visual Studio Code**, VSCodium, **Python**, **uv**, Thonny, **Compilers & build tools**, **Podman**, **GitHub CLI + tig**, Node.js, Rust, **tmux**, **Distrobox** |
 | IT & Security | **Network tools**, **Wireshark**, **Virtual machines (KVM)**, Tailscale, Remmina, Password audit tools, **KeePassXC**, **Malware & rootkit scanners**, USBGuard, Pentest basics, Kali container, Ghidra*, WireGuard tools |
+| OSINT | Metadata & lookup (ExifTool, mat2, whois, dig), pipx, Sherlock, Maigret, Holehe, OSINT pack in the Kali container (SpiderFoot, theHarvester, Recon-ng, Metagoofil, Maltego) |
+| VPN & Tor | Proton VPN (official repo), Mullvad VPN (official repo), OpenVPN + WireGuard for NetworkManager, Tor Browser, Tor service + torsocks, Mullvad Browser* |
 | Media | OBS Studio, **VLC**, Kdenlive, Audacity, EasyEffects, LibreOffice, GIMP, Inkscape, Krita, Blender, Spotify*, Obsidian*, Thunderbird, qBittorrent, **yt-dlp**, Syncthing, **7-Zip + unrar** |
 | USB & SD | **balenaEtcher**, **Raspberry Pi Imager**, Fedora Media Writer, **GParted** |
 | Maker | FreeCAD, KiCad, PrusaSlicer |
@@ -228,6 +230,15 @@ theme*, or use `--save "NAME"` on the command line.
 | Cathedral | gothic: stone bar with a crimson double rule, roman-numeral workspaces, ✠ around the clock, framed launcher and notifications |
 
 Any layout works with any theme. `Super+Shift+B` cycles bar layouts, `Super+Shift+T` cycles themes.
+
+**Make your own:** *swayforge app → Theme & layout maker*. Layout maker: drag modules between
+left, centre and right (or into the tray to remove them), put the bar on any edge, pick the look of
+any layout above, and set height, floating gap, corners, opacity, spacing, text size, workspace style
+(`1 2 3`, `I II III`, `● ○ ○`, `[1]`) and icons/text. Theme maker: every colour with live preview,
+drag colours between slots or from the suggestion tray, harmony tools (from accent, tint, dark ↔ light,
+warmer/cooler), contrast check for every important pair, export/import as a `.toml` file.
+Both have undo/redo (Ctrl+Z / Ctrl+Y). Your layouts live in `~/.config/swayforge/layouts/`, your
+themes in `~/.config/swayforge/themes/`.
 Text on coloured surfaces (start buttons, selections, title bars) picks a readable colour by itself,
 so e.g. Luna XP with a white-accent theme stays legible.
 
@@ -278,6 +289,23 @@ it. Turn it off under *Theme → Animate the ASCII art*.
 The installer opens with a short animation (about 1.5 s): the motif ignites out of sparks, then the
 name is forged left to right. Any key skips it; `SWAYFORGE_NO_INTRO=1` turns it off.
 
+## Terminal greeting
+
+Every new terminal can greet you with a real animation next to the fastfetch system info (any key
+skips, the last frame stays as the logo): your ASCII motif **spinning in 3D**, the **spinning donut**,
+a **tumbling cube**, **fire**, or **your own GIF / video** turned into coloured block art (videos need
+ffmpeg; frames are cached). Or the classic ignite-and-move intro. *Settings → Terminal & prompt →
+Greeting animation*; try any of them with `swayforge hello --anim donut`.
+
+## Desktop widgets
+
+*Settings → Desktop widgets*: clocks (dot matrix, digital, analog), music player, system monitor,
+**workspace preview** (every workspace with its windows – or a small picture from your last visit –
+click to go there), calendar, weather (wttr.in, your city or automatic), network speed with a graph,
+free space, battery, sticky note (click to edit), focus timer (25/5, notification at the end) and
+Clippy with tips. Each one goes to any corner or edge centre; they sit under your windows.
+`Super+O` shows all workspaces big, like an exposé – click one, or press its number.
+
 ## Apps, cleanup & drives
 
 - **Settings → Apps → Installed** – everything installed, grouped like the installer, plus
@@ -300,14 +328,17 @@ name is forged left to right. Any key skips it; `SWAYFORGE_NO_INTRO=1` turns it 
 - **Settings → Cleanup & drives** – frees space with plain, well-known commands, each with its size:
   package cache, unneeded packages, old logs (keeps 2 weeks), crash dumps, trash, thumbnails,
   unused Flatpak runtimes. Plus ncdu and BleachBit if installed (installer → System → Cleanup tools).
-- **Drive wiper** – for USB sticks, SD cards and external SSDs. Only drives that are removable and
-  hold nothing of the running system are listed, so internal disks never show up.
+- **Drive wiper** – for USB sticks, SD cards and external SSDs. Only USB/SD/FireWire drives (or ones
+  the kernel marks removable) are listed – internal drives never show up, even NVMe disks that call
+  themselves "hot-pluggable". A second, independent check asks the kernel (`/proc`, `/sys`) which disks
+  hold anything mounted, swap, LUKS/LVM/RAID members or an `/etc/fstab` entry; those are refused too,
+  and that check runs again before every single step of the wipe.
   - *Quick*: new partition table and empty file system in seconds.
   - *Secure*: zero-fill every byte, or discard/TRIM all blocks on SSDs and SD cards.
   - Then format as exFAT, FAT32, ext4 or leave it empty.
 
-  You type the device name to confirm. The terminal re-checks the drive (size and removability)
-  right before it starts. `swayforge wipe` does the same from the command line. Note that flash
+  You type the device name to confirm. The terminal re-checks the drive (size, serial number and
+  removability) right before it starts. `swayforge wipe` does the same from the command line. Note that flash
   wear levelling can keep stray old blocks – for secrets, use encryption from the start.
 
 ## Wallpapers
@@ -347,6 +378,22 @@ then **Connect / Disconnect**, toggle **Auto-connect** or **Delete** (asks twice
 swayforge: if a VPN needs one, a terminal opens and `nmcli` asks for it. OpenVPN needs the
 `NetworkManager-openvpn` package (swayforge tells you if it's missing); WireGuard works out of the box.
 If Tailscale is installed, up/down/status buttons appear as well.
+
+## Clipboard history
+
+`Super+V` opens everything you copied – type to search, Enter copies it back, `Alt+P` pins, `Alt+D`
+deletes. The swayforge app has a page with picture previews. It forgets on its own: keep at most
+25–1000 entries, forget after 15 minutes … 30 days (pinned entries stay). Passwords copied from a
+password manager (KeePassXC, Bitwarden …) are never stored, and *Pause* stops recording. Everything
+stays in one file only you can read (`~/.local/share/swayforge/clipboard.db`).
+
+## Privacy guard
+
+*Settings → Privacy guard* (or `swayforge privacy`) shows which app may use the camera, microphone,
+screen, location, network and your files – and who uses camera, microphone, screen sharing and the
+internet right now. Flatpak apps list their exact permissions (risky ones first) and you can take
+single permissions away (`flatpak override`, “Reset” brings them back). Apps installed with dnf have
+no sandbox – they can do everything you can – so they are listed as such.
 
 ## Mount drives
 
@@ -451,7 +498,11 @@ swayforge theme NAME          switch theme   (--list, --next)
 swayforge layout NAME         switch layout  (--list, --next)
 swayforge boot / login        install boot screen / login screen
 swayforge gamemode            toggle gaming mode
-swayforge hello               animated ASCII greeting, then fastfetch
+swayforge hello               animated greeting next to fastfetch (--anim spin|donut|cube|fire|video)
+swayforge clip                clipboard history (list, clear, pause, resume)
+swayforge privacy             who may use camera, mic, network, files (revoke APP PERMISSION)
+swayforge widgets overview    every workspace big (Super+O)
+swayforge screenshare         check screen sharing (--report writes one file to send)
 swayforge version / update    installed versions · update both from GitHub
 swayforge scan [TARGET]       malware scan: downloads | home | drives | PATH
 swayforge audit rootkit|system  rkhunter + chkrootkit / Lynis
@@ -507,6 +558,8 @@ Screen sharing on Sway needs a screen picker behind the scenes: swayforge sets o
 asks which) and starts Flatpak Vesktop/Discord on Wayland. Still nothing happens when you press
 *Share screen*? Run `swayforge screenshare` (or *System & files → Check screen sharing* in the
 app): it checks every piece, restarts the portals and tells you what is missing.
+`swayforge screenshare --report` writes `~/swayforge-screenshare-report.txt` (versions, portal logs,
+config files – no passwords) when you need help finding the cause.
 
 ## Screensavers
 

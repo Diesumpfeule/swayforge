@@ -72,6 +72,23 @@ class AppServer(unittest.TestCase):
         self.assertIn("error", r)
         self.assertEqual(self.state.s["look"]["radius"], 7)
 
+    def test_maker_round_trip(self):
+        r = self.post("/api/do", {"action": "theme_export", "id": "catppuccin-mocha"})
+        self.assertIn("[colors]", r["text"])
+        r = self.post("/api/do", {"action": "theme_import", "text": r["text"].replace("Catppuccin", "Imported")})
+        self.assertTrue(r["ok"], r)
+        self.assertEqual(self.state.s["theme"]["name"], r["id"])
+        bad = self.post("/api/do", {"action": "theme_import", "text": "[colors]\nbase = 'red'"})
+        self.assertFalse(bad["ok"])
+        r = self.post("/api/do", {"action": "layout_save", "id": "",
+                                  "layout": {"label": "Dock", "base": "win11", "position": "left", "left": ["workspaces"]}})
+        self.assertTrue(r["ok"], r)
+        self.assertEqual(self.state.s["bar"]["layout"], "my-dock")
+        self.assertTrue(any(l["id"] == "my-dock" for l in r["layouts"]))
+        r = self.post("/api/do", {"action": "layout_delete", "id": "my-dock"})
+        self.assertEqual(self.state.s["bar"]["layout"], "modern")
+        self.assertFalse(self.post("/api/do", {"action": "theme_delete", "id": "nord"})["ok"])
+
     def test_every_page_answers(self):
         from swayforge.gui import actions
         for name in [n[5:] for n in dir(actions) if n.startswith("page_")]:
@@ -126,3 +143,134 @@ class Screensaver(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class FakeCairo:
+    """Records nothing, answers everything – enough to run every widget painter without a display."""
+    FONT_SLANT_NORMAL = FONT_WEIGHT_NORMAL = FONT_WEIGHT_BOLD = 0
+
+    class ImageSurface:
+        @staticmethod
+        def create_from_png(path):
+            raise OSError("no png in tests")
+
+    class Ctx:
+        def text_extents(self, s):
+            import types
+            return types.SimpleNamespace(x_advance=len(s) * 7.0)
+
+        def __getattr__(self, name):
+            return lambda *a, **k: None
+
+
+class WidgetPainters(unittest.TestCase):
+    def test_every_widget_draws(self):
+        import sys
+        import time
+        sys.modules.setdefault("cairo", FakeCairo)
+        fresh_home()
+        from swayforge import settings, themes, widgets
+        t = themes.get("catppuccin-mocha")
+        cfg = dict(settings.DEFAULTS["widgets"])
+        p = widgets.Painter({"colors": t.colors, "font": "monospace", "radius": 8}, cfg)
+        cr, now = FakeCairo.Ctx(), time.localtime()
+        for style in widgets.CLOCKS:
+            p.cfg = dict(cfg, clock=style)
+            p.clock(cr, 300, 150, now, 0.5)
+        p.player(cr, 340, 118, {"status": "Playing", "artist": "a", "title": "t", "pos": 1, "length": 3, "player": "x"})
+        p.player(cr, 340, 118, None)
+        p.sysmon(cr, 280, 120, 0.5, 0.9, None)
+        p.clippy(cr, 330, 190, widgets.TIPS[0], 1.0)
+        ws = widgets.parse_tree(TREE, "2")
+        self.assertEqual(p.workspaces(cr, 560, 128, ws, True).keys(), {"1", "2"})
+        p.workspaces(cr, 560, 128, [], False)
+        p.calendar(cr, 260, 236, now)
+        wx = widgets.parse_weather(WEATHER)
+        p.weather(cr, 300, 150, wx)
+        p.weather(cr, 300, 150, None)
+        for kind in ("sun", "partly", "cloud", "rain", "snow", "storm", "fog"):
+            p.wicon(cr, 0, 0, 40, kind)
+        net = widgets.NetMeter("/nonexistent")
+        net.sample()
+        p.network(cr, 300, 120, net.hist)
+        p.disks(cr, 300, 132, widgets.disks())
+        p.battery(cr, 220, 84, {"percent": 42, "status": "Discharging"})
+        p.battery(cr, 220, 84, None)
+        p.notes(cr, 260, 190, "line one\nand a much longer second line that has to wrap somewhere")
+        p.timer(cr, 220, 120, widgets.Timer())
+        for kind in widgets.KINDS:
+            self.assertGreater(widgets.size_of(kind, cfg)[0], 0)
+
+    def test_tree_and_weather_parsing(self):
+        from swayforge import widgets
+        ws = widgets.parse_tree(TREE, "2")
+        self.assertEqual([w["name"] for w in ws], ["1", "2"])
+        self.assertTrue(ws[1]["focused"])
+        self.assertEqual([x["app"] for x in ws[0]["windows"]], ["kitty", "librewolf"])
+        self.assertTrue(ws[0]["windows"][1]["floating"])
+        wx = widgets.parse_weather(WEATHER)
+        self.assertEqual((wx["temp"], wx["place"], len(wx["days"])), (7, "Bern", 1))
+        self.assertEqual(widgets.weather_kind(wx["code"]), "partly")
+        self.assertIsNone(widgets.parse_weather({}))
+        self.assertIn("Z%C3%BCrich", widgets.weather_url("Zürich"))
+
+    def test_timer_phases(self):
+        from swayforge import widgets
+        t = widgets.Timer()
+        t.toggle()
+        t.left = 0.01
+        import time
+        time.sleep(0.02)
+        self.assertEqual(t.tick(), "work")
+        self.assertEqual(t.phase, "break")
+
+
+TREE = {"nodes": [
+    {"name": "__i3", "nodes": [{"type": "workspace", "name": "__i3_scratch", "nodes": []}]},
+    {"name": "DP-1", "nodes": [
+        {"type": "workspace", "name": "1", "num": 1, "rect": {"x": 0, "y": 0, "width": 1920, "height": 1080},
+         "nodes": [{"type": "con", "app_id": "kitty", "pid": 5, "rect": {"x": 0, "y": 0, "width": 960, "height": 1080}, "nodes": []}],
+         "floating_nodes": [{"type": "floating_con", "app_id": None, "window_properties": {"class": "librewolf"},
+                             "pid": 6, "rect": {"x": 100, "y": 100, "width": 800, "height": 600}, "nodes": []}]},
+        {"type": "workspace", "name": "2", "num": 2, "rect": {"x": 0, "y": 0, "width": 1920, "height": 1080}, "nodes": []},
+    ]}]}
+
+WEATHER = {"current_condition": [{"temp_C": "7", "FeelsLikeC": "4", "weatherDesc": [{"value": "Partly cloudy"}],
+                                  "weatherCode": "116"}],
+           "nearest_area": [{"areaName": [{"value": "Bern"}]}],
+           "weather": [{"date": "2026-10-29", "mintempC": "3", "maxtempC": "11",
+                        "hourly": [{"weatherCode": "113"}] * 8}]}
+
+
+class FetchAnimation(unittest.TestCase):
+    def test_generators_fill_the_box(self):
+        from swayforge import fetchanim as f
+        art = ["  /\\  ", " /  \\ ", "/____\\"]
+        for t in (0.0, 0.8, 2.0):
+            for rows in (f.donut(t, 40, 18), f.cube(t, 40, 18), f.spin(art, t, 40, 18), f.Fire(40, 18).step()):
+                self.assertEqual(len(rows), 18)
+                self.assertTrue(all(len(r) == 40 for r in rows))
+        front = ["".join(c for c, _ in r).strip() for r in f.spin(art, 0.0, 40, 5)]
+        self.assertEqual([x for x in front if x], [a.strip() for a in art])     # t=0: the motif, as is
+        self.assertTrue(any(ch != " " for r in f.donut(1.0, 40, 18) for ch, _ in r))
+
+    def test_colours_and_widths(self):
+        from swayforge import fetchanim as f
+        g = f.ramp("#000000", "#ffffff", 3)
+        self.assertEqual(g[0], "\033[38;2;0;0;0m")
+        self.assertEqual(f.visible_len(f.render_cells([[("#", 1.0), (" ", 0)]], g)[0]), 2)
+
+    def test_gif_becomes_blocks(self):
+        home = fresh_home()
+        from swayforge import fetchanim as f
+        try:
+            from PIL import Image
+        except ImportError:
+            self.skipTest("Pillow missing")
+        frames = [Image.new("RGB", (60, 40), (i * 30, 0, 0)) for i in range(3)]
+        p = home / "a.gif"
+        frames[0].save(p, save_all=True, append_images=frames[1:], duration=100, loop=0)
+        out = f.video_frames(str(p), 30, 20)
+        self.assertEqual(len(out), 3)
+        self.assertEqual(f.visible_len(out[0][0]), 30)
+        self.assertEqual(f.video_frames(str(home / "missing.mp4"), 30, 20), [])

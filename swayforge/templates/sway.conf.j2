@@ -211,8 +211,10 @@ exec nm-applet --indicator
 {% if si.bluetooth %}
 exec blueman-applet
 {% endif %}
-exec wl-paste --type text --watch cliphist store
-exec wl-paste --type image --watch cliphist store
+{% if s.clipboard.enabled %}
+# clipboard history (Super+V) – trims itself by count and age, see Settings → Clipboard
+exec_always sh -c 'pkill -f "[w]l-paste --type .* --watch .*(cliphist|swayforge clip)"; pkill -f "m [s]wayforge clip watch"; exec {{ sf }} clip watch'
+{% endif %}
 exec_always {{ sf }} session
 {% if ext_shell %}
 # {{ ext_shell }} runs the bar + notifications now (Settings → Layout → switch back)

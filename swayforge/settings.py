@@ -97,6 +97,13 @@ DEFAULTS: dict[str, Any] = {
         "login": True,                # chime at login
         "notify": True,               # sound for notifications
     },
+    "clipboard": {
+        "enabled": True,
+        "max_items": 100,
+        "max_age": 1440,             # minutes, 0 = forever
+        "images": True,
+        "skip_sensitive": True,      # never keep passwords from password managers
+    },
     "widgets": {                      # desktop widgets (below the windows) – see widgets.py
         "enabled": False,
         "clock": "dots",              # dots | digital | analog | off
@@ -107,6 +114,24 @@ DEFAULTS: dict[str, Any] = {
         "sysmon_pos": "top-left",
         "clippy": False,
         "clippy_pos": "bottom-left",
+        "calendar": False,
+        "calendar_pos": "top-left",
+        "weather": False,
+        "weather_pos": "top-right",
+        "weather_city": "",            # empty = guessed from your internet connection
+        "battery": False,
+        "battery_pos": "bottom-left",
+        "network": False,
+        "network_pos": "top-left",
+        "disks": False,
+        "disks_pos": "top-left",
+        "notes": False,
+        "notes_pos": "bottom-left",
+        "timer": False,
+        "timer_pos": "bottom-right",
+        "workspaces": False,
+        "workspaces_pos": "bottom-center",
+        "ws_thumbs": True,             # remember how each workspace looked (pictures stay in ~/.cache)
         "scale": 1.0,
         "opacity": 0.85,
     },
@@ -128,6 +153,9 @@ DEFAULTS: dict[str, Any] = {
         "autosuggestions": True,
         "syntax_highlighting": True,
         "fastfetch_on_start": True,
+        "fetch_anim": "intro",        # intro | spin | donut | cube | fire | video | off – see fetchanim.py
+        "fetch_seconds": 5,           # how long it plays (0 = until you press a key)
+        "fetch_video": "",            # your own GIF / video for fetch_anim = video
         "aliases": True,
     },
     "prompt": {
@@ -196,6 +224,7 @@ KEY_ACTIONS: list[tuple[str, str, str, str]] = [
     ("focus_mode", "Focus tiling/floating", "$mod+space", "focus mode_toggle"),
     ("reload", "Reload Sway", "$mod+Shift+c", "reload"),
     ("ws_back", "Previous workspace", "$mod+Tab", "workspace back_and_forth"),
+    ("ws_overview", "Workspace overview", "$mod+o", "exec {sf} widgets overview"),
     ("focus_out_l", "Focus left monitor", "$mod+Ctrl+Left", "focus output left"),
     ("focus_out_r", "Focus right monitor", "$mod+Ctrl+Right", "focus output right"),
     ("ws_to_out_l", "Workspace → left monitor", "$mod+Ctrl+Shift+Left", "move workspace to output left"),

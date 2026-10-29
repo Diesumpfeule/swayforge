@@ -309,6 +309,13 @@ label = "Gaming"
   flatpak = ["rs.ruffle.Ruffle"]
 
   [[group.items]]
+  id = "0ad"
+  label = "0 A.D."
+  desc = "Free historical real-time strategy game (Age of Empires style)"
+  default = false
+  dnf = ["0ad"]
+
+  [[group.items]]
   id = "openrgb"
   label = "OpenRGB"
   desc = "RGB lighting for mainboard, RAM, GPU, peripherals"
@@ -571,6 +578,106 @@ label = "IT & Security"
   desc = "wg / wg-quick for your own VPN tunnels"
   default = false
   dnf = ["wireguard-tools"]
+
+[[group]]
+id = "osint"
+label = "OSINT"
+
+  [[group.items]]
+  id = "osint-basics"
+  label = "Metadata & lookup"
+  desc = "ExifTool (read photo/file metadata), mat2 (strip it), whois, dig"
+  default = false
+  dnf = ["perl-Image-ExifTool", "mat2", "whois", "bind-utils"]
+
+  [[group.items]]
+  id = "pipx"
+  label = "pipx"
+  desc = "Installs Python command-line tools each in its own sandbox (needed by the tools below)"
+  default = false
+  dnf = ["pipx"]
+
+  [[group.items]]
+  id = "sherlock"
+  label = "Sherlock"
+  desc = "Find a username across hundreds of sites (pipx: sherlock-project)"
+  default = false
+  needs = ["pipx"]
+  post = ["pipx install sherlock-project || pipx upgrade sherlock-project"]
+
+  [[group.items]]
+  id = "maigret"
+  label = "Maigret"
+  desc = "Username search with a report (HTML/PDF) – Sherlock on steroids (pipx)"
+  default = false
+  needs = ["pipx"]
+  post = ["pipx install maigret || pipx upgrade maigret"]
+
+  [[group.items]]
+  id = "holehe"
+  label = "Holehe"
+  desc = "Which sites an e-mail address is registered on (pipx)"
+  default = false
+  needs = ["pipx"]
+  post = ["pipx install holehe || pipx upgrade holehe"]
+
+  [[group.items]]
+  id = "osint-kali"
+  label = "OSINT pack (Kali container)"
+  desc = "SpiderFoot, theHarvester, Recon-ng, Metagoofil, Maltego – inside the Kali box, Fedora stays clean"
+  default = false
+  needs = ["kali-box"]
+  post = ["distrobox enter kali -- sh -c 'sudo apt-get update && sudo apt-get install -y spiderfoot theharvester recon-ng metagoofil maltego' || true"]
+
+[[group]]
+id = "vpn"
+label = "VPN & Tor"
+
+  [[group.items]]
+  id = "protonvpn"
+  label = "Proton VPN"
+  desc = "Official Proton VPN app from Proton's own repository – free plan without data limit"
+  default = false
+  pre = ["rpm -q protonvpn-stable-release >/dev/null 2>&1 || sudo dnf install -y https://repo.protonvpn.com/fedora-{fedora}-stable/protonvpn-stable-release/protonvpn-stable-release-1.0.5-1.noarch.rpm"]
+  dnf = ["proton-vpn-gtk-app", "libappindicator-gtk3"]
+
+  [[group.items]]
+  id = "mullvad"
+  label = "Mullvad VPN"
+  desc = "Official Mullvad app from Mullvad's own repository (paid, no account data needed)"
+  default = false
+  pre = ["sudo dnf config-manager addrepo --overwrite --from-repofile=https://repository.mullvad.net/rpm/stable/mullvad.repo"]
+  dnf = ["mullvad-vpn"]
+
+  [[group.items]]
+  id = "openvpn-nm"
+  label = "OpenVPN + WireGuard for NetworkManager"
+  desc = "Import .ovpn / .conf files from any VPN provider into the network menu"
+  default = false
+  dnf = ["NetworkManager-openvpn", "NetworkManager-openvpn-gnome", "wireguard-tools"]
+
+  [[group.items]]
+  id = "torbrowser"
+  label = "Tor Browser"
+  desc = "Browse over the Tor network (the launcher downloads and verifies the official Tor Browser)"
+  default = false
+  dnf = ["torbrowser-launcher"]
+
+  [[group.items]]
+  id = "tor"
+  label = "Tor service + torsocks"
+  desc = "Send any command-line program through Tor: torsocks curl …"
+  default = false
+  dnf = ["tor", "torsocks"]
+  post = ["sudo systemctl enable --now tor"]
+
+  [[group.items]]
+  id = "mullvad-browser"
+  label = "Mullvad Browser"
+  desc = "Tor Browser's privacy without the Tor network – for use with a VPN [Flatpak]"
+  default = false
+  needs = ["flathub"]
+  flatpak = ["net.mullvad.MullvadBrowser"]
 
 [[group]]
 id = "media"

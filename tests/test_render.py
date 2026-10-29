@@ -80,3 +80,46 @@ class Portal(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class CustomLayouts(unittest.TestCase):
+    def test_sanitize_rejects_junk(self):
+        fresh_home()
+        from swayforge import layouts
+        c = layouts.sanitize({"label": "x\nevil", "base": "nope", "position": "middle", "left": ["cpu", "cpu", "rm -rf"],
+                              "right": "cpu", "height": 999, "opacity": "a", "ws_style": "emoji"})
+        self.assertEqual((c["base"], c["position"], c["left"], c["right"], c["height"], c["ws_style"]),
+                         ("modern", "top", ["cpu"], [], 72, "numbers"))
+        self.assertNotIn("\n", c["label"])
+        self.assertFalse(layouts.delete_user("../settings"))
+
+    def test_every_base_and_position_renders(self):
+        home = fresh_home()
+        from swayforge import layouts, render, settings
+        for base in layouts.LAYOUTS:
+            for pos in layouts.POSITIONS:
+                with self.subTest(base=base, pos=pos):
+                    lid = layouts.save_user({"label": f"T {base} {pos}", "base": base, "position": pos, "margin": 6,
+                                             "left": ["start", "workspaces", "taskbar"], "center": ["clock"],
+                                             "right": ["gpu", "battery", "keyboard", "tray", "power"],
+                                             "ws_style": "roman", "text_mode": "text", "radius": 8})
+                    s = copy.deepcopy(settings.DEFAULTS)
+                    s["bar"]["layout"] = lid
+                    res = render.render_all(s, si=sysinfo())
+                    self.assertEqual(res.errors, [])
+                    body = "\n".join(l for l in (home / ".config/waybar/swayforge.jsonc").read_text().splitlines()
+                                     if not l.lstrip().startswith("//"))
+                    cfg = json.loads(body)
+                    self.assertEqual(cfg["position"], pos)
+                    self.assertIn("wlr/taskbar", cfg)
+                    self.assertIn("custom/start", cfg)
+                    css = (home / ".config/waybar/swayforge.css").read_text()
+                    self.assertTrue(balanced(css))
+                    self.assertIn("your layout", css)
+                    layouts.delete_user(lid)
+
+    def test_deleted_layout_falls_back(self):
+        fresh_home()
+        from swayforge import layouts
+        self.assertEqual(layouts.get("my-gone").id, "modern")
+        self.assertFalse(layouts.exists("my-gone"))

@@ -61,14 +61,17 @@ const ICONS = {
   mounts: '<rect x="3" y="13" width="18" height="7" rx="2"/><path d="M5 13 7 5h10l2 8M7 16.5h.01"/>',
   system: '<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/>',
   about: '<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5h.01"/>',
+  clipboard: '<rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V3h6v1M9 10h6M9 14h6M9 18h3"/>',
+  privacy: '<path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
+  maker: '<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="m13.5 6.5 4 4"/>',
   found: '<path d="m9 6 6 6-6 6"/>',
 };
 const icon = id => `<svg class="ico" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${ICONS[id] || ICONS.found}</svg>`;
 const PAGES = {};          // id → {title, group, icon, render(view), keywords}
-const GROUPS = [["Look", ["overview", "themes", "layouts", "wallpapers", "look", "bar", "widgets"]],
+const GROUPS = [["Look", ["overview", "themes", "layouts", "maker", "wallpapers", "look", "bar", "widgets"]],
   ["Devices", ["display", "audio", "sound", "bluetooth", "network", "input"]],
-  ["Work & play", ["shell", "keys", "apps", "games"]],
-  ["System", ["power", "boot", "security", "cleanup", "mounts", "system", "about"]]];
+  ["Work & play", ["shell", "keys", "apps", "games", "clipboard"]],
+  ["System", ["power", "boot", "security", "privacy", "cleanup", "mounts", "system", "about"]]];
 
 const Studio = {
   page(id, def) { PAGES[id] = def; },
@@ -109,7 +112,8 @@ function dialog(html, init) {
 // fit 640×360 desktops into their frames
 const ro = new ResizeObserver(es => es.forEach(e => e.target.style.setProperty("--k", e.contentRect.width / Desk.W)));
 function desk(frame, opts) {
-  Desk.render(frame, Object.assign({ settings: S.s, user: S.data.user }, opts));
+  const mine = !opts.custom && String(opts.layout || "").startsWith("my-") ? (S.data.layouts.find(l => l.id === opts.layout) || {}).cfg : null;
+  Desk.render(frame, Object.assign({ settings: S.s, user: S.data.user }, opts, mine ? { custom: mine } : {}));
   ro.observe(frame);
   frame.style.setProperty("--k", frame.clientWidth / Desk.W || 0.4);
 }
@@ -130,7 +134,7 @@ function skin() {
   const face = Desk.mix(c.surface, c.text, .1);
   set("--hi", Desk.mix(face, c.text, .6)); set("--lo", Desk.mix(face, c.crust, .85));
   document.documentElement.style.colorScheme = t.dark ? "dark" : "light";
-  document.body.dataset.skin = S.s.bar.layout;
+  document.body.dataset.skin = layoutOf(S.s.bar.layout).base || S.s.bar.layout;
   logo(c);
 }
 const PIX = {

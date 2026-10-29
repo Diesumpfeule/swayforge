@@ -39,7 +39,8 @@ def coerce(f: Field, raw: Any) -> Any:
     return raw
 
 
-CORNERS = [("Top left", "top-left"), ("Top right", "top-right"), ("Bottom left", "bottom-left"), ("Bottom right", "bottom-right"), ("Centre", "center")]
+CORNERS = [("Top left", "top-left"), ("Top centre", "top-center"), ("Top right", "top-right"), ("Bottom left", "bottom-left"),
+           ("Bottom centre", "bottom-center"), ("Bottom right", "bottom-right"), ("Centre", "center")]
 SAVER_OPTS = [(label, key) for key, label in screensaver.SAVERS.items()]
 ON_OFF = [("always", "always"), ("only via SSH/root", "needed"), ("never", "false")]
 
@@ -67,6 +68,8 @@ PAGES: list[tuple[str, str]] = [
     ("system", "\U000f0493  System & files"),
     ("about", "\U000f02fd  About & updates"),
     ("widgets", "\U000f072c  Desktop widgets"),
+    ("clipboard", "\U000f014f  Clipboard"),
+    ("privacy", "\U000f0565  Privacy guard"),
 ]
 
 
@@ -166,6 +169,13 @@ FIELDS: dict[str, list[Field | str]] = {
         Field("look.terminal_padding", "Padding", "int"),
         "zsh",
         Field("shell.fastfetch_on_start", "fastfetch on open (themed, with ASCII art)", "bool"),
+        Field("shell.fetch_anim", "Greeting animation", "choice",
+              [("Ignite + motion (classic)", "intro"), ("Your motif spins in 3D", "spin"), ("Spinning donut", "donut"),
+               ("Tumbling cube", "cube"), ("Fire", "fire"), ("Your own GIF / video", "video"), ("None", "off")],
+              help="plays next to the system info, any key skips · try it: swayforge hello"),
+        Field("shell.fetch_seconds", "Plays for", "choice",
+              [("2 seconds", 2), ("3 seconds", 3), ("5 seconds", 5), ("8 seconds", 8), ("Until a key", 0)]),
+        Field("shell.fetch_video", "GIF / video file", help="for “Your own GIF / video” · e.g. ~/Videos/cat.gif (videos need ffmpeg)"),
         Field("shell.autosuggestions", "Suggestions from history (grey)", "bool"),
         Field("shell.syntax_highlighting", "Syntax highlighting", "bool"),
         Field("shell.aliases", "Handy aliases (ll, update, …)", "bool"),
@@ -221,7 +231,7 @@ FIELDS: dict[str, list[Field | str]] = {
     ],
     "widgets": [
         "Desktop widgets (below your windows)",
-        Field("widgets.enabled", "Show desktop widgets", "bool", help="clock, music player, system monitor, Clippy"),
+        Field("widgets.enabled", "Show desktop widgets", "bool", help="clocks, player, workspaces, calendar, weather, timer and more"),
         Field("widgets.scale", "Size", "choice", [("Small", 0.8), ("Normal", 1.0), ("Large", 1.25), ("Huge", 1.5)]),
         Field("widgets.opacity", "Background", "choice", [("See-through", 0.55), ("Soft", 0.75), ("Solid-ish", 0.85), ("Solid", 1.0)]),
         "Clock",
@@ -233,9 +243,50 @@ FIELDS: dict[str, list[Field | str]] = {
         "System monitor",
         Field("widgets.sysmon", "CPU, memory, temperature", "bool"),
         Field("widgets.sysmon_pos", "Where", "choice", CORNERS),
+        "Workspaces",
+        Field("widgets.workspaces", "Workspace preview", "bool",
+              help="all workspaces with their windows · click one to go there · Super+O shows them big"),
+        Field("widgets.workspaces_pos", "Where", "choice", CORNERS),
+        Field("widgets.ws_thumbs", "Show how each workspace looked", "bool",
+              help="small pictures taken when you visit a workspace · kept only in ~/.cache"),
+        "Calendar",
+        Field("widgets.calendar", "Month calendar", "bool"),
+        Field("widgets.calendar_pos", "Where", "choice", CORNERS),
+        "Weather",
+        Field("widgets.weather", "Weather (wttr.in)", "bool", help="now + the next 3 days · updates every 30 min"),
+        Field("widgets.weather_city", "City", help="empty = guessed from your internet connection"),
+        Field("widgets.weather_pos", "Where", "choice", CORNERS),
+        "Network",
+        Field("widgets.network", "Network speed", "bool", help="download/upload right now + the last minute"),
+        Field("widgets.network_pos", "Where", "choice", CORNERS),
+        "Drives",
+        Field("widgets.disks", "Free space", "bool", help="system drive, home and your mounted drives"),
+        Field("widgets.disks_pos", "Where", "choice", CORNERS),
+        "Battery",
+        Field("widgets.battery", "Battery", "bool", help="laptops"),
+        Field("widgets.battery_pos", "Where", "choice", CORNERS),
+        "Notes",
+        Field("widgets.notes", "Sticky note", "bool", help="click it to edit (~/.config/swayforge/notes.md)"),
+        Field("widgets.notes_pos", "Where", "choice", CORNERS),
+        "Focus timer",
+        Field("widgets.timer", "Focus timer (25/5)", "bool", help="click: start/pause · right-click: reset"),
+        Field("widgets.timer_pos", "Where", "choice", CORNERS),
         "Clippy",
         Field("widgets.clippy", "Clippy with swayforge tips", "bool", help="click him for another tip"),
         Field("widgets.clippy_pos", "Where", "choice", CORNERS),
+    ],
+    "clipboard": [
+        "Clipboard history (Super+V)",
+        Field("clipboard.enabled", "Keep a clipboard history", "bool",
+              help="text and pictures · stored only on this PC, readable only by you"),
+        Field("clipboard.max_items", "Keep at most", "choice",
+              [("25 entries", 25), ("100 entries", 100), ("250 entries", 250), ("1000 entries", 1000)]),
+        Field("clipboard.max_age", "Forget entries after", "choice",
+              [("15 minutes", 15), ("1 hour", 60), ("1 day", 1440), ("1 week", 10080), ("30 days", 43200), ("Never", 0)],
+              help="pinned entries stay until you unpin them"),
+        Field("clipboard.images", "Keep pictures too", "bool"),
+        Field("clipboard.skip_sensitive", "Never keep passwords", "bool",
+              help="KeePassXC, Bitwarden & co. mark copied passwords – those are skipped"),
     ],
     "security": [
         "Settings",

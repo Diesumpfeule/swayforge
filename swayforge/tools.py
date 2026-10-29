@@ -26,6 +26,27 @@ def rofi_menu(options: list[str], prompt: str, width: str = "360px", lines: int 
     return r.stdout.strip() or None
 
 
+def rofi_menu_ex(options: list[str], prompt: str, mesg: str = "", keys: list[str] | None = None,
+                 width: str = "760px", lines: int = 12) -> tuple[int | None, int]:
+    """Like rofi_menu, but returns (index, exit code): 0 = Enter, 10, 11 … = keys[0], keys[1] …"""
+    if not have("rofi"):
+        return None, 1
+    theme = (f"window {{ width: {width}; location: center; anchor: center; x-offset: 0; y-offset: 0; }} "
+             f"listview {{ lines: {lines}; }}")
+    args = ["rofi", "-dmenu", "-i", "-format", "i", "-p", prompt, "-theme-str", theme]
+    if mesg:
+        args += ["-mesg", mesg]
+    for n, k in enumerate(keys or []):
+        args += [f"-kb-custom-{n + 1}", k]
+    if keys and any(k.lower().startswith("alt+") for k in keys):
+        args += ["-kb-accept-alt", "Shift+Return"]       # rofi binds Alt+… by default in places
+    r = subprocess.run(args, input="\n".join(o.replace("\n", " ") for o in options), text=True, capture_output=True)
+    try:
+        return int(r.stdout.strip()), r.returncode
+    except ValueError:
+        return None, r.returncode
+
+
 def _wired() -> bool:
     return layouts.get(settings.load()["bar"]["layout"]).id == "wired"
 
@@ -86,13 +107,8 @@ def keys() -> None:
 
 
 def clip() -> None:
-    if not (have("cliphist") and have("wl-copy")):
-        return
-    hist = run(["cliphist", "list"]).stdout.splitlines()
-    choice = rofi_menu(hist, "Clipboard", width="760px", lines=12)
-    if choice:
-        dec = subprocess.run(["cliphist", "decode"], input=choice.encode(), capture_output=True)
-        subprocess.run(["wl-copy"], input=dec.stdout)
+    from . import clipboard
+    clipboard.pick()
 
 
 def shot(mode: str) -> None:
@@ -166,21 +182,22 @@ def theme_from_wallpaper(image: str, mode: str = "auto", save_as: str = "") -> i
 
 def layout_cmd(name: str | None, nxt: bool, list_: bool) -> int:
     s = settings.load()
-    cur = layouts.get(s["bar"]["layout"]).id
+    cur = s["bar"]["layout"] if layouts.custom(s["bar"]["layout"]) else layouts.get(s["bar"]["layout"]).id
+    every = layouts.all_layouts()
     if list_:
-        for l in layouts.LAYOUTS.values():
-            print(("* " if l.id == cur else "  ") + f"{l.id:<10} {l.label} – {l.desc}")
+        for l in every:
+            print(("* " if l["id"] == cur else "  ") + f"{l['id']:<14} {l['label']} – {l['desc']}")
         return 0
-    ids = list(layouts.LAYOUTS)
+    ids = [l["id"] for l in every]
     if nxt:
-        name = ids[(ids.index(cur) + 1) % len(ids)]
-    if name not in layouts.LAYOUTS:
+        name = ids[(ids.index(cur) + 1) % len(ids)] if cur in ids else ids[0]
+    if name not in ids:
         print("Unknown layout. Available:", ", ".join(ids))
         return 1
     s["bar"]["layout"] = name
     settings.save(s)
     res = render.apply(s)
-    notify("Layout changed", layouts.LAYOUTS[name].label)
+    notify("Layout changed", layouts.get(name).label)
     return 1 if res.errors else 0
 
 

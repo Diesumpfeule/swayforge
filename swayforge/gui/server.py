@@ -74,7 +74,7 @@ RANGES = {"look.ui_opacity": (0.2, 1.0), "look.terminal_opacity": (0.3, 1.0), "l
           "input.repeat_delay": (100, 2000), "power.nightlight_temp": (1500, 6500), "prompt.dir_trunc": (0, 20)}
 
 
-PAGE_IDS = {"display", "audio", "bluetooth", "network", "power", "boot", "security", "apps", "cleanup",
+PAGE_IDS = {"clipboard", "privacy", "display", "audio", "bluetooth", "network", "power", "boot", "security", "apps", "cleanup",
             "mounts", "system", "about", "games"}
 
 
@@ -233,8 +233,9 @@ def make_handler(state: State, token: str):
                 return self._json({
                     "version": __version__, "settings": s, "dirty": dirty, "editable": EDITABLE, "ranges": RANGES,
                     "themes": [_theme_json(t) for t in themes.all_themes().values()],
-                    "layouts": [{"id": l.id, "label": l.label, "desc": l.desc, "position": l.position}
-                                for l in layouts.LAYOUTS.values()],
+                    "layouts": layouts.all_layouts(),
+                    "maker": {"modules": {k: v[1] for k, v in layouts.MODULES.items()}, "ws_styles": layouts.WS_STYLES,
+                              "text_modes": layouts.TEXT_MODES, "default": layouts.CUSTOM_DEFAULT},
                     "accents": themes.ACCENT_CHOICES, "savers": SAVERS,
                     "swayfx": si.swayfx, "in_sway": bool(os.environ.get("SWAYSOCK")),
                     "user": os.environ.get("USER", "user"),
@@ -281,6 +282,15 @@ def make_handler(state: State, token: str):
                     "items": [{"path": str(p), "name": p.name, "video": livewall.is_video(p),
                                "folder": str(p.parent.relative_to(paths.WALLPAPER_DIR))
                                if p.parent != paths.WALLPAPER_DIR else ""} for p in chunk]})
+            if name == "clipimg":
+                from .. import clipboard
+                try:
+                    got = clipboard.get(int(q.get("id", ["0"])[0]))
+                except ValueError:
+                    got = None
+                if not got or not got[0].startswith("image/"):
+                    return self._send(404, b"not found", "text/plain")
+                return self._send(200, got[1], got[0])
             if name == "thumb":
                 p = Path(q.get("p", [""])[0])
                 if state.walls is None:
@@ -332,7 +342,7 @@ def make_handler(state: State, token: str):
                 if path in RANGES:
                     lo, hi = RANGES[path]
                     val = type(val)(min(hi, max(lo, val))) if isinstance(val, (int, float)) and not isinstance(val, bool) else val
-                if path == "bar.layout" and val not in layouts.LAYOUTS:
+                if path == "bar.layout" and not layouts.exists(val):
                     return self._json({"error": "unknown layout"}, 400)
                 if path == "power.screensaver":
                     from ..screensaver import SAVERS
@@ -403,6 +413,7 @@ def make_handler(state: State, token: str):
 
 
 CHANGES_SETTINGS = {"outputs", "keys", "autostart", "sections", "theme_save", "theme_from_wallpaper",
+                    "theme_delete", "theme_import", "layout_save", "layout_delete",
                     "live_wallpaper", "shell_toggle", "boot_install", "system"}
 
 
@@ -426,6 +437,10 @@ def _dispatch(state: State, A, act: str, d: dict):
         return A.apps_search(state, str(d.get("term", "")))
     if act == "apps_install":
         return A.apps_install(state, d.get("n"))
+    if act == "clipboard":
+        return A.clipboard_action(state, str(v), d)
+    if act == "privacy":
+        return A.privacy_action(state, str(v), d)
     if act == "cleanup":
         return A.cleanup_run(state, [str(x) for x in d.get("ids", [])])
     if act == "wipe":
@@ -468,6 +483,16 @@ def _dispatch(state: State, A, act: str, d: dict):
         return ""
     if act == "theme_save":
         return A.theme_save(state, str(d.get("label", "")), dict(d.get("colors", {})))
+    if act == "theme_delete":
+        return A.theme_delete(state, str(d.get("id", "")))
+    if act == "theme_export":
+        return A.theme_export(str(d.get("id", "")))
+    if act == "theme_import":
+        return A.theme_import(state, str(d.get("text", "")))
+    if act == "layout_save":
+        return A.layout_save(state, dict(d.get("layout", {})), str(d.get("id", "")))
+    if act == "layout_delete":
+        return A.layout_delete(state, str(d.get("id", "")))
     if act == "theme_from_wallpaper":
         return A.theme_from_wallpaper(state, str(d.get("mode", "auto")))
     if act == "live_wallpaper":

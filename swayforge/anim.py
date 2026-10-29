@@ -175,11 +175,15 @@ def mix(a: str, b: str, t: float) -> str:
     return "#%02x%02x%02x" % tuple(round(p + (q - p) * t) for p, q in zip(pa, pb))
 
 
-def hello() -> int:
+def hello(kind: str | None = None, seconds: float | None = None, video: str | None = None) -> int:
     """`swayforge hello` – animated greeting, then fastfetch."""
     from . import ascii as asc, settings, themes
     s = settings.load()
-    if s["theme"].get("animate", True):
+    kind = kind or s["shell"].get("fetch_anim", "intro")
+    if kind not in ("intro", "off"):
+        from . import fetchanim
+        return fetchanim.run(kind, seconds, video)
+    if kind == "intro" and s["theme"].get("animate", True):
         t = themes.get(s["theme"]["name"])
         c = t.with_accent(s["theme"]["accent"])
         try:

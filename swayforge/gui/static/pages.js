@@ -34,7 +34,8 @@ Studio.page("themes", {
         `<button data-f="${f}" aria-pressed="${f === this.filter}">${{ all: "All", dark: "Dark", light: "Light", custom: "Yours" }[f]}</button>`).join("")}</div>
       <div class="accents" id="accents" role="group" aria-label="Accent colour"></div>
       <span class="grow"></span></div>`);
-    bar.append(button("Edit colours", "", () => this.editor()), button("Theme from wallpaper", "", () => this.fromWall()));
+    bar.append(button("Theme maker …", "", () => { PAGES.maker.tab = "theme"; PAGES.maker.T = null; go("maker"); }),
+      button("Theme from wallpaper", "", () => this.fromWall()));
     bar.addEventListener("click", e => { const b = e.target.closest("[data-f]"); if (b) { this.filter = b.dataset.f; go("themes"); } });
     view.append(bar, h(`<div class="grid" id="theme-grid"></div>`));
     const more = section("ASCII art and animation");
@@ -109,11 +110,14 @@ Studio.page("layouts", {
   title: "Layouts", icon: "▤", keywords: "bar taskbar start menu noctalia shell transparency",
   render(view) {
     view.append(h(`<p class="lede">The layout shapes the bar, start menu, notifications and window frames. It works with every theme.</p>`));
+    const mk = h(`<div class="btnrow"></div>`);
+    mk.append(button("Make your own layout …", "primary", () => { PAGES.maker.tab = "layout"; PAGES.maker.L = null; go("maker"); }));
+    view.append(mk);
     const grid = h(`<div class="grid"></div>`);
     for (const l of S.data.layouts) {
       const on = l.id === S.s.bar.layout;
       const card = h(`<button class="card" aria-pressed="${on}"><div class="desk-frame"></div>
-        <div class="card-meta"><span class="card-name">${esc(l.label)}</span>${on ? `<span class="tick">in use</span>` : ""}</div>
+        <div class="card-meta"><span class="card-name">${esc(l.label)}${l.custom ? " <small>(yours)</small>" : ""}</span>${on ? `<span class="tick">in use</span>` : ""}</div>
         <div class="card-desc">${esc(l.desc)}</div></button>`);
       card.addEventListener("click", () => { change("bar.layout", l.id); go("layouts"); });
       grid.append(card);
@@ -432,9 +436,12 @@ Studio.page("input", {
 
 // ═══ WORK & PLAY ══════════════════════════════════════════════════════
 Studio.page("shell", {
-  title: "Terminal & prompt", icon: "❯", keywords: "kitty alacritty zsh spaceship prompt fastfetch aliases",
+  title: "Terminal & prompt", icon: "❯", keywords: "kitty alacritty zsh spaceship prompt fastfetch aliases greeting animation donut cube fire gif video",
   render(view) {
     view.append(form("shell"));
+    const tr = h(`<div class="btnrow"></div>`);
+    tr.append(button("Try the greeting", "", async () => { await flush(); api.act("system", { verb: "hello" }); }));
+    view.append(tr);
     const sec = section("Prompt sections", "What the prompt shows (the order is fixed).");
     const chips = h(`<div class="chips"></div>`);
     const cur = new Set(S.s.prompt.sections);
@@ -739,6 +746,7 @@ Studio.page("system", {
     const r = h(`<div class="btnrow"></div>`);
     r.append(button("Update the system", "primary", () => api.act("system", { verb: "update" })), button("Check firmware", "", () => api.act("system", { verb: "firmware" }, true)),
       button("Check screen sharing", "", () => api.act("system", { verb: "screenshare" })),
+      button("Screen sharing report", "", () => api.act("system", { verb: "screenshare-report" })),
       button("Installer", "ghost", () => api.act("system", { verb: "installer" })),
       button("Terminal settings app", "ghost", () => api.post("classic", { page: "" }).then(() => toast("Opening the terminal settings app …"))));
     sy.append(r);
@@ -775,8 +783,8 @@ Studio.page("about", {
     const up = section("Versions");
     const list = h(`<div class="list"></div>`);
     for (const a of d.apps) {
-      const v = { current: "up to date", update: `update available (${a.remote})`, unknown: "can't check (offline?)", missing: "not installed" }[a.verdict];
-      list.append(h(`<div class="item"><span class="dot ${a.verdict === "current" ? "on" : a.verdict === "update" ? "warn" : ""}"></span><div class="grow"><b>${esc(a.name)} ${esc(a.version)}</b><small>${esc(a.commit)} ${esc(a.date)} · ${esc(v)}</small></div></div>`));
+      const v = { current: "up to date", update: `update available: “${a.remote_name || a.remote}”`, unknown: "can't check (offline?)", missing: "not installed" }[a.verdict];
+      list.append(h(`<div class="item"><span class="dot ${a.verdict === "current" ? "on" : a.verdict === "update" ? "warn" : ""}"></span><div class="grow"><b>${esc(a.name)} ${a.codename ? "“" + esc(a.codename) + "”" : esc(a.version)}</b><small>${esc(a.commit)} ${esc(a.date)} · ${esc(v)}</small></div></div>`));
     }
     const r = h(`<div class="btnrow"></div>`);
     r.append(button("Update from GitHub", "primary", () => api.act("about", { verb: "update" })), button("Check again", "ghost", () => go("about")),
@@ -816,7 +824,9 @@ const WidgetArt = (() => {
     "8": [".###.", "#...#", "#...#", ".###.", "#...#", "#...#", ".###."], "9": [".###.", "#...#", "#...#", ".####", "....#", "...#.", ".##.."],
     ":": [".", ".", "#", ".", "#", ".", "."],
   };
-  const SIZE = { dots: [372, 150], digital: [330, 140], analog: [210, 230], player: [340, 118], sysmon: [280, 120], clippy: [330, 190] };
+  const SIZE = { dots: [372, 150], digital: [330, 140], analog: [210, 230], player: [340, 118], sysmon: [280, 120], clippy: [330, 190],
+    workspaces: [560, 128], calendar: [260, 236], weather: [300, 150], network: [300, 120], disks: [300, 132], battery: [220, 84], notes: [260, 190], timer: [220, 120] };
+  const TOGGLES = ["player", "sysmon", "workspaces", "calendar", "weather", "network", "disks", "battery", "notes", "timer", "clippy"];
   const rr = (g, x, y, w, h, r) => { r = Math.max(0, Math.min(r, w / 2, h / 2)); g.beginPath(); g.roundRect ? g.roundRect(x, y, w, h, r) : g.rect(x, y, w, h); };
   function card(g, c, w, h, o) { rr(g, .5, .5, w - 1, h - 1, o.radius + 4); g.fillStyle = Desk.rgba(c.base, o.alpha); g.fill(); g.strokeStyle = c.surface2; g.lineWidth = 1; g.stroke(); }
   function text(g, c, x, y, s, size, key = "text", bold = false, maxw, font = "monospace") {
@@ -903,13 +913,98 @@ const WidgetArt = (() => {
       g.beginPath(); g.moveTo(ex - 8, y0 + 48); g.lineTo(ex + 6, y0 + 45); g.strokeStyle = c.crust; g.lineWidth = 3; g.stroke();
     }
   }
+  function bars(g, c, w, rows, o, x0 = 70, right = 70) {
+    rows.forEach(([lab, v, txt], i) => { const y = 30 + i * 28; text(g, c, 18, y, lab, 12, "subtext", true, x0 - 22, o.font);
+      rr(g, x0, y - 9, w - x0 - right - 8, 8, 4); g.fillStyle = Desk.rgba(c.surface2, .7); g.fill();
+      rr(g, x0, y - 9, (w - x0 - right - 8) * v, 8, 4); g.fillStyle = v > .9 ? c.red : v > .8 ? c.yellow : c.accent; g.fill();
+      text(g, c, w - right, y, txt, 11, "text", false, right - 8, o.font); });
+  }
+  function workspaces(g, c, w, h, o) {
+    card(g, c, w, h, o);
+    const wss = [["1", [[0, 0, .5, 1, "kitty"], [.5, 0, .5, 1, "librewolf"]]], ["2", [[0, 0, 1, 1, "code"]]], ["3", [[0, 0, 1, .5, "vesktop"], [0, .5, 1, .5, "spotify"]]], ["4", []], ["5", [[.1, .1, .8, .8, "steam"]]]];
+    const pad = 12, gap = 8, n = wss.length, bw = Math.min(150, (w - 2 * pad - gap * (n - 1)) / n), bh = h - 2 * pad - 16;
+    let x = (w - (bw * n + gap * (n - 1))) / 2;
+    wss.forEach(([name, wins], i) => {
+      const mw = Math.min(bw, bh * 16 / 9), mh = mw * 9 / 16, mx = x + (bw - mw) / 2, my = pad + (bh - mh) / 2, foc = i === 1;
+      rr(g, mx, my, mw, mh, 4); g.fillStyle = Desk.rgba(c.crust, .85); g.fill();
+      wins.forEach(([wx, wy, ww, wh, app], j) => { rr(g, mx + wx * mw + 1, my + wy * mh + 1, ww * mw - 2, wh * mh - 2, 2);
+        g.fillStyle = foc && j === 0 ? Desk.rgba(c.accent, .55) : Desk.rgba(c.surface, .9); g.fill();
+        if (ww * mw > 34) text(g, c, mx + wx * mw + 4, my + wy * mh + 12, app, 8.5, "text", false, ww * mw - 6, o.font); });
+      rr(g, mx, my, mw, mh, 4); g.strokeStyle = foc ? c.accent : c.surface2; g.lineWidth = foc ? 2.2 : 1; g.stroke();
+      text(g, c, mx, h - 9, name + (wins.length ? " · " + wins.length : ""), 11, foc ? "accent" : "subtext", foc, bw, o.font);
+      x += bw + gap;
+    });
+  }
+  function calendar(g, c, w, h, o, now) {
+    card(g, c, w, h, o);
+    text(g, c, 18, 30, now.toLocaleDateString("en-GB", { month: "long", year: "numeric" }), 15, "text", true, 0, o.font);
+    const cw = (w - 36) / 7;
+    ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"].forEach((d, i) => text(g, c, 18 + i * cw + cw / 2 - 8, 54, d, 11, i >= 5 ? "red" : "subtext", true, 0, o.font));
+    const first = (new Date(now.getFullYear(), now.getMonth(), 1).getDay() + 6) % 7, days = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+    const weeks = Math.ceil((first + days) / 7), rh = (h - 72) / Math.max(5, weeks);
+    for (let d = 1; d <= days; d++) {
+      const i = (first + d - 1) % 7, r = Math.floor((first + d - 1) / 7), cx = 18 + i * cw + cw / 2, cy = 72 + r * rh + rh / 2, today = d === now.getDate();
+      if (today) { g.beginPath(); g.arc(cx, cy - 4, Math.min(cw, rh) * .46, 0, Math.PI * 2); g.fillStyle = c.accent; g.fill(); }
+      text(g, c, cx - (d < 10 ? 3.5 : 7.5), cy + 1, String(d), 12, today ? "crust" : i >= 5 ? "red" : "text", today, 0, o.font);
+    }
+  }
+  function wicon(g, c, x, y, s, kind) {
+    const cx = x + s / 2, cy = y + s / 2;
+    const cloud = (px, py, k, col) => { g.fillStyle = col; [[-.22, .05, .2], [0, -.08, .27], [.24, .04, .2]].forEach(([dx, dy, r]) => { g.beginPath(); g.arc(px + dx * k, py + dy * k, r * k, 0, Math.PI * 2); g.fill(); }); rr(g, px - .42 * k, py + .02 * k, .84 * k, .24 * k, .12 * k); g.fill(); };
+    if (kind === "sun" || kind === "partly") {
+      const [sx, sy, r] = kind === "sun" ? [cx, cy, s * .2] : [cx - s * .14, cy - s * .14, s * .16];
+      g.fillStyle = c.yellow; g.beginPath(); g.arc(sx, sy, r, 0, Math.PI * 2); g.fill(); g.strokeStyle = c.yellow; g.lineWidth = Math.max(1.5, s * .05); g.lineCap = "round";
+      for (let i = 0; i < 8; i++) { const a = i * Math.PI / 4; g.beginPath(); g.moveTo(sx + Math.cos(a) * r * 1.45, sy + Math.sin(a) * r * 1.45); g.lineTo(sx + Math.cos(a) * r * 1.95, sy + Math.sin(a) * r * 1.95); g.stroke(); }
+      if (kind === "partly") cloud(cx + s * .08, cy + s * .12, s * .8, c.text);
+      return;
+    }
+    cloud(cx, cy - s * .1, s * .85, kind === "cloud" ? c.text : c.subtext);
+    if (kind === "rain") { g.strokeStyle = c.blue; g.lineWidth = Math.max(1.5, s * .05); for (let i = 0; i < 3; i++) { g.beginPath(); g.moveTo(cx - s * .2 + i * s * .2, cy + s * .22); g.lineTo(cx - s * .26 + i * s * .2, cy + s * .38); g.stroke(); } }
+  }
+  function weather(g, c, w, h, o) {
+    card(g, c, w, h, o);
+    wicon(g, c, 14, 12, 58, "partly");
+    text(g, c, 84, 50, "7°", 34, "text", true, 0, o.font);
+    text(g, c, 160, 34, "Partly cloudy", 12.5, "text", false, w - 172, o.font);
+    text(g, c, 160, 52, `feels 4° · ${o.weather_city || "your town"}`, 11, "subtext", false, w - 172, o.font);
+    [["Thu", 3, 11, "sun"], ["Fri", 5, 9, "rain"], ["Sat", 2, 8, "cloud"]].forEach(([d, lo, hi, k], i) => { const x = 14 + i * (w - 28) / 3;
+      text(g, c, x, h - 44, d, 11, "subtext", true, 0, o.font); wicon(g, c, x + 30, h - 62, 26, k); text(g, c, x, h - 18, `${hi}° / ${lo}°`, 11.5, "text", false, 0, o.font); });
+  }
+  function network(g, c, w, h, o, t) {
+    card(g, c, w, h, o);
+    text(g, c, 18, 30, "↓ 4.2 MB/s", 15, "green", true, 0, o.font); text(g, c, w / 2 + 6, 30, "↑ 310 KB/s", 15, "accent", true, 0, o.font);
+    const gx = 18, gy = 44, gw = w - 36, gh = h - 60;
+    [[c.green, 0], [c.accent, 1]].forEach(([col, k]) => { g.beginPath(); g.moveTo(gx, gy + gh);
+      for (let i = 0; i < 60; i++) { const v = k ? .12 + .08 * Math.sin(i * .7 + t) : .45 + .35 * Math.sin(i * .23 + t * .6) * Math.cos(i * .05); g.lineTo(gx + gw * i / 59, gy + gh - gh * Math.max(0, v)); }
+      g.lineTo(gx + gw, gy + gh); g.closePath(); g.fillStyle = Desk.rgba(col, .25); g.fill(); g.strokeStyle = col; g.lineWidth = 1.2; g.stroke(); });
+    text(g, c, 18, h - 6, "last 2 minutes · peak 6.1 MB/s", 9.5, "overlay", false, 0, o.font);
+  }
+  function disks(g, c, w, h, o) { card(g, c, w, h, o); bars(g, c, w, [["System", .46, "61 GB free"], ["Home", .46, "61 GB free"], ["games", .83, "170 GB free"]], o, 92, 90); }
+  function battery(g, c, w, h, o) {
+    card(g, c, w, h, o);
+    const bx = 18, by = h / 2 - 16; rr(g, bx, by, 70, 32, 5); g.strokeStyle = c.text; g.lineWidth = 2; g.stroke(); g.fillStyle = c.text; g.fillRect(bx + 71, by + 10, 5, 12);
+    rr(g, bx + 4, by + 4, 62 * .72, 24, 3); g.fillStyle = c.green; g.fill();
+    text(g, c, 104, h / 2 + 2, "72%", 22, "text", true, 0, o.font); text(g, c, 104, h / 2 + 20, "discharging", 11, "subtext", false, 0, o.font);
+  }
+  function notes(g, c, w, h, o) {
+    rr(g, .5, .5, w - 1, h - 1, o.radius + 2); g.fillStyle = Desk.rgba(c.yellow, Math.min(1, o.alpha + .05)); g.fill();
+    g.fillStyle = Desk.rgba(c.crust, .15); g.fillRect(0, 0, w, 16);
+    ["Buy milk", "Back up the photos", "Water the plants", "", "click to edit"].forEach((l, i) => text(g, c, 14, 36 + i * 17, l, 13, "crust", false, w - 28, o.font));
+  }
+  function timer(g, c, w, h, o, t) {
+    card(g, c, w, h, o);
+    const cx = 58, cy = h / 2, R = 38, frac = .38;
+    g.lineWidth = 7; g.beginPath(); g.arc(cx, cy, R, 0, Math.PI * 2); g.strokeStyle = Desk.rgba(c.surface2, .6); g.stroke();
+    g.beginPath(); g.arc(cx, cy, R, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * frac); g.strokeStyle = c.accent; g.stroke();
+    text(g, c, cx - 24, cy + 7, "15:30", 17, "text", true, 0, o.font); text(g, c, 112, cy - 6, "Focus", 16, "text", true, 0, o.font); text(g, c, 112, cy + 14, "running", 11, "subtext", false, 0, o.font);
+  }
   // the whole screen: wallpaper colour wash + widgets in their corners
   function scene(cv, o, t) {
     const g = cv.getContext("2d"), W = cv.width, H = cv.height, c = colours(), k = (o.scale || 1) * W / 1920;
     g.clearRect(0, 0, W, H);
     const list = [];
     if (o.clock !== "off") list.push(["clock", o.clock_pos, SIZE[o.clock] || SIZE.dots]);
-    for (const kind of ["player", "sysmon", "clippy"]) if (o[kind]) list.push([kind, o[kind + "_pos"], SIZE[kind]]);
+    for (const kind of TOGGLES) if (o[kind]) list.push([kind, o[kind + "_pos"], SIZE[kind]]);
     // keep clear of the bar like the real widgets do (they respect its reserved space)
     const pos = layoutOf(S.s.bar.layout).position, barH = 1080 * ({ touch: 36, win7: 28 }[S.s.bar.layout] || 28) / 360;
     const top = pos === "top" ? barH : 0, bottom = pos === "bottom" ? barH : 0, left = pos === "left" ? 1920 * 28 / 640 : 0;
@@ -918,10 +1013,14 @@ const WidgetArt = (() => {
       const off = stack[corner] || 0; stack[corner] = off + bh + 12;
       let x = left + gap, y = top + gap + off;
       if (corner === "center") { x = (W / k - bw) / 2; y = (H / k - bh) / 2; }
-      else { if (corner.endsWith("right")) x = W / k - bw - gap; if (corner.startsWith("bottom")) y = H / k - bh - gap - off - bottom; }
+      else { if (corner.endsWith("right")) x = W / k - bw - gap; if (corner.endsWith("-center")) x = (W / k - bw) / 2;
+        if (corner.startsWith("bottom")) y = H / k - bh - gap - off - bottom; }
       g.save(); g.scale(k, k); g.translate(x, y);
       const now = new Date();
-      ({ clock: () => clock(g, c, bw, bh, o, now), player: () => player(g, c, bw, bh, o), sysmon: () => sysmon(g, c, bw, bh, o, t), clippy: () => clippy(g, c, bw, bh, o, t) })[kind]();
+      ({ clock: () => clock(g, c, bw, bh, o, now), player: () => player(g, c, bw, bh, o), sysmon: () => sysmon(g, c, bw, bh, o, t), clippy: () => clippy(g, c, bw, bh, o, t),
+        workspaces: () => workspaces(g, c, bw, bh, o), calendar: () => calendar(g, c, bw, bh, o, now), weather: () => weather(g, c, bw, bh, o),
+        network: () => network(g, c, bw, bh, o, t), disks: () => disks(g, c, bw, bh, o), battery: () => battery(g, c, bw, bh, o),
+        notes: () => notes(g, c, bw, bh, o), timer: () => timer(g, c, bw, bh, o, t) })[kind]();
       g.restore();
     }
   }
@@ -929,7 +1028,7 @@ const WidgetArt = (() => {
 })();
 
 Studio.page("widgets", {
-  title: "Desktop widgets", icon: "◫", keywords: "widget clock dot matrix digital analog player music spotify system monitor cpu clippy desktop",
+  title: "Desktop widgets", icon: "◫", keywords: "widget clock dot matrix digital analog player music spotify system monitor cpu clippy desktop workspace overview calendar weather network battery notes timer pomodoro disk",
   render(view) {
     const split = h(`<div class="split"><div class="col"></div><div class="sticky"><div class="widget-preview"><div class="desk-frame big" id="wg-desk"></div><canvas id="wg-canvas" width="1280" height="720"></canvas></div>
       <p class="hint">Preview with your theme. The real widgets sit on the desktop under your windows; they need gtk-layer-shell (installed with swayforge's base packages).</p></div></div>`);
@@ -948,4 +1047,320 @@ Studio.page("widgets", {
     loop();
   },
   live() { const fr = $("#wg-desk"); if (fr) desk(fr, { theme: theme(), layout: S.s.bar.layout, wallpaperUrl: wallUrl(null, true), empty: true }); },
+});
+
+// ── Clipboard history ────────────────────────────────────────────────
+Studio.page("clipboard", {
+  title: "Clipboard", icon: "", keywords: "clipboard history copy paste search pin forget password",
+  async render(view) {
+    loading(view);
+    const d = await api.get("page", { id: "clipboard" });
+    view.replaceChildren(h(`<p class="lede">Everything you copy, searchable. Super+V opens it anywhere. It forgets on its own (settings below); pinned entries stay. Passwords from password managers are never kept. Stored only on this PC.</p>`));
+    const A = (verb, args = {}, quiet = false) => api.act("clipboard", Object.assign({ verb }, args), quiet);
+    const bar = h(`<div class="importrow"><input type="search" id="clip-q" placeholder="Search your clipboard …" spellcheck="false" autocomplete="off"></div>`);
+    const pause = button(d.paused ? "Resume" : "Pause", "ghost", async () => {
+      const r = await A(d.paused ? "resume" : "pause"); if (r) { d.paused = !d.paused; pause.textContent = d.paused ? "Resume" : "Pause"; } });
+    bar.append(pause, button("Clear", "ghost", async () => { if (await A("clear")) draw((await A("search", { q: "" }, true)).items); }),
+      button("Clear everything", "danger", async () => { if (await ask("Delete the whole clipboard history, pinned entries too?", "Delete all") && await A("clear_all")) draw([]); }));
+    const list = h(`<div class="list cliplist"></div>`);
+    const ago = t => { const m = Math.round((Date.now() / 1000 - t) / 60); return m < 1 ? "just now" : m < 60 ? m + " min ago" : m < 1440 ? Math.round(m / 60) + " h ago" : Math.round(m / 1440) + " d ago"; };
+    function draw(items) {
+      list.replaceChildren();
+      if (!items.length) { list.append(h(`<p class="hint">${$("#clip-q", view)?.value ? "Nothing matches." : d.enabled ? "Nothing copied yet." : "The history is switched off (below)."}</p>`)); return; }
+      for (const it of items) {
+        const body = it.image ? `<img class="clipimg" loading="lazy" alt="" src="/api/clipimg?id=${it.id}&t=${encodeURIComponent(TOKEN)}">` : `<code class="cliptext">${esc(it.preview)}</code>`;
+        const row = h(`<div class="item clip${it.pinned ? " pinned" : ""}"><div class="grow">${body}<small>${it.pinned ? "📌 pinned · " : ""}${ago(it.used)} · ${fmtBytes(it.size)}</small></div></div>`);
+        row.querySelector(".grow").addEventListener("click", () => A("copy", { id: it.id }));
+        row.append(button("Copy", "", () => A("copy", { id: it.id })),
+          button(it.pinned ? "Unpin" : "Pin", "ghost", async () => { await A(it.pinned ? "unpin" : "pin", { id: it.id }, true); refresh(); }),
+          button("Delete", "ghost", async () => { await A("delete", { id: it.id }, true); row.remove(); }));
+        list.append(row);
+      }
+    }
+    let timer = 0;
+    async function refresh() { const r = await A("search", { q: $("#clip-q", view).value }, true); if (r) draw(r.items); }
+    bar.querySelector("input").addEventListener("input", () => { clearTimeout(timer); timer = setTimeout(refresh, 150); });
+    view.append(bar, list, form("clipboard"));
+    draw(d.items);
+    setTimeout(() => $("#clip-q", view)?.focus(), 50);
+  },
+});
+
+// ── Privacy guard ────────────────────────────────────────────────────
+Studio.page("privacy", {
+  title: "Privacy guard", icon: "", keywords: "privacy permissions camera microphone network files flatpak sandbox spy tracking",
+  async render(view) {
+    loading(view, "Checking every app …");
+    const d = await api.get("page", { id: "privacy" });
+    view.replaceChildren(h(`<p class="lede">Which app may use your camera, microphone, screen, network and files – and who is doing it right now. Flatpak apps are sandboxed: their permissions are listed exactly and you can take single ones away. RPM apps have no sandbox: they can do everything you can.</p>`));
+    const now = section("Right now");
+    const nowBox = h(`<div></div>`);
+    const drawNow = n => {
+      const net = Object.entries(n.network).sort((a, b) => b[1].connections - a[1].connections);
+      nowBox.replaceChildren(h(`<ul class="status">
+        <li class="${n.camera.length ? "warn" : "ok"}">Camera: ${n.camera.length ? esc(n.camera.join(", ")) : "nobody"}</li>
+        <li class="${n.microphone.length ? "warn" : "ok"}">Microphone: ${n.microphone.length ? esc(n.microphone.join(", ")) : "nobody"}</li>
+        <li class="${n.screen.length ? "warn" : "ok"}">Screen sharing: ${n.screen.length ? "on" : "off"}</li>
+        <li class="${n.listening.length ? "warn" : "ok"}">Reachable from the network: ${n.listening.length ? esc(n.listening.map(x => `${x.program} ${x.proto}/${x.port}`).join(", ")) : "nothing"}</li></ul>`));
+      if (net.length) nowBox.append(h(`<div class="list">${net.slice(0, 12).map(([p, v]) => `<div class="item"><div class="grow"><b>${esc(p)}</b><small>${v.connections} connection(s) · ${esc(v.peers.join(", "))}</small></div></div>`).join("")}</div>`));
+      else nowBox.append(h(`<p class="hint">No internet connections from your programs right now.</p>`));
+    };
+    drawNow(d.now);
+    now.append(nowBox, button("Look again", "ghost", async () => { const r = await api.act("privacy", { verb: "now" }, true); if (r) drawNow(r.now); }));
+
+    const chipsOf = perms => Object.entries(perms).map(([k, v]) => `<span class="perm perm-${k}" title="${esc(v)}">${esc(d.labels[k] || k)}</span>`).join("") || `<span class="perm perm-none">Nothing special</span>`;
+    const fl = section(`Flatpak apps (${d.flatpak.length})`, "Sorted by risk. Hover a permission for details. Taking one away can break a feature of the app – “Reset” brings the app's own permissions back.");
+    const filt = h(`<div class="importrow"><input type="search" placeholder="Filter apps …" spellcheck="false"></div>`);
+    const fll = h(`<div class="list"></div>`);
+    if (!d.flatpak.length) fll.append(h(`<p class="hint">No Flatpak apps installed.</p>`));
+    for (const a of d.flatpak) {
+      const row = h(`<div class="item privapp risk-${a.risk}" data-q="${esc((a.name + " " + a.id).toLowerCase())}"><span class="dot ${a.risk === "high" ? "bad" : a.risk === "medium" ? "warn" : "on"}"></span><div class="grow"><b>${esc(a.name)}</b><small>${esc(a.id)}${a.overridden ? " · changed by you" : ""}</small><div class="perms">${chipsOf(a.perms)}</div></div></div>`);
+      const sel = h(`<select><option value="">Take away …</option>${Object.entries(d.revoke).filter(([k]) => a.perms[k] || (k === "camera" && a.perms.devices)).map(([k, v]) => `<option value="${k}">${esc(v)}</option>`).join("")}<option value="reset">Reset to the app's own</option></select>`);
+      sel.addEventListener("change", async () => {
+        if (!sel.value) return;
+        if (sel.value !== "reset" && !await ask(`${a.name}: ${d.revoke[sel.value]}? Restart the app afterwards.`, "Take it away")) { sel.value = ""; return; }
+        await api.act("privacy", { verb: "revoke", app: a.id, what: sel.value }); sel.value = ""; go("privacy");
+      });
+      row.append(sel);
+      fll.append(row);
+    }
+    filt.querySelector("input").addEventListener("input", e => { const q = e.target.value.toLowerCase(); $$(".privapp", fll).forEach(r => r.hidden = q && !r.dataset.q.includes(q)); });
+    fl.append(filt, fll);
+    const na = section(`RPM apps – no sandbox (${d.native.length})`, "Installed with dnf. Like on Windows or macOS without permission prompts: camera, microphone, network and every file in your home folder are open to them. Prefer the Flathub version of apps you don't fully trust.");
+    na.append(h(`<div class="chips">${d.native.map(a => `<span class="chip">${esc(a.name)}</span>`).join("")}</div>`));
+    const au = section("Starts with your session");
+    au.append(h(`<div class="chips">${d.autostart.map(n => `<span class="chip">${esc(n)}</span>`).join("") || `<span class="hint">nothing extra</span>`}</div>`));
+    view.append(now, fl, na, au);
+  },
+});
+
+async function ask(text, yes) {
+  return (await dialog(`<h2>Sure?</h2><p>${esc(text)}</p><menu><button value="" class="btn ghost">Cancel</button><button value="yes" class="btn danger">${esc(yes)}</button></menu>`)) === "yes";
+}
+
+// ── Theme & layout maker ─────────────────────────────────────────────
+// Everything is edited in place with a live preview; drag & drop for modules and colours,
+// buttons for the same moves (keyboard), undo/redo (Ctrl+Z / Ctrl+Y), save, export/import.
+const Maker = (() => {
+  const clone = x => JSON.parse(JSON.stringify(x));
+  function history(get, set, redraw) {
+    const past = [], future = [];
+    return {
+      push() { past.push(clone(get())); if (past.length > 80) past.shift(); future.length = 0; },
+      undo() { if (!past.length) return; future.push(clone(get())); set(past.pop()); redraw(); },
+      redo() { if (!future.length) return; past.push(clone(get())); set(future.pop()); redraw(); },
+    };
+  }
+  // colour helpers (HSL) for the harmony tools
+  const hex2rgb = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16) / 255);
+  const rgb2hex = a => "#" + a.map(v => Math.round(Math.max(0, Math.min(1, v)) * 255).toString(16).padStart(2, "0")).join("");
+  function toHsl(h) { const [r, g, b] = hex2rgb(h), mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2; let hh = 0, s = 0;
+    if (mx !== mn) { const d = mx - mn; s = l > .5 ? d / (2 - mx - mn) : d / (mx + mn);
+      hh = mx === r ? (g - b) / d + (g < b ? 6 : 0) : mx === g ? (b - r) / d + 2 : (r - g) / d + 4; hh /= 6; }
+    return [hh * 360, s, l]; }
+  function fromHsl(hh, s, l) { hh = ((hh % 360) + 360) % 360 / 360; const q = l < .5 ? l * (1 + s) : l + s - l * s, p = 2 * l - q;
+    const f = t => { t = (t + 1) % 1; return t < 1 / 6 ? p + (q - p) * 6 * t : t < .5 ? q : t < 2 / 3 ? p + (q - p) * (2 / 3 - t) * 6 : p; };
+    return rgb2hex(s === 0 ? [l, l, l] : [f(hh + 1 / 3), f(hh), f(hh - 1 / 3)]); }
+  const NEUTRAL = ["crust", "mantle", "base", "surface", "surface2", "overlay", "text", "subtext"];
+  return { history, toHsl, fromHsl, NEUTRAL, clone };
+})();
+
+Studio.page("maker", {
+  title: "Theme & layout maker", icon: "", keywords: "maker editor custom own theme layout bar drag drop colours modules design create import export",
+  tab: "layout",
+  render(view) {
+    const tabs = h(`<div class="toolbar"><div class="seg" role="tablist">${[["layout", "Layout maker"], ["theme", "Theme maker"]].map(([k, l]) =>
+      `<button role="tab" data-t="${k}" aria-pressed="${this.tab === k}">${l}</button>`).join("")}</div><span class="grow"></span>
+      <span class="hint">Ctrl+Z undo · Ctrl+Y redo</span></div>`);
+    tabs.addEventListener("click", e => { const b = e.target.closest("[data-t]"); if (b) { this.tab = b.dataset.t; go("maker"); } });
+    view.append(tabs);
+    if (this._keys) document.removeEventListener("keydown", this._keys);
+    this._keys = e => { if (!view.isConnected) return document.removeEventListener("keydown", this._keys);
+      if (!(e.ctrlKey || e.metaKey) || ["INPUT", "TEXTAREA"].includes(e.target.tagName) && e.target.type === "text") return;
+      if (e.key === "z") { e.preventDefault(); this.hist?.undo(); } else if (e.key === "y" || (e.key === "Z" && e.shiftKey)) { e.preventDefault(); this.hist?.redo(); } };
+    document.addEventListener("keydown", this._keys);
+    this.tab === "theme" ? this.themeTab(view) : this.layoutTab(view);
+  },
+
+  // ── Layout maker ──────────────────────────────────────────────────
+  layoutTab(view) {
+    const M = S.data.maker, cur = S.data.layouts.find(l => l.id === S.s.bar.layout);
+    if (!this.L) { this.L = cur && cur.cfg ? Maker.clone(cur.cfg) : Maker.clone(M.default); this.Lid = cur && cur.cfg ? cur.id : ""; }
+    const L = () => this.L;
+    const split = h(`<div class="maker"><div class="maker-preview"><div class="desk-frame big" id="mk-desk"></div></div><div class="maker-tools"></div></div>`);
+    view.append(split);
+    const tools = split.querySelector(".maker-tools");
+    const mine = S.data.layouts.filter(l => l.custom);
+    const start = h(`<div class="importrow"><select id="mk-start"><option value="">Start from …</option>
+      <optgroup label="Your layouts">${mine.map(l => `<option value="${esc(l.id)}">${esc(l.label)}</option>`).join("") || "<option disabled>none yet</option>"}</optgroup>
+      <optgroup label="Fresh">${S.data.layouts.filter(l => !l.custom).map(l => `<option value="new:${l.id}">${esc(l.label)} look</option>`).join("")}</optgroup></select></div>`);
+    start.querySelector("select").onchange = e => { const v = e.target.value; if (!v) return; this.hist.push();
+      if (v.startsWith("new:")) { this.L = Object.assign(Maker.clone(M.default), { base: v.slice(4), label: "My " + (S.data.layouts.find(l => l.id === v.slice(4)) || {}).label }); this.Lid = ""; }
+      else { this.L = Maker.clone(S.data.layouts.find(l => l.id === v).cfg); this.Lid = v; }
+      go("maker"); };
+    // the bar builder: three zones + the unused modules
+    const builder = h(`<div class="builder" aria-label="Bar modules – drag to arrange">${["left", "center", "right"].map(z =>
+      `<div class="zone" data-zone="${z}"><span class="zone-name">${{ left: "Left", center: "Centre", right: "Right" }[z]}</span><div class="chips-row" data-zone="${z}"></div></div>`).join("")}</div>`);
+    const tray = h(`<div class="zone tray" data-zone="tray"><span class="zone-name">Not in the bar – drag up, or click</span><div class="chips-row" data-zone="tray"></div></div>`);
+    const draw = () => {
+      for (const z of ["left", "center", "right", "tray"]) {
+        const row = (z === "tray" ? tray : builder).querySelector(`.chips-row[data-zone="${z}"]`);
+        const keys = z === "tray" ? Object.keys(M.modules).filter(k => !["left", "center", "right"].some(q => L()[q].includes(k))) : L()[z];
+        row.replaceChildren(...keys.map(k => {
+          const chip = h(`<span class="mchip" draggable="true" data-k="${k}" tabindex="0">${esc(M.modules[k])}${z === "tray" ? "" : `<button class="x" title="Remove" aria-label="Remove ${esc(M.modules[k])}">×</button>`}</span>`);
+          chip.addEventListener("dragstart", e => { e.dataTransfer.setData("text/plain", k); chip.classList.add("drag"); });
+          chip.addEventListener("dragend", () => chip.classList.remove("drag"));
+          chip.addEventListener("click", e => { if (e.target.closest(".x")) move(k, "tray"); else if (z === "tray") move(k, "right"); });
+          chip.addEventListener("keydown", e => {               // keyboard: ←/→ reorder, ↑/↓ change zone, Delete removes
+            const zs = ["left", "center", "right"], i = L()[z]?.indexOf(k);
+            if (z === "tray" && e.key === "Enter") move(k, "right");
+            else if (e.key === "Delete") move(k, "tray");
+            else if (e.key === "ArrowLeft" && i > 0) move(k, z, i - 1);
+            else if (e.key === "ArrowRight" && i >= 0) move(k, z, i + 2);
+            else if (e.key === "ArrowUp" && zs.indexOf(z) > 0) move(k, zs[zs.indexOf(z) - 1]);
+            else if (e.key === "ArrowDown" && zs.indexOf(z) < 2) move(k, zs[zs.indexOf(z) + 1]);
+            else return;
+            e.preventDefault(); setTimeout(() => $(`.mchip[data-k="${k}"]`, split)?.focus(), 0);
+          });
+          return chip; }));
+      }
+      preview();
+      syncKnobs();
+    };
+    const move = (k, zone, at) => {
+      this.hist.push();
+      for (const z of ["left", "center", "right"]) { const i = L()[z].indexOf(k); if (i >= 0) { L()[z].splice(i, 1); if (z === zone && at !== undefined && i < at) at--; } }
+      if (zone !== "tray") { const arr = L()[zone]; arr.splice(at === undefined ? arr.length : Math.max(0, Math.min(at, arr.length)), 0, k); }
+      draw();
+    };
+    for (const zoneEl of [...builder.querySelectorAll(".chips-row"), tray.querySelector(".chips-row")]) {
+      const z = zoneEl.dataset.zone;
+      zoneEl.addEventListener("dragover", e => { e.preventDefault(); zoneEl.classList.add("over"); });
+      zoneEl.addEventListener("dragleave", () => zoneEl.classList.remove("over"));
+      zoneEl.addEventListener("drop", e => {
+        e.preventDefault(); zoneEl.classList.remove("over");
+        const k = e.dataTransfer.getData("text/plain"); if (!M.modules[k]) return;
+        const chips = [...zoneEl.querySelectorAll(".mchip")].filter(c => c.dataset.k !== k);
+        const vert = false, at = chips.findIndex(c => { const r = c.getBoundingClientRect(); return vert ? e.clientY < r.top + r.height / 2 : e.clientX < r.left + r.width / 2; });
+        move(k, z, at < 0 ? undefined : at + (L()[z] && L()[z].indexOf(k) >= 0 && L()[z].indexOf(k) < at ? 1 : 0));
+      });
+    }
+    // knobs
+    const seg = (key, opts) => { const el = h(`<div class="seg">${Object.entries(opts).map(([v, l]) => `<button data-v="${v}">${esc(l)}</button>`).join("")}</div>`);
+      el.addEventListener("click", e => { const b = e.target.closest("[data-v]"); if (b) { this.hist.push(); L()[key] = b.dataset.v; draw(); } }); el.dataset.key = key; return el; };
+    const range = (key, label, lo, hi, step, fmt) => { const r = h(`<label class="knob"><span>${label}</span><input type="range" min="${lo}" max="${hi}" step="${step}"><output></output></label>`);
+      const inp = r.querySelector("input"); inp.dataset.key = key; inp.dataset.fmt = fmt || "";
+      inp.addEventListener("pointerdown", () => this.hist.push()); inp.addEventListener("keydown", () => this.hist.push());
+      inp.addEventListener("input", () => { L()[key] = Number(inp.value); syncKnobs(); preview(); }); return r; };
+    const knobs = h(`<div class="knobs"></div>`);
+    const baseSel = h(`<label class="knob wide"><span>Look</span><select>${S.data.layouts.filter(l => !l.custom).map(l => `<option value="${l.id}">${esc(l.label)}</option>`).join("")}</select></label>`);
+    baseSel.querySelector("select").onchange = e => { this.hist.push(); L().base = e.target.value; draw(); };
+    const name = h(`<label class="knob wide"><span>Name</span><input type="text" maxlength="40" spellcheck="false"></label>`);
+    name.querySelector("input").addEventListener("input", e => { L().label = e.target.value; });
+    knobs.append(name, baseSel,
+      h(`<div class="knob wide"><span>Bar at</span></div>`), seg("position", { top: "Top", bottom: "Bottom", left: "Left", right: "Right" }),
+      range("height", "Height", 18, 72, 1, "px"), range("margin", "Floating gap", 0, 40, 1, "px"), range("radius", "Corners", -1, 30, 1, "r"),
+      range("opacity", "Opacity", .2, 1, .05, "%"), range("padding", "Space in modules", 0, 30, 1, "px"), range("font_size", "Text size", -4, 8, 1, "±"),
+      h(`<div class="knob wide"><span>Workspaces</span></div>`), seg("ws_style", M.ws_styles),
+      h(`<div class="knob wide"><span>Modules show</span></div>`), seg("text_mode", M.text_modes));
+    const syncKnobs = () => {
+      knobs.querySelectorAll("input[type=range]").forEach(i => { i.value = L()[i.dataset.key]; const v = L()[i.dataset.key], f = i.dataset.fmt;
+        i.nextElementSibling.textContent = f === "%" ? Math.round(v * 100) + "%" : f === "r" ? (v < 0 ? "theme" : v + "px") : f === "±" ? (v > 0 ? "+" + v : String(v)) : v + "px"; fill(i); });
+      knobs.querySelectorAll(".seg").forEach(sg => sg.querySelectorAll("button").forEach(b => b.setAttribute("aria-pressed", String(L()[sg.dataset.key] === b.dataset.v))));
+      baseSel.querySelector("select").value = L().base; name.querySelector("input").value = L().label;
+    };
+    const preview = () => { const fr = $("#mk-desk"); if (fr) desk(fr, { theme: theme(), layout: L().base, custom: L(), wallpaperUrl: wallUrl(null, true), notify: false }); };
+    const acts = h(`<div class="btnrow"></div>`);
+    acts.append(button(this.Lid ? "Save changes & use" : "Save & use", "primary", async () => {
+      const r = await api.act("layout_save", { layout: L(), id: this.Lid });
+      if (r) { S.data.layouts = r.layouts; this.Lid = r.id; S.s.bar.layout = r.id; setDirty(true); skin(); go("maker"); } }),
+    button("Save as new", "", async () => { const r = await api.act("layout_save", { layout: L(), id: "" });
+      if (r) { S.data.layouts = r.layouts; this.Lid = r.id; S.s.bar.layout = r.id; setDirty(true); go("maker"); } }));
+    if (this.Lid) acts.append(button("Delete", "danger", async () => {
+      if (!await ask(`Delete your layout “${L().label}”?`, "Delete")) return;
+      const r = await api.act("layout_delete", { id: this.Lid });
+      if (r) { S.data.layouts = r.layouts; this.Lid = ""; this.L = null; await reloadSettings(); go("maker"); } }));
+    tools.append(start, section("Arrange the bar", "Drag modules between left, centre and right, or into the tray to remove them. Keyboard: Tab to a module, arrows move it, Delete removes it."),
+      builder, tray, section("Shape & size"), knobs, acts);
+    this.hist = Maker.history(() => this.L, v => { this.L = v; }, draw);
+    draw();
+  },
+
+  // ── Theme maker ───────────────────────────────────────────────────
+  themeTab(view) {
+    const keys = S.fields.color_keys, labels = S.fields.color_labels;
+    if (!this.T) { const t = theme(); this.T = { base: t.id, label: t.custom ? t.label : "", colors: Object.assign({}, t.colors), own: t.custom ? t.id : "" }; }
+    const T = () => this.T;
+    const split = h(`<div class="maker"><div class="maker-preview"><div class="desk-frame big" id="mk-desk"></div><div id="mk-contrast"></div></div><div class="maker-tools"></div></div>`);
+    view.append(split);
+    const tools = split.querySelector(".maker-tools");
+    const start = h(`<div class="importrow"><select><option value="">Start from …</option>${Object.values(S.themes).map(t => `<option value="${esc(t.id)}">${esc(t.label)}${t.custom ? " (yours)" : ""}</option>`).join("")}</select></div>`);
+    start.querySelector("select").onchange = e => { const t = S.themes[e.target.value]; if (!t) return; this.hist.push();
+      this.T = { base: t.id, label: t.custom ? t.label : "", colors: Object.assign({}, t.colors), own: t.custom ? t.id : "" }; go("maker"); };
+    const slots = h(`<div class="slots"></div>`);
+    const tray = h(`<div class="ctray" aria-label="Suggested colours – drag onto a slot"></div>`);
+    const setColor = (k, v, push = true) => { if (!/^#[0-9a-f]{6}$/i.test(v)) return; if (push) this.hist.push(); T().colors[k] = v.toLowerCase(); draw(); };
+    const swatchDrag = (el, value) => { el.draggable = true; el.addEventListener("dragstart", e => e.dataTransfer.setData("text/plain", value())); };
+    const draw = () => {
+      slots.replaceChildren(...keys.map(k => {
+        const v = T().colors[k];
+        const row = h(`<div class="slot" data-k="${k}"><span class="sw" style="background:${v}" title="Drag me onto another slot"></span>
+          <span class="sl" title="${esc(labels[k] || k)}">${esc(labels[k] || k)}</span><input type="color" value="${v}" aria-label="${esc(labels[k] || k)}"><input type="text" value="${v}" maxlength="7" spellcheck="false" aria-label="${esc(k)} hex"></div>`);
+        swatchDrag(row.querySelector(".sw"), () => T().colors[k]);
+        row.addEventListener("dragover", e => { e.preventDefault(); row.classList.add("over"); });
+        row.addEventListener("dragleave", () => row.classList.remove("over"));
+        row.addEventListener("drop", e => { e.preventDefault(); row.classList.remove("over"); setColor(k, e.dataTransfer.getData("text/plain")); });
+        const ci = row.querySelector("input[type=color]");
+        ci.addEventListener("pointerdown", () => this.hist.push());
+        ci.addEventListener("input", () => { T().colors[k] = ci.value; row.querySelector(".sw").style.background = ci.value; row.querySelector("input[type=text]").value = ci.value; later(); });
+        row.querySelector("input[type=text]").addEventListener("change", e => setColor(k, e.target.value.trim()));
+        return row; }));
+      // suggestions: harmonies of the accent + tints/shades of the background
+      const [hh, s, l] = Maker.toHsl(T().colors.accent), [bh, bs, bl] = Maker.toHsl(T().colors.base);
+      const sug = [[0, s, l], [30, s, l], [-30, s, l], [120, s, l], [-120, s, l], [180, s, l], [150, s, l], [-150, s, l], [60, s, l], [-60, s, l]]
+        .map(([d, ss, ll]) => Maker.fromHsl(hh + d, ss, ll))
+        .concat([.04, .08, .12, .18, .26, .4, .55, .75, .88].map(x => Maker.fromHsl(bh, Math.min(bs, .35), bl < .5 ? Math.min(.95, bl + x) : Math.max(.05, bl - x))));
+      tray.replaceChildren(...sug.map(c => { const sw = h(`<span class="sw" style="background:${c}" title="${c} – drag onto a slot"></span>`); swatchDrag(sw, () => c); return sw; }));
+      preview(); contrast();
+    };
+    let tm = 0; const later = () => { clearTimeout(tm); tm = setTimeout(() => { preview(); contrast(); }, 80); };
+    const preview = () => { const fr = $("#mk-desk"); if (!fr) return;
+      const t = Object.assign({}, S.themes[T().base] || theme(), { colors: T().colors, id: "preview" });
+      desk(fr, { theme: t, layout: S.s.bar.layout, wallpaperUrl: wallUrl(null, true), notify: true, settings: Object.assign({}, S.s, { theme: Object.assign({}, S.s.theme, { accent: "" }) }) }); };
+    const contrast = () => {
+      const c = T().colors, pairs = [["Text on background", c.text, c.base], ["Muted text on background", c.subtext, c.base], ["Text on panels", c.text, c.mantle],
+        ["Accent on background", c.accent, c.base], ["Text on raised parts", c.text, c.surface], ["Red on background", c.red, c.base]];
+      $("#mk-contrast").innerHTML = `<div class="contrast">${pairs.map(([n, f, b]) => { const r = Desk.contrast(f, b), g = r >= 7 ? "AAA" : r >= 4.5 ? "AA" : r >= 3 ? "large only" : "too low";
+        return `<span class="cr ${r >= 4.5 ? "ok" : r >= 3 ? "meh" : "bad"}" style="background:${b};color:${f}">${esc(n)} <b>${r.toFixed(1)}</b> <small>${g}</small></span>`; }).join("")}</div>`;
+    };
+    // tools
+    const tool = (label, fn) => button(label, "ghost", () => { this.hist.push(); fn(T().colors); draw(); });
+    const shift = (c, dh) => { for (const k of keys) if (!Maker.NEUTRAL.includes(k)) { const [a, b, d] = Maker.toHsl(c[k]); c[k] = Maker.fromHsl(a + dh, b, d); } };
+    const tbar = h(`<div class="btnrow"></div>`);
+    tbar.append(
+      tool("Harmonise from accent", c => { const [a, b, d] = Maker.toHsl(c.accent); c.accent2 = Maker.fromHsl(a + 40, b, d); c.magenta = Maker.fromHsl(a - 40, b, d); c.cyan = Maker.fromHsl(a + 160, b * .9, d); c.blue = Maker.fromHsl(a + 200, b * .9, d); }),
+      tool("Tint background with accent", c => { const [a] = Maker.toHsl(c.accent); for (const k of ["crust", "mantle", "base", "surface", "surface2", "overlay"]) { const [, b, d] = Maker.toHsl(c[k]); c[k] = Maker.fromHsl(a, Math.max(b, .18), d); } }),
+      tool("Dark ↔ light", c => { for (const k of Maker.NEUTRAL) { const [a, b, d] = Maker.toHsl(c[k]); c[k] = Maker.fromHsl(a, b, 1 - d); } }),
+      tool("Warmer", c => shift(c, -12)), tool("Cooler", c => shift(c, 12)),
+      tool("Surprise me", c => { const a = Math.random() * 360; c.accent = Maker.fromHsl(a, .7, .7); c.accent2 = Maker.fromHsl(a + 50, .65, .72); }));
+    const name = h(`<div class="row"><label for="mk-tname">Name</label><input id="mk-tname" type="text" maxlength="40" placeholder="e.g. My Retro"></div>`);
+    name.querySelector("input").value = T().label; name.querySelector("input").addEventListener("input", e => (T().label = e.target.value));
+    const acts = h(`<div class="btnrow"></div>`);
+    acts.append(button("Save & use", "primary", async () => {
+      const r = await api.act("theme_save", { label: T().label, colors: T().colors });
+      if (r) { await reloadSettings(); this.T.own = r.id; this.T.label = r.label; toast(`Theme <b>${esc(r.label)}</b> saved and selected`); go("maker"); } }),
+    button("Export", "", async () => {
+      const r = await api.act("theme_export", { id: T().own || T().base }, true); if (!r) return;
+      const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([r.text], { type: "text/plain" })); a.download = r.file; a.click(); }),
+    (() => { const b = button("Import …", "", () => inp.click()); const inp = h(`<input type="file" accept=".toml,text/plain" hidden>`);
+      inp.onchange = async () => { const f = inp.files[0]; if (!f) return; const r = await api.act("theme_import", { text: await f.text() });
+        if (r) { await reloadSettings(); this.T = null; go("maker"); } }; b.append(inp); return b; })());
+    if (T().own) acts.append(button("Delete", "danger", async () => {
+      if (!await ask(`Delete your theme “${T().label}”?`, "Delete")) return;
+      const r = await api.act("theme_delete", { id: T().own }); if (r) { await reloadSettings(); this.T = null; go("maker"); } }));
+    tools.append(start, section("Colours", "Pick, type or drag: drag any swatch onto another slot to copy it. The tray below has matching colours for your accent and background."),
+      slots, h(`<div class="block-title">Suggestions</div>`), tray, section("Tools"), tbar, name, acts);
+    this.hist = Maker.history(() => this.T, v => { this.T = v; }, draw);
+    draw();
+  },
 });

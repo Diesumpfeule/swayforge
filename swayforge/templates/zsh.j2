@@ -83,7 +83,7 @@ PROMPT='%F{{ "{" }}{{ c.accent }}{{ "}" }}%~%f %F{{ "{" }}{{ c.green }}{{ "}" }}
 {% endif %}
 {% if s.shell.fastfetch_on_start %}
 
-{% if s.theme.animate %}
+{% if s.theme.animate or s.shell.fetch_anim not in ("intro", "off") %}
 [[ -o interactive ]] && (( $+commands[fastfetch] )) && { {{ sf }} hello 2>/dev/null || fastfetch }
 {% else %}
 [[ -o interactive ]] && (( $+commands[fastfetch] )) && fastfetch

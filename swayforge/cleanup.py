@@ -147,6 +147,96 @@ def _holds_system(d: dict) -> bool:
     return False
 
 
+# ── Independent safety net (kernel view, not lsblk's) ───────────────
+def _disk_of(name: str, sys_root: str, seen: set | None = None) -> set[str]:
+    """Top-level disk(s) under a block device name (partition → disk, dm/md → their members)."""
+    seen = seen if seen is not None else set()
+    if not name or name in seen:
+        return set()
+    seen.add(name)
+    node = Path(sys_root, "class/block", name)
+    if not node.exists():
+        return {name}
+    slaves = node / "slaves"
+    if slaves.is_dir() and any(slaves.iterdir()):
+        out: set[str] = set()
+        for sl in slaves.iterdir():
+            out |= _disk_of(sl.name, sys_root, seen)
+        return out
+    if (node / "partition").exists():
+        return _disk_of(Path(os.path.realpath(node)).parent.name, sys_root, seen)
+    return {name}
+
+
+def _dev_name(spec: str, dev_root: str) -> str:
+    """'/dev/mapper/x', 'UUID=…', 'PARTUUID=…', 'LABEL=…' → kernel name ('' if unknown)."""
+    spec = spec.strip()
+    for key, sub in (("UUID=", "by-uuid"), ("PARTUUID=", "by-partuuid"), ("LABEL=", "by-label"),
+                     ("PARTLABEL=", "by-partlabel")):
+        if spec.startswith(key):
+            spec = str(Path(dev_root, "disk", sub, spec[len(key):].strip('"')))
+            break
+    if spec.startswith("/dev/"):
+        spec = str(Path(dev_root, spec[5:]))
+    if not spec.startswith(dev_root.rstrip("/") + "/"):
+        return ""
+    real = os.path.realpath(spec)
+    return Path(real).name if os.path.exists(real) else ""
+
+
+def system_disks(sys_root: str = "/sys", proc_root: str = "/proc", fstab: str = "/etc/fstab",
+                 dev_root: str = "/dev") -> set[str]:
+    """Every disk that holds anything mounted, active swap, or anything listed in /etc/fstab.
+    Built from /proc and /sys directly, so a wrong guess in lsblk can't hide the system disk."""
+    specs: list[str] = []
+    try:
+        specs += [l.split()[0] for l in Path(proc_root, "self/mounts").read_text().splitlines() if l.strip()]
+    except OSError:
+        pass
+    try:
+        specs += [l.split()[0] for l in Path(proc_root, "swaps").read_text().splitlines()[1:] if l.strip()]
+    except OSError:
+        pass
+    try:
+        for l in Path(fstab).read_text().splitlines():
+            if l.strip() and not l.lstrip().startswith("#"):
+                specs.append(l.split()[0])
+    except OSError:
+        pass
+    out: set[str] = set()
+    for sp in specs:
+        n = _dev_name(sp, dev_root)
+        if n and not n.startswith(("loop", "zram", "ram")):
+            out |= _disk_of(n, sys_root)
+    return out
+
+
+EXTERNAL_TRAN = ("usb", "mmc", "sdio", "ieee1394")
+
+
+def is_external(d: dict) -> bool:
+    """USB / SD / FireWire, or flagged removable by the kernel. 'hotplug' alone is NOT enough –
+    many laptops report their internal NVMe as hot-pluggable."""
+    if d.get("tran") in EXTERNAL_TRAN:
+        return True
+    return bool(d.get("rm")) and d.get("tran") not in ("nvme", "sata", "ata", "sas", "scsi")
+
+
+def refuse_reason(d: dict, sysdisks: set[str] | None = None) -> str:
+    """Why this whole disk must never be wiped ('' = it may be offered)."""
+    if d.get("type") != "disk" or str(d.get("name", "")).startswith(("loop", "zram", "sr", "ram", "dm-", "md")):
+        return "not a whole physical disk"
+    if not is_external(d):
+        return "internal drive – swayforge never wipes internal drives"
+    if _holds_system(d):
+        return "holds part of the running system"
+    if d["name"] in (system_disks() if sysdisks is None else sysdisks):
+        return "is mounted, used as swap or listed in /etc/fstab"
+    if int(d.get("size") or 0) == 0:
+        return "no medium"
+    return ""
+
+
 def wipeable_drives() -> list[dict]:
     """Whole disks that are USB/SD/hot-plugged and carry nothing the running system needs."""
     r = _run(["lsblk", "-J", "-b", "-o",
@@ -157,14 +247,13 @@ def wipeable_drives() -> list[dict]:
         devs = json.loads(r.stdout).get("blockdevices", [])
     except ValueError:
         return []
+    return drives_from(devs, system_disks())
+
+
+def drives_from(devs: list[dict], sysdisks: set[str]) -> list[dict]:
     out = []
     for d in devs:
-        if d.get("type") != "disk" or d["name"].startswith(("loop", "zram", "sr", "ram")):
-            continue
-        external = d.get("tran") in ("usb", "mmc", "sdio", "ieee1394") or bool(d.get("rm")) or bool(d.get("hotplug"))
-        if d["name"].startswith("mmcblk") and d.get("tran") not in ("mmc", "sdio") and not d.get("rm"):
-            external = external and bool(d.get("hotplug"))      # soldered eMMC is not a card
-        if not external or _holds_system(d) or int(d.get("size") or 0) == 0:
+        if refuse_reason(d, sysdisks):
             continue
         kind = "SD card" if d["name"].startswith("mmcblk") else \
             "SSD" if not d.get("rota") else "hard disk" if int(d.get("size") or 0) > 600e9 else "USB stick"
@@ -227,7 +316,8 @@ def wipe_script(d: dict, mode: str, fs: str, label: str) -> list[str]:
     return cmds
 
 
-def wipe_main(name: str, mode: str, fs: str, label: str, size: int, confirm: str = "") -> int:
+def wipe_main(name: str, mode: str, fs: str, label: str, size: int, confirm: str = "",
+              serial: str | None = None) -> int:
     """`swayforge wipe` – runs in a terminal. Re-checks everything before touching the drive."""
     drives = {d["name"]: d for d in wipeable_drives()}
     d = drives.get(name.removeprefix("/dev/"))
@@ -236,6 +326,9 @@ def wipe_main(name: str, mode: str, fs: str, label: str, size: int, confirm: str
         return 1
     if size and d["size"] != size:
         print(f"✗ {name} changed since you picked it (size differs) – was another drive plugged in? Nothing done.")
+        return 1
+    if serial is not None and d["serial"] != serial:
+        print(f"✗ {name} is a different drive than the one you picked (serial differs). Nothing done.")
         return 1
     if mode not in MODES or fs not in FILESYSTEMS:
         print("✗ unknown mode or file system")
@@ -256,6 +349,10 @@ def wipe_main(name: str, mode: str, fs: str, label: str, size: int, confirm: str
         print("Cancelled – nothing was changed.")
         return 1
     for c in wipe_script(d, mode, fs, label):
+        # last line of defence, before every single step: ask the kernel again
+        if d["name"] in system_disks():
+            print(f"\n✗ {d['name']} is now in use by the system (mounted, swap or fstab) – stopped, nothing more done.")
+            return 1
         print(f"\n$ {c}")
         r = subprocess.run(["sh", "-c", c])
         if r.returncode != 0 and "|| true" not in c:
