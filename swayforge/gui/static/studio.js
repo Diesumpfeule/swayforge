@@ -86,7 +86,8 @@ const get = path => path.split(".").reduce((o, k) => (o || {})[k], S.s);
 function wallUrl(themeId, big) {
   const w = S.s.theme.wallpaper;
   if (w === "solid") return null;
-  if (!w || w === "theme") return `/api/themewall?id=${encodeURIComponent(themeId || S.s.theme.name)}&t=${TOKEN}`;
+  // a picture in the size it's shown (×2 for sharp screens) – the server turns the theme's SVG into PNG
+  if (!w || w === "theme") return `/api/themewall?id=${encodeURIComponent(themeId || S.s.theme.name)}&w=${big ? 1920 : 800}&t=${TOKEN}`;
   // big previews get a big picture – a small thumbnail stretched over 1100 px looks blurry
   return `/api/thumb?p=${encodeURIComponent(w)}&w=${big ? 1760 : 480}&t=${TOKEN}`;
 }
@@ -111,7 +112,7 @@ function dialog(html, init) {
 }
 
 // one shared blink for every preview caret (no CSS animation – keeps previews sharp)
-setInterval(() => $$(".desk-caret").forEach(c => c.classList.toggle("off")), 550);
+setInterval(() => $$(".desk-frame.big .desk-caret").forEach(c => c.classList.toggle("off")), 550);
 // fit 640×360 desktops into their frames
 const ro = new ResizeObserver(es => es.forEach(e => e.target.style.setProperty("--k", e.contentRect.width / Desk.W)));
 function desk(frame, opts) {

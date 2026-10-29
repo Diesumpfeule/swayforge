@@ -62,7 +62,7 @@ button, input, select { font: inherit; color: inherit; }
 main { display: flex; flex-direction: column; min-width: 0; overflow: auto; background: var(--bg);
   transition: background-color .45s var(--ease); }
 .top { position: sticky; top: 0; z-index: 5; display: flex; align-items: center; justify-content: space-between; gap: 16px;
-  padding: 16px 32px; background: color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter: blur(10px);
+  padding: 16px 32px; background: color-mix(in srgb, var(--bg) 97%, transparent);
   border-bottom: 1px solid color-mix(in srgb, var(--line) 60%, transparent); }
 .top h1 { margin: 0; font: 700 22px/1.2 var(--mono); letter-spacing: -.01em; }
 .actions { display: flex; align-items: center; gap: 10px; }
@@ -242,7 +242,7 @@ body[data-skin="win7"] .btn { background: linear-gradient(to bottom, rgb(255 255
   border: 1px solid rgb(255 255 255 / .28); box-shadow: inset 0 1px 0 rgb(255 255 255 / .35); }
 body[data-skin="win7"] .btn.primary { background: linear-gradient(to bottom, color-mix(in srgb, var(--acc) 60%, #fff), var(--acc) 50%, color-mix(in srgb, var(--acc) 80%, #000) 51%, var(--acc)); }
 body[data-skin="win7"] .btn:hover:not(:disabled) { box-shadow: 0 0 12px color-mix(in srgb, var(--acc) 60%, transparent), inset 0 1px 0 rgb(255 255 255 / .35); }
-body[data-skin="win7"] .rail { background: color-mix(in srgb, var(--panel) 80%, transparent); backdrop-filter: blur(14px); }
+body[data-skin="win7"] .rail { background: color-mix(in srgb, var(--panel) 92%, transparent); }
 
 /* Modern 11 / Touch: soft pills, accent underline */
 body[data-skin="win11"] { --r: 6px; --r-big: 10px; }

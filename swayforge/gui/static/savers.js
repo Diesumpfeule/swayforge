@@ -109,6 +109,7 @@ const Savers = (() => {
   const io = new IntersectionObserver(es => es.forEach(e => { const r = running.get(e.target); if (r) r.visible = e.isIntersecting; }));
 
   function tick(ts) {
+    if (!running.size) { raf = 0; return; }          // nothing left on screen – stop the loop
     raf = requestAnimationFrame(tick);
     if (ts - last < 50) return;        // ~20 fps is plenty for previews
     last = ts;

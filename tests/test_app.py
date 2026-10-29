@@ -274,3 +274,26 @@ class FetchAnimation(unittest.TestCase):
         self.assertEqual(len(out), 3)
         self.assertEqual(f.visible_len(out[0][0]), 30)
         self.assertEqual(f.video_frames(str(home / "missing.mp4"), 30, 20), [])
+
+
+class ThemeWallpaperPicture(unittest.TestCase):
+    def test_png_in_the_size_shown_and_svg_fallback(self):
+        import os
+        import stat
+        import tempfile
+        from pathlib import Path
+        fresh_home()
+        from swayforge.gui import server
+        self.assertIsNone(server.theme_wallpaper_png("<svg/>", 0))
+        bindir = Path(tempfile.mkdtemp())
+        fake = bindir / "rsvg-convert"                    # stands in for librsvg: writes its arguments
+        fake.write_text("#!/bin/sh\nprintf 'PNG %s %s' \"$2\" \"$4\"\n")
+        fake.chmod(fake.stat().st_mode | stat.S_IEXEC)
+        old = os.environ["PATH"]
+        os.environ["PATH"] = f"{bindir}:{old}"
+        try:
+            self.assertEqual(server.theme_wallpaper_png("<svg/>", 1920), b"PNG 1920 1080")
+            fake.write_text("#!/bin/sh\nexit 1\n")
+            self.assertEqual(server.theme_wallpaper_png("<svg/>", 1920), b"PNG 1920 1080")   # cached
+        finally:
+            os.environ["PATH"] = old

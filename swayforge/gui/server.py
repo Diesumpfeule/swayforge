@@ -162,6 +162,34 @@ def theme_wallpaper_svg(s: dict, theme_id: str) -> str:
     return render.tpl(f"wallpaper-{ctx.theme.wallpaper_style}.svg.j2", ctx.as_dict())
 
 
+def theme_wallpaper_png(svg: str, width: int) -> bytes | None:
+    """The theme wallpaper as PNG in the size the app shows it (cached). None without rsvg-convert.
+    WebKit draws SVG pictures at their layout size and then stretches them – blurry in big previews –
+    and the soft-glow filters in them are expensive to repaint while scrolling."""
+    import hashlib
+    import shutil
+    import subprocess
+    if not width or not shutil.which("rsvg-convert"):
+        return None
+    key = hashlib.sha1(svg.encode()).hexdigest()[:16]
+    cache = paths.HOME / ".cache/swayforge/themewall"
+    f = cache / f"{key}-{width}.png"
+    if f.exists():
+        return f.read_bytes()
+    cache.mkdir(parents=True, exist_ok=True)
+    try:
+        r = subprocess.run(["rsvg-convert", "-w", str(width), "-h", str(width * 9 // 16), "-f", "png"],
+                           input=svg.encode(), capture_output=True, timeout=30)
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    if r.returncode != 0 or not r.stdout:
+        return None
+    tmp = f.with_suffix(".tmp")
+    tmp.write_bytes(r.stdout)
+    tmp.replace(f)
+    return r.stdout
+
+
 def make_handler(state: State, token: str):
     class Handler(BaseHTTPRequestHandler):
         server_version = "swayforge-app"
@@ -309,8 +337,15 @@ def make_handler(state: State, token: str):
                     tid = themes.get(tid).id               # merged/removed theme → what it falls back to
                 with state.lock:
                     s = copy.deepcopy(state.s)
-                body = theme_wallpaper_svg(s, tid).encode()
-                return self._send(200, body, "image/svg+xml", cache=True)
+                svg = theme_wallpaper_svg(s, tid)
+                try:
+                    w = max(320, min(2560, int(q.get("w", ["0"])[0])))
+                except ValueError:
+                    w = 0
+                png = theme_wallpaper_png(svg, w - w % 160) if q.get("w") else None
+                if png:                     # a ready picture: sharp at any size, cheap to draw and to scroll
+                    return self._send(200, png, "image/png", cache=True)
+                return self._send(200, svg.encode(), "image/svg+xml", cache=True)
             return self._json({"error": "unknown"}, 404)
 
         # ── POST ───────────────────────────────────────────────────
