@@ -309,6 +309,22 @@ label = "Gaming"
   flatpak = ["rs.ruffle.Ruffle"]
 
   [[group.items]]
+  id = "gale"
+  label = "Gale"
+  desc = "Mod manager for every Thunderstore game (Lethal Company, Valheim, Risk of Rain 2 …) – the developer's own Flatpak, updates with the system"
+  default = false
+  needs = ["flathub"]
+  post = ["sudo flatpak install -y --noninteractive https://kesomannen.com/com.kesomannen.gale.flatpakref || true"]
+
+  [[group.items]]
+  id = "limo"
+  label = "Limo"
+  desc = "General mod manager for almost any game, LOOT built in for Skyrim/Fallout [Flatpak]"
+  default = false
+  needs = ["flathub"]
+  flatpak = ["io.github.limo_app.limo"]
+
+  [[group.items]]
   id = "openrgb"
   label = "OpenRGB"
   desc = "RGB lighting for mainboard, RAM, GPU, peripherals"

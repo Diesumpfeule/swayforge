@@ -114,7 +114,7 @@ Everything is optional except the Sway base.
 | Group | Apps |
 |---|---|
 | Desktop | **Sway base**, **Thunar file manager**, **Image & video viewers**, **Terminal tools**, **cava**, SwayFX (effects) |
-| Gaming | **Steam**, **GameMode + MangoHud**, **Protontricks**, **ProtonPlus**, **Prism Launcher**, **Heroic Games Launcher**, **Discord**, Vesktop*, Lutris, Bottles, Gamescope, CoreCtrl, RetroArch, ProtonUp-Qt*, Dolphin, PCSX2*, Ruffle*, OpenRGB |
+| Gaming | **Steam**, **GameMode + MangoHud**, **Protontricks**, **ProtonPlus**, **Prism Launcher**, **Heroic Games Launcher**, **Discord**, Vesktop*, Lutris, Bottles, Gamescope, CoreCtrl, RetroArch, ProtonUp-Qt*, Dolphin, PCSX2*, Ruffle*, Gale (Thunderstore mod manager), Limo* (mod manager for almost any game), OpenRGB |
 | Free games | 0 A.D., OpenRA*, Battle for Wesnoth, Warzone 2100, Freeciv, OpenTTD, Mindustry*, Luanti*, Veloren*, Xonotic*, SuperTuxKart, DDraceNetwork, Hedgewars, Endless Sky, Cataclysm: DDA, Shattered Pixel Dungeon*, SuperTux, small classics (Neverball, X-Moto, Pingus, Frozen Bubble) |
 | Browser | **Firefox**, Brave, **LibreWolf**, **[wolfforge](https://github.com/Diesumpfeule/wolfforge)** (LibreWolf overhaul), Chromium, Zen Browser* |
 | Dev | **Visual Studio Code**, VSCodium, **Python**, **uv**, Thonny, **Compilers & build tools**, **Podman**, **GitHub CLI + tig**, Node.js, Rust, **tmux**, **Distrobox** |
