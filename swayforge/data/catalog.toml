@@ -1048,6 +1048,14 @@ label = "Own tools"
   post = ["bash {app}/extras/cs2/install.sh"]
 
   [[group.items]]
+  id = "voiceforge"
+  label = "voiceforge (voice changer + soundboard)"
+  desc = "Virtual microphone with live voice effects and a soundboard – pick “VoiceForge Microphone” in Discord, CS2, OBS"
+  default = false
+  dnf = ["python3-numpy", "pipewire-utils", "pulseaudio-utils"]
+  post = ["bash {app}/extras/voice/install.sh"]
+
+  [[group.items]]
   id = "steamtune"
   label = "steamtune (Steam shader-cache helper)"
   desc = "Why Steam downloads GBs before a game · cache size limit per drive · move the cache to another drive · auto-update window"

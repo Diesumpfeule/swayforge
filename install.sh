@@ -75,6 +75,12 @@ if [ -d "$HOME/.local/share/cs2translate" ]; then
   bash "$APP/extras/cs2/install.sh" >/dev/null 2>&1 || true
 fi
 
+# and the voice changer, if you installed it
+if [ -d "$HOME/.local/share/voiceforge/app" ]; then
+  bold "Updating voiceforge …"
+  bash "$APP/extras/voice/install.sh" >/dev/null 2>&1 || true
+fi
+
 if [ "$UPDATE" = 1 ]; then
   bold "Applying the new version …"
   "$BIN" apply

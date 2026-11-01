@@ -253,4 +253,8 @@ exec {{ cmd }}
 {% endfor %}
 
 # ── Your own tweaks ────────────────────────────────────
+{% if voiceforge_keys %}
+# voiceforge hotkeys (Super+Alt+1…9 sounds, +0 stop, +V next voice) – change them in that file
+include {{ voiceforge_keys }}
+{% endif %}
 include {{ custom_conf }}

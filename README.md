@@ -126,7 +126,7 @@ Everything is optional except the Sway base.
 | Maker | FreeCAD, KiCad, PrusaSlicer |
 | System | RPM Fusion, codecs, AMD video acceleration, firmware updates, Timeshift, Bluetooth, Flathub |
 | Boot & login | themed Plymouth boot screen, tuigreet login |
-| Own tools | [CS2 chat translator](https://github.com/Diesumpfeule/cs2translate) |
+| Own tools | [CS2 chat translator](https://github.com/Diesumpfeule/cs2translate), voiceforge (voice changer + soundboard, see `extras/voice`) |
 
 **LibreWolf follows your theme:** with [wolfforge](https://github.com/Diesumpfeule/wolfforge) installed,
 every theme change also re-themes LibreWolf (toolbar, tabs, start page, new tab) – swayforge writes

@@ -241,6 +241,8 @@ class Ctx:
             wallpaper_kind=self.wallpaper_kind, wallpaper_path=self.wallpaper_path,
             outputs=sorted(self.s["display"]["outputs"].items()),
             custom_conf=str(paths.SWAY_CUSTOM), gen_dir=str(paths.GEN_DIR),
+            voiceforge_keys=str(paths.XDG_CONFIG / "voiceforge/sway.conf")
+            if (paths.XDG_CONFIG / "voiceforge/sway.conf").exists() else "",
             spaceship_dir=str(paths.SPACESHIP_DIR), p=self.s["prompt"], sections=sections,
             hx=hx, rgba=rgba, mix=mix, ua=self._ua, uhex=self._uhex, on=self._on, ui=self._ui(), mark=MARK, cs2_watcher=cs2_watcher(),
             layout=self.layout.id, bv=bevel(self.c), user=os.environ.get("USER", "user"), font=self.s["theme"]["font"],
