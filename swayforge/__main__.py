@@ -92,6 +92,8 @@ def main(argv: list[str] | None = None) -> int:
                    help="try another animation (default: the one from Settings)")
     p.add_argument("--seconds", type=float, help="how long it plays (0 = until a key)")
     p.add_argument("--video", help="GIF or video file for --anim video")
+    p = sub.add_parser("mic", help="microphone level: status | up | down | set N | restore | keep")
+    p.add_argument("rest", nargs=argparse.REMAINDER)
     sub.add_parser("undo", help="back to the version before the last apply")
     p = sub.add_parser("history", help="earlier versions: list | restore NUMBER")
     p.add_argument("rest", nargs=argparse.REMAINDER)
@@ -139,6 +141,10 @@ def main(argv: list[str] | None = None) -> int:
     if a.cmd == "widgets":
         from . import widgets
         return widgets.main(a.action)
+
+    if a.cmd == "mic":
+        from . import mic
+        return mic.main(a.rest)
 
     if a.cmd in ("undo", "history"):
         from . import history

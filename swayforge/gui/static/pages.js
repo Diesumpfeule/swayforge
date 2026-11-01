@@ -316,7 +316,7 @@ Studio.page("audio", {
     }
     const r = h(`<div class="btnrow"></div>`);
     r.append(button("Look again", "ghost", () => go("audio")), button("Advanced mixer (pavucontrol)", "", () => api.act("audio", { kind: "sink", verb: "pavucontrol" }, true)));
-    view.append(r, h(`<p class="hint">In the bar: scroll on the speaker for volume, right-click to mute.</p>`));
+    view.append(r, h(`<p class="hint">In the bar: scroll on the speaker for volume, right-click to mute. Discord/Vesktop: switch off “Automatic gain control” in its voice settings, or it keeps turning your microphone down.</p>`), form("audio"));
   },
 });
 

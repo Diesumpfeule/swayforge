@@ -72,6 +72,9 @@ DEFAULTS: dict[str, Any] = {
         "clock_format": "%H:%M",
         "date_format": "%a %d.%m.",
     },
+    "audio": {
+        "keep_mic": True,             # the microphone level you set stays (see mic.py)
+    },
     "input": {
         "kb_layout": "us",
         "kb_variant": "",

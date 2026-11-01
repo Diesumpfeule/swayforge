@@ -136,7 +136,11 @@ def audio(kind: str, what: str, value=None) -> str:
     if what == "default":
         _sh("pactl", f"set-default-{kind}", str(value))
     elif what == "volume":
-        _sh("pactl", f"set-{kind}-volume", dev, f"{max(0, min(150, int(value)))}%")
+        pct = max(0, min(150, int(value)))
+        _sh("pactl", f"set-{kind}-volume", dev, f"{pct}%")
+        if kind == "source":
+            from .. import mic
+            mic.remember(pct)                   # stays after a restart (Settings → Audio)
     elif what == "mute":
         _sh("pactl", f"set-{kind}-mute", dev, "1" if value else "0")
     elif what == "pavucontrol":

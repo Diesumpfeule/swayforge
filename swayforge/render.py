@@ -410,8 +410,8 @@ def waybar_config(ctx: Ctx) -> dict:
                            "format-source-muted": "[mic off]" if text_only else I["mic_off"],
                            "tooltip-format": "Microphone: {source_volume}% – click to mute",
                            "on-click": "wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle",
-                           "on-scroll-up": "wpctl set-volume @DEFAULT_AUDIO_SOURCE@ 5%+",
-                           "on-scroll-down": "wpctl set-volume @DEFAULT_AUDIO_SOURCE@ 5%-"},
+                           "on-scroll-up": f"{LAUNCHER} mic up",       # remembered (Settings → Audio)
+                           "on-scroll-down": f"{LAUNCHER} mic down"},
         "backlight": {"format": f(I["light"], "{percent}%", "lit"),
                       "on-scroll-up": "brightnessctl set 5%+", "on-scroll-down": "brightnessctl set 5%-"},
         "battery": {"states": {"warning": 25, "critical": 12},

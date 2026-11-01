@@ -291,6 +291,11 @@ FIELDS: dict[str, list[Field | str]] = {
               [("Keep", 0), ("1.0", 1.0), ("1.25", 1.25), ("1.5", 1.5), ("1.75", 1.75), ("2.0", 2.0)],
               help="for tiny high-resolution panels"),
     ],
+    "audio": [
+        "Microphone",
+        Field("audio.keep_mic", "Keep microphone volume", "bool",
+              help="the level you set here stays – after a restart, and when Discord & co. turn it down"),
+    ],
     "clipboard": [
         "Clipboard history (Super+V)",
         Field("clipboard.enabled", "Keep a clipboard history", "bool",

@@ -221,6 +221,12 @@ exec blueman-applet
 exec_always sh -c 'pkill -f "[w]l-paste --type .* --watch .*(cliphist|swayforge clip)"; pkill -f "m [s]wayforge clip watch"; exec {{ sf }} clip watch'
 {% endif %}
 exec_always {{ sf }} session
+{% if s.audio.keep_mic %}
+# microphone level stays where you set it (Settings → Audio)
+exec_always sh -c 'pkill -f "m [s]wayforge mic keep"; exec {{ sf }} mic keep'
+{% else %}
+exec_always pkill -f "m [s]wayforge mic keep"
+{% endif %}
 {% if ext_shell %}
 # {{ ext_shell }} runs the bar + notifications now (Settings → Layout → switch back)
 exec_always sh -c 'pkill -x waybar; pkill -x mako; sleep 1; pgrep -x noctalia >/dev/null || pgrep -x noctalia-shell >/dev/null || pgrep -f "^quickshell.*[n]octalia" >/dev/null || exec {{ ext_shell }}'

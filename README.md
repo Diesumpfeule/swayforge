@@ -395,6 +395,13 @@ For small screens and small computers like a Raspberry Pi – **off by default**
 (no blur, shadows, animations or desktop widgets), *Touch screen* (Touch layout) and one *scale* for every
 screen. It works on a copy of your settings: switching it off brings everything back exactly as before.
 
+## Microphone level that stays
+
+*Settings → Audio → Keep microphone volume* (on by default): the level you set in swayforge – the app,
+the terminal settings or scrolling on the bar's microphone – is remembered per microphone and set again
+at every login. Apps with automatic gain control (Discord/Vesktop, browsers) that turn it down get
+undone right away. `swayforge mic` shows the state; `swayforge mic set 80` sets and keeps a level.
+
 ## Clipboard history
 
 `Super+V` opens everything you copied – type to search, Enter copies it back, `Alt+P` pins, `Alt+D`

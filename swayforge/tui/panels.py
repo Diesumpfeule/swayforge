@@ -72,6 +72,12 @@ class AudioPanel(Panel):
                          Button("Advanced (pavucontrol)", id="au_pavu"), classes="btnrow")
         yield Static("Tip: in the bar, scroll on the speaker = volume, right-click = mute, "
                      "click = this page.", classes="hint")
+        from ..fields import FIELDS
+        from .common import field_row, section
+        for f in FIELDS["audio"]:
+            yield section(f) if isinstance(f, str) else field_row(f, self.app.s)
+        yield Static("Discord/Vesktop: switch off “Automatic gain control” in its voice settings, "
+                     "or it keeps turning your microphone down.", classes="hint")
 
     @work(thread=True, exclusive=True, group="audio")
     def refresh_data(self) -> None:
@@ -117,6 +123,8 @@ class AudioPanel(Panel):
 
     @on(Switch.Changed)
     def mute(self, ev: Switch.Changed) -> None:
+        if (ev.switch.id or "").startswith("f__"):
+            return                                   # a setting – the app saves it
         ev.stop()
         kind = (ev.switch.id or "").split("_")[1]
         _sh("pactl", f"set-{kind}-mute", f"@DEFAULT_{kind.upper()}@", "1" if ev.value else "0")
@@ -134,6 +142,11 @@ class AudioPanel(Panel):
             kind = bid.split("_")[1]
             step = "+5%" if bid.endswith("_up") else "-5%"
             _sh("pactl", f"set-{kind}-volume", f"@DEFAULT_{kind.upper()}@", step)
+            if kind == "source":
+                from .. import mic
+                cur = mic.current()
+                if cur is not None:
+                    mic.remember(cur)               # stays after a restart (keep_mic)
             self.refresh_data()
 
 
