@@ -69,7 +69,7 @@ _from_fields()
 RANGES = settings.RANGES
 
 
-PAGE_IDS = {"clipboard", "privacy", "display", "audio", "bluetooth", "network", "power", "boot", "security", "apps", "cleanup",
+PAGE_IDS = {"doctor", "voice", "clipboard", "privacy", "display", "audio", "bluetooth", "network", "power", "boot", "security", "apps", "cleanup",
             "mounts", "system", "about", "games"}
 
 
@@ -478,6 +478,12 @@ def _dispatch(state: State, A, act: str, d: dict):
         return A.apps_install(state, d.get("n"))
     if act == "widgets":
         return A.widgets_action(state, str(v))
+    if act == "doctor":
+        return A.doctor_action(state, str(v), d)
+    if act == "backup":
+        return A.backup_action(state, str(v))
+    if act == "voice":
+        return A.voice_action(state, str(v), d)
     if act == "clipboard":
         return A.clipboard_action(state, str(v), d)
     if act == "privacy":

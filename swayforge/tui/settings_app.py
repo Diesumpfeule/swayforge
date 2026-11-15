@@ -32,7 +32,7 @@ NAV_GROUPS: list[tuple[str, list[str]]] = [
     ("LOOK", ["theme", "wallpapers", "layout", "look", "bar", "widgets"]),
     ("DEVICES", ["display", "audio", "sound", "bluetooth", "network", "input", "cyberdeck"]),
     ("WORK & PLAY", ["shell", "keys", "apps", "games", "clipboard"]),
-    ("SYSTEM", ["power", "boot", "security", "privacy", "cleanup", "mounts", "system", "about"]),
+    ("SYSTEM", ["doctor", "power", "boot", "security", "privacy", "cleanup", "mounts", "system", "about"]),
 ]
 
 
@@ -185,6 +185,7 @@ class SettingsApp(App):
                 yield self.page_security()
                 yield self.page_clipboard()
                 yield self.page_privacy()
+                yield self.page_doctor()
                 yield AppsPanel(id="page-apps", classes="page")
                 yield CleanupPanel(id="page-cleanup", classes="page")
                 yield MountsPanel(id="page-mounts", classes="page")
@@ -483,6 +484,33 @@ class SettingsApp(App):
         txt = "\n".join(lines) + ("\n\n[dim]" + escape("\n".join(log)) + "[/]" if log else "")
         self.call_from_thread(lambda: self.query_one("#wg_out", Static).update(txt))
 
+    def page_doctor(self) -> VerticalScroll:
+        return self.page(
+            "doctor",
+            Static("One look at everything swayforge needs: programs, services, settings and configs, fonts, "
+                   "disk space, background helpers. Problems first, with the fix next to them.", classes="hint"),
+            Horizontal(Button("Check now", id="doc_check", variant="primary"),
+                       Button("Fix what can be fixed", id="doc_fix"),
+                       Button("Voice changer (voiceforge)", id="doc_voice"), classes="btnrow"),
+            Static("", id="doc_out"))
+
+    @work(exclusive=True, thread=True, group="doctor")
+    def doctor_run(self, fix: bool) -> None:
+        from .. import doctor
+        from rich.markup import escape
+        checks = doctor.run_all()
+        lines = []
+        if fix:
+            lines += [f"[b]fix →[/] {escape(x)}" for x in doctor.fix_all(checks) or ["nothing to fix automatically"]] + [""]
+            checks = doctor.run_all()
+        mark = {"ok": "[green]✓[/]", "warn": "[yellow]![/]", "bad": "[red]✗[/]"}
+        for c in checks:
+            lines.append(f"{mark[c.state]} [dim]{escape(c.group)}[/]  {escape(c.what)}"
+                         + (f"\n      [dim]{escape(c.detail)}[/]" if c.detail else "")
+                         + (f"\n      → {escape(c.fix)}" if c.fix and c.state != "ok" else ""))
+        txt = f"[b]{escape(doctor.summary(checks))}[/]\n\n" + "\n".join(lines)
+        self.call_from_thread(lambda: self.query_one("#doc_out", Static).update(txt))
+
     @work(exclusive=True, thread=True, group="privacy")
     def privacy_scan(self) -> None:
         from .. import privacy
@@ -580,6 +608,8 @@ class SettingsApp(App):
                    "After a reset: ./install.sh --restore FILE", classes="hint"),
             Horizontal(Input(str(paths.HOME / "swayforge-backup.tar.gz"), id="export_path"),
                        Button("Export", id="sys_export", variant="success"), classes="btnrow"),
+            *self.fields("backup"),
+            Horizontal(Button("Back up now", id="backup_now"), classes="btnrow"),
             section("Automatic backups of old configs"),
             ListView(*[ListItem(Label(d.name), name=str(d)) for d in backups[:30]] or
                      [ListItem(Label("none yet"))], id="backuplist"),
@@ -972,6 +1002,18 @@ class SettingsApp(App):
                     return
                 eid = item.name
             self.go_back(eid)
+        elif bid in ("doc_check", "doc_fix"):
+            self.query_one("#doc_out", Static).update("Checking …")
+            self.doctor_run(bid == "doc_fix")
+        elif bid == "doc_voice":
+            vf = paths.HOME / ".local/bin/voiceforge"
+            if vf.exists():
+                self.spawn_term(str(vf))
+            else:
+                self.notify("voiceforge isn't installed – swayforge install → Own tools", severity="warning", timeout=8)
+        elif bid == "backup_now":
+            from .. import backup
+            self.notify(f"Saved: {backup.make(self.s)}", timeout=8)
         elif bid in ("wg_check", "wg_restart", "wg_install"):
             from .. import widgets
             if bid == "wg_install":

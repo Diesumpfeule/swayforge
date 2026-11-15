@@ -899,3 +899,107 @@ def widgets_action(state, verb: str):
         term(state, f"{widgets.DEPS_CMD} playerctl grim && {L()} widgets restart; {HOLD}")
         return "Installing in a terminal"
     raise Fail("unknown")
+
+
+# ── Doctor ───────────────────────────────────────────────────────────
+def page_doctor(s: dict) -> dict:
+    from .. import doctor
+    checks = doctor.run_all()
+    return {"checks": [c.__dict__ for c in checks], "summary": doctor.summary(checks)}
+
+
+def doctor_action(state, verb: str, d: dict):
+    from .. import doctor
+    if verb == "fix":
+        auto = str(d.get("auto", ""))
+        if auto not in ("apply", "reload", "portals"):
+            raise Fail("unknown fix")
+        return doctor.fix(auto)
+    if verb == "fixall":
+        return "; ".join(doctor.fix_all(doctor.run_all())) or "Nothing to fix automatically"
+    if verb == "online":
+        return {"checks": [c.__dict__ for c in doctor.check_updates()]}
+    raise Fail("unknown")
+
+
+# ── Backups ──────────────────────────────────────────────────────────
+def backup_action(state, verb: str):
+    from .. import backup
+    if verb == "now":
+        return f"Saved: {str(backup.make(state.s)).replace(str(paths.HOME), '~')}"
+    if verb == "list":
+        return {"backups": [{"path": str(b).replace(str(paths.HOME), "~"), "when": b.stat().st_mtime,
+                             "size": b.stat().st_size} for b in backup.all_backups(state.s)[:12]]}
+    raise Fail("unknown")
+
+
+# ── voiceforge (voice changer + soundboard, an own tool) ─────────────
+def _voiceforge():
+    """The installed voiceforge module (None when it isn't installed)."""
+    import importlib.util
+    f = paths.XDG_DATA / "voiceforge/app/voiceforge.py"
+    if not f.is_file():
+        return None
+    spec = importlib.util.spec_from_file_location("voiceforge_installed", f)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+def page_voice(s: dict) -> dict:
+    vf = _voiceforge()
+    if vf is None:
+        return {"installed": False}
+    cfg = vf.load()
+    return {"installed": True, "running": vf.engine_pid() is not None, "cfg": cfg, "effects": vf.EFFECTS,
+            "sounds": [f.stem for f in vf.sound_files()], "mics": [{"name": n, "label": d} for n, d in vf.sources()],
+            "mic": vf.real_mic(cfg), "folder": str(vf.SOUNDS).replace(str(paths.HOME), "~"),
+            "numpy": _has_numpy()}
+
+
+def _has_numpy() -> bool:
+    import importlib.util
+    return importlib.util.find_spec("numpy") is not None
+
+
+def voice_action(state, verb: str, d: dict):
+    import contextlib
+    import io
+    if verb == "install":
+        term(state, f"bash {shlex.quote(str(paths.PKG.parent / 'extras/voice/install.sh'))}; {HOLD}")
+        return "Installing in a terminal – come back to this page afterwards"
+    vf = _voiceforge()
+    if vf is None:
+        raise Fail("voiceforge is not installed")
+    out = io.StringIO()
+    with contextlib.redirect_stdout(out):
+        if verb in ("start", "stop"):
+            rc = vf.start() if verb == "start" else vf.stop()
+            if rc:
+                raise Fail(out.getvalue().strip() or "that didn't work")
+        elif verb == "effect":
+            if vf.set_effect(str(d.get("name", ""))):
+                raise Fail("unknown voice")
+        elif verb == "play":
+            vf.play(str(int(d.get("n", 0))))
+        elif verb == "hush":
+            vf.hush()
+        elif verb == "set":
+            cfg, key, val = vf.load(), str(d.get("key", "")), d.get("value")
+            if key not in ("hear_sounds", "hear_voice", "sound_volume", "pitch", "gain", "gate", "mic"):
+                raise Fail("unknown setting")
+            if key == "mic" and val not in [n for n, _ in vf.sources()]:
+                raise Fail("that microphone is gone")
+            cfg[key] = bool(val) if key.startswith("hear") else str(val) if key == "mic" else \
+                int(val) if key == "pitch" else float(val)
+            if key == "pitch":
+                cfg["effect"] = "custom"
+            vf.save(cfg)
+        elif verb == "keys":
+            vf.sway_keys()
+            return "Hotkeys written – Apply loads them: Super+Alt+1…9 sounds, +0 stop, +V next voice"
+        elif verb == "folder":
+            _spawn("xdg-open", str(vf.SOUNDS))
+        else:
+            raise Fail("unknown")
+    return page_voice(state.s)

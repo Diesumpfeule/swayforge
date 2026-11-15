@@ -126,7 +126,7 @@ Everything is optional except the Sway base.
 | Maker | FreeCAD, KiCad, PrusaSlicer |
 | System | RPM Fusion, codecs, AMD video acceleration, firmware updates, Timeshift, Bluetooth, Flathub |
 | Boot & login | themed Plymouth boot screen, tuigreet login |
-| Own tools | [CS2 chat translator](https://github.com/Diesumpfeule/cs2translate), voiceforge (voice changer + soundboard, see `extras/voice`) |
+| Own tools | [CS2 chat translator](https://github.com/Diesumpfeule/cs2translate), voiceforge (voice changer + soundboard – own page *Voice changer* in the app, see `extras/voice`) |
 
 **LibreWolf follows your theme:** with [wolfforge](https://github.com/Diesumpfeule/wolfforge) installed,
 every theme change also re-themes LibreWolf (toolbar, tabs, start page, new tab) – swayforge writes
@@ -380,6 +380,22 @@ swayforge: if a VPN needs one, a terminal opens and `nmcli` asks for it. OpenVPN
 `NetworkManager-openvpn` package (swayforge tells you if it's missing); WireGuard works out of the box.
 If Tailscale is installed, up/down/status buttons appear as well.
 
+## Doctor
+
+*Settings → Doctor* or `swayforge doctor`: one look at everything swayforge needs – the desktop's
+programs, sound and portal services, your settings file, whether the generated configs match your
+settings (and whether Sway accepts them), fonts, free disk space, swayforge's background helpers, your
+last backup. Problems come first, each with the command or the place in Settings that fixes it.
+`swayforge doctor --fix` (or the *Fix* buttons) runs the safe repairs: write the configs again, reload
+Sway, restart the portals. `--all` also lists what is fine, `--online` looks for a newer version.
+
+## Automatic backup
+
+*Settings → System & files → Automatic backup* (off by default): at login, when the last backup is
+old enough (daily … monthly), swayforge writes a small archive of your settings, themes, layouts,
+app selection and tool configs into a folder you choose and keeps only the newest few.
+`swayforge backup` makes one right now. After a reset: `./install.sh --restore FILE`.
+
 ## Undo for Apply
 
 Every Apply keeps a copy of your settings, plus your own theme and layout if one is in use (the last 15).
@@ -522,6 +538,9 @@ swayforge layout NAME         switch layout  (--list, --next)
 swayforge boot / login        install boot screen / login screen
 swayforge gamemode            toggle gaming mode
 swayforge hello               animated greeting next to fastfetch (--anim spin|donut|cube|fire|video)
+swayforge doctor              check everything swayforge needs (--fix, --all, --online)
+swayforge backup              settings backup now (backup list shows them)
+swayforge notifications       notifications you missed (Super+Ctrl+N)
 swayforge undo                back to the version before the last apply (history: list | restore N)
 swayforge clip                clipboard history (list, clear, pause, resume)
 swayforge privacy             who may use camera, mic, network, files (revoke APP PERMISSION)

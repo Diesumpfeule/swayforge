@@ -1420,6 +1420,8 @@ def session(s: dict | None = None) -> None:
     _step("screen sharing", fix_screenshare)
     _step("primary output", set_primary_output, s)
     _step("sounds", apply_sounds, s, ctx)
+    from . import backup
+    _step("backup", backup.auto_run, s)
 
 
 def set_primary_output(s: dict) -> None:

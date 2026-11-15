@@ -100,6 +100,12 @@ DEFAULTS: dict[str, Any] = {
         "login": True,                # chime at login
         "notify": True,               # sound for notifications
     },
+    "backup": {                       # automatic settings backups – see backup.py
+        "auto": False,
+        "dir": "~/Backups/swayforge",
+        "every_days": 7,
+        "keep": 5,
+    },
     "cyberdeck": {                    # small screens / Raspberry Pi – see cyberdeck.py
         "enabled": False,
         "compact": True,
@@ -245,6 +251,7 @@ KEY_ACTIONS: list[tuple[str, str, str, str]] = [
     ("shot_edit", "Screenshot area and edit", "$mod+Shift+s", "exec {sf} shot edit"),
     ("notif_dismiss", "Dismiss notifications", "$mod+n", "exec makoctl dismiss --all"),
     ("notif_dnd", "Do not disturb on/off", "$mod+Shift+n", "exec makoctl mode -t do-not-disturb"),
+    ("notif_history", "Notifications I missed", "$mod+Ctrl+n", "exec {sf} notifications"),
     ("theme_next", "Next theme", "$mod+Shift+t", "exec {sf} theme --next"),
     ("layout_next", "Next bar layout", "$mod+Shift+b", "exec {sf} layout --next"),
     ("taskmanager", "Task manager (btop)", "Ctrl+Shift+Escape", "exec {btop}"),
@@ -338,6 +345,7 @@ TEXTS: dict[str, str] = {
     "prompt.char": r"[^\s\"'\\$`;{}]{1,4}",
     "login.greeting": r"[^\"'\\$`\n\r]{0,80}",
     "widgets.weather_city": r"[\w .,'\-]{0,60}",
+    "backup.dir": r"[^\"'\\$`\n\r;]{1,200}",
 }
 
 

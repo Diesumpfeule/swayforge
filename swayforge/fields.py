@@ -70,6 +70,7 @@ PAGES: list[tuple[str, str]] = [
     ("widgets", "\U000f072c  Desktop widgets"),
     ("clipboard", "\U000f014f  Clipboard"),
     ("cyberdeck", "\U000f0322  Cyberdeck mode"),
+    ("doctor", "\U000f04d9  Doctor"),
     ("privacy", "\U000f0565  Privacy guard"),
 ]
 
@@ -290,6 +291,14 @@ FIELDS: dict[str, list[Field | str]] = {
         Field("cyberdeck.scale", "Scale every screen", "choice",
               [("Keep", 0), ("1.0", 1.0), ("1.25", 1.25), ("1.5", 1.5), ("1.75", 1.75), ("2.0", 2.0)],
               help="for tiny high-resolution panels"),
+    ],
+    "backup": [
+        "Automatic backup",
+        Field("backup.auto", "Back up my settings automatically", "bool",
+              help="at login, when the last one is old enough · settings, themes, layouts, app selection"),
+        Field("backup.every_days", "How often", "choice", [("Every day", 1), ("Every 3 days", 3), ("Every week", 7), ("Every month", 30)]),
+        Field("backup.keep", "Keep the newest", "choice", [("3", 3), ("5", 5), ("10", 10), ("30", 30)]),
+        Field("backup.dir", "Folder", help="a second drive or a synced folder is best · default ~/Backups/swayforge"),
     ],
     "audio": [
         "Microphone",

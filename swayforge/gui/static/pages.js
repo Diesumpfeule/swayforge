@@ -747,6 +747,15 @@ Studio.page("system", {
       const r = await busy(ev.currentTarget, api.act("history", { verb: "undo" }));
       if (r) { await reloadSettings(); go("system"); } }));
     hist.append(undoRow, hl);
+    const abk = section("Automatic backup", "A small archive of your settings, themes, layouts and app selection – what you need after a reset (./install.sh --restore FILE).");
+    const abl = h(`<p class="hint"></p>`);
+    const showBackups = async () => { const r = await api.act("backup", { verb: "list" }, true); if (!r) return;
+      abl.textContent = r.backups.length ? `Newest: ${r.backups[0].path} (${new Date(r.backups[0].when * 1000).toLocaleString("en-GB")}) · ${r.backups.length} backup(s)` : "No backup yet."; };
+    const abRow = h(`<div class="btnrow"></div>`);
+    abRow.append(button("Back up now", "", async ev => { await busy(ev.currentTarget, api.act("backup", { verb: "now" })); showBackups(); }));
+    abk.append(form("backup"), abRow, abl);
+    showBackups();
+    view.append(abk);
     api.act("history", { verb: "list" }, true).then(r => r && drawHist(r.entries));
     view.append(hist);
     const sy = section("System");
@@ -1419,5 +1428,85 @@ Studio.page("cyberdeck", {
       if (cd.low_power) Object.assign(s.look, { fx_shadows: false, fx_blur: false });
     }
     desk(fr, { theme: theme(), layout: cd.enabled && cd.touch ? "touch" : S.s.bar.layout, settings: s, wallpaperUrl: wallUrl(null, true) });
+  },
+});
+
+// ── Doctor ───────────────────────────────────────────────────────────
+Studio.page("doctor", {
+  title: "Doctor", icon: "", keywords: "doctor health check problem broken fix diagnose missing package service font disk",
+  async render(view) {
+    loading(view, "Checking everything …");
+    const d = await api.get("page", { id: "doctor" });
+    view.replaceChildren(h(`<p class="lede">One look at everything swayforge needs: programs, services, your settings and configs, fonts, disk space, background helpers. Problems come first, with the fix next to them.</p>`));
+    const bad = d.checks.filter(c => c.state === "bad").length, warn = d.checks.filter(c => c.state === "warn").length;
+    view.append(h(`<div class="doc-sum ${bad ? "bad" : warn ? "warn" : "ok"}"><b>${esc(d.summary)}</b><span>${d.checks.length - bad - warn} of ${d.checks.length} checks are fine</span></div>`));
+    const row = h(`<div class="btnrow"></div>`);
+    row.append(button("Check again", "", () => go("doctor")));
+    if (d.checks.some(c => c.auto && c.state !== "ok")) row.append(button("Fix what can be fixed", "primary", async ev => {
+      await busy(ev.currentTarget, api.act("doctor", { verb: "fixall" })); setTimeout(() => go("doctor"), 1500); }));
+    row.append(button("Look for updates", "ghost", async ev => {
+      const r = await busy(ev.currentTarget, api.act("doctor", { verb: "online" }, true));
+      if (r) toast(r.checks.length ? r.checks.map(c => esc(c.what)).join("<br>") : "Couldn't reach GitHub"); }));
+    view.append(row);
+    const draw = (title, items, open) => {
+      if (!items.length) return;
+      const sec = h(`<details class="doc-group" ${open ? "open" : ""}><summary>${esc(title)} <small>(${items.length})</small></summary><div class="list"></div></details>`);
+      for (const c of items) {
+        const it = h(`<div class="item"><span class="dot ${c.state === "ok" ? "on" : c.state}"></span><div class="grow"><b>${esc(c.what)}</b><small>${esc(c.group)}${c.detail ? " · " + esc(c.detail) : ""}</small>${c.fix && c.state !== "ok" ? `<code class="fixcmd">${esc(c.fix)}</code>` : ""}</div></div>`);
+        if (c.auto && c.state !== "ok") it.append(button("Fix", "", async ev => { await busy(ev.currentTarget, api.act("doctor", { verb: "fix", auto: c.auto })); setTimeout(() => go("doctor"), 1500); }));
+        else if (c.fix && c.state !== "ok" && /^(sudo |systemctl |swayforge |swaymsg )/.test(c.fix)) it.append(button("Copy", "ghost", () => { navigator.clipboard?.writeText(c.fix.split("   ")[0]); toast("Copied – paste it into a terminal"); }));
+        sec.querySelector(".list").append(it);
+      }
+      view.append(sec);
+    };
+    draw("Problems", d.checks.filter(c => c.state === "bad"), true);
+    draw("Hints", d.checks.filter(c => c.state === "warn"), true);
+    draw("Fine", d.checks.filter(c => c.state === "ok"), !bad && !warn);
+  },
+});
+
+// ── voiceforge: voice changer + soundboard ───────────────────────────
+Studio.page("voice", {
+  title: "Voice changer", icon: "", keywords: "voiceforge voice changer soundboard microphone effect pitch robot discord sounds",
+  async render(view) {
+    loading(view);
+    let d = await api.get("page", { id: "voice" });
+    const A = async (verb, args = {}) => { const r = await api.act("voice", Object.assign({ verb }, args), true); if (r && r.installed !== undefined) { d = r; draw(); } return r; };
+    const draw = () => {
+      view.replaceChildren(h(`<p class="lede">voiceforge adds a virtual microphone – “VoiceForge Microphone”. Pick it as input in Discord, Vesktop, CS2 or OBS: your voice goes through the effect you choose, and soundboard sounds are mixed in.</p>`));
+      if (!d.installed) {
+        const r = h(`<div class="btnrow"></div>`);
+        r.append(button("Install voiceforge", "primary", () => api.act("voice", { verb: "install" })), button("Look again", "ghost", () => go("voice")));
+        view.append(h(`<p class="hint">voiceforge isn't installed yet. It needs numpy and PipeWire's tools (installed along).</p>`), r);
+        return;
+      }
+      view.append(h(`<div class="doc-sum ${d.running ? "ok" : "warn"}"><b>${d.running ? "On – the virtual microphone exists" : "Off"}</b><span>listening to: ${esc((d.mics.find(m => m.name === d.mic) || {}).label || d.mic || "no microphone found")}</span></div>`));
+      const top = h(`<div class="btnrow"></div>`);
+      top.append(button(d.running ? "Stop" : "Start", "primary", ev => busy(ev.currentTarget, A(d.running ? "stop" : "start"))),
+        button("Write Sway hotkeys", "", () => api.act("voice", { verb: "keys" })));
+      view.append(top);
+      const fx = section("Voice", "Switch any time, even mid-sentence.");
+      const grid = h(`<div class="fxgrid"></div>`);
+      for (const [k, desc] of Object.entries(d.effects)) {
+        const b = h(`<button class="fx" aria-pressed="${d.cfg.effect === k}"><b>${esc(k)}</b><small>${esc(desc)}</small></button>`);
+        b.onclick = () => A("effect", { name: k }); grid.append(b);
+      }
+      fx.append(grid, sliderLike("Custom pitch (semitones)", d.cfg.pitch, -12, 12, v => A("set", { key: "pitch", value: v }), v => (v > 0 ? "+" : "") + v));
+      const mic = h(`<div class="row"><label>Microphone</label><select>${d.mics.map(m => `<option value="${esc(m.name)}" ${m.name === d.mic ? "selected" : ""}>${esc(m.label)}</option>`).join("") || "<option>none found</option>"}</select></div>`);
+      mic.querySelector("select").onchange = e => A("set", { key: "mic", value: e.target.value });
+      const sw = (label, key) => { const r = h(`<div class="row"><label>${label}</label><input type="checkbox" class="switch" ${d.cfg[key] ? "checked" : ""}></div>`); r.querySelector("input").onchange = e => A("set", { key, value: e.target.checked }); return r; };
+      fx.append(mic, sliderLike("Microphone boost", Math.round(d.cfg.gain * 100), 10, 400, v => A("set", { key: "gain", value: v / 100 }), v => v + "%"),
+        sliderLike("Noise gate", Math.round(d.cfg.gate * 1000), 0, 100, v => A("set", { key: "gate", value: v / 1000 }), v => v ? String(v) : "off"),
+        sw("Hear my changed voice (use headphones)", "hear_voice"));
+      const sb = section("Soundboard", `Files in ${d.folder} – names starting with 01, 02 … decide the number. Hotkeys: Super+Alt+1…9, Super+Alt+0 stops.`);
+      const sg = h(`<div class="fxgrid sounds"></div>`);
+      d.sounds.forEach((n, i) => { const b = h(`<button class="fx"><b>${i < 9 ? i + 1 + " · " : ""}${esc(n.replace(/^\d+\s*/, ""))}</b></button>`); b.onclick = () => A("play", { n: i + 1 }); sg.append(b); });
+      const sr = h(`<div class="btnrow"></div>`);
+      sr.append(button("Stop all sounds", "", () => A("hush")), button("Open the sounds folder", "ghost", () => A("folder")), button("Look for new files", "ghost", () => go("voice")));
+      sb.append(sg, sr, sliderLike("Sound volume", Math.round(d.cfg.sound_volume * 100), 0, 150, v => A("set", { key: "sound_volume", value: v / 100 }), v => v + "%"), sw("Hear the sounds myself", "hear_sounds"));
+      view.append(fx, sb, h(`<p class="hint">In Discord/Vesktop switch off noise suppression and automatic gain control – they fight the effects. In a terminal: <code>voiceforge</code>.</p>`));
+      $$("input[type=range]", view).forEach(fill);
+    };
+    draw();
   },
 });

@@ -92,3 +92,35 @@ page with fake `swaymsg/pactl/nmcli/bluetoothctl/ip` – no JavaScript errors; s
 
 Config history + `doctor`, then a GTK/Sway test run in a Fedora VM (nested Sway with
 `WLR_BACKENDS=headless`) so the widgets and the native window get real automated coverage.
+
+
+## Review round 2 (2026-11-15)
+
+Measured first, then changed. Numbers from the audit container (your PC will differ, the ratios hold).
+
+| Area | Before | After | What changed |
+|---|---|---|---|
+| Theme switch (Apply) | ~0.75 s of it drawing a 4K wallpaper every time | once per theme, in your screen's size | picture cached per theme + content, size from the largest screen |
+| Small commands (volume keys, bar, `clip store` on every copy) | 110–145 ms | 60–90 ms | Jinja loaded only when configs are rendered; clipboard path imports less |
+| Theme files | parsed 23 files on every lookup | parsed once per change | cache keyed by file time and size (themes and your layouts) |
+| Apply | `session` ran twice (direct + through Sway's reload) | once | also removes a real bug: two swayidle instances |
+| Session start | 9 `gsettings` calls one after another, `flatpak list` every time | in parallel, no flatpak call when nothing is to do | |
+| Reload | widgets, clipboard watcher, mic keeper and gammastep restarted every time | left alone when already running | no widget flicker, no colour-temperature flicker |
+| Clipboard at its limit | whole database rewritten (VACUUM) on every copy | deleted entries overwritten in place | `PRAGMA secure_delete` |
+| Workspace pictures | a screenshot every 20 s, forever | only after a switch or when a window changed | |
+| Privacy guard scan | two flatpak calls per app, one after another | 8 in parallel | |
+| Test suite | 65 s | 25 s | |
+
+Bugs found and fixed in this round (each with a regression test where it can be tested without a desktop):
+- App: choices with a value like `1.0` (widget size “Normal”, opacity “Solid”, scales) could not be selected –
+  the browser sends `1` (`test_app.test_state_and_validation`). Found by a click-through test of every control.
+- `swayforge privacy --json` and other option-first sub-commands were rejected by the argument parser.
+- Two swayidle instances after every Apply (see table).
+- Hand-edited texts ended up unchecked in Sway/shell lines (`power.location`, keyboard layout, font …): now
+  validated against patterns, numbers clamped (`test_settings.Tidy`).
+- A half-written export could replace a good backup file: archives are written to `.part` and renamed.
+- Dead code removed (old theme dialog, unused helpers); an own lint (undefined names, unused imports) and
+  `node --check` for the app's scripts run in CI and must pass.
+
+New: `swayforge doctor`, automatic backups, notification history, a *Voice changer* page in the app.
+Still not testable here: everything that needs a running Sway, GTK or PipeWire (see section 4).

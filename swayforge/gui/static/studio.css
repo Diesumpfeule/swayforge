@@ -443,3 +443,18 @@ dialog::backdrop { background: rgb(0 0 0 / .55); backdrop-filter: blur(3px); }
 .cr small { opacity: .8; }
 @media (max-width: 640px) { .builder, .slots, .knobs { grid-template-columns: 1fr; } }
 .status li.no::before { color: var(--red); }
+
+/* doctor + voice */
+.doc-sum { display: flex; align-items: baseline; gap: 14px; padding: 12px 16px; margin: 0 0 14px; border-radius: var(--r); border: 1px solid var(--line);
+  border-left: 4px solid var(--green); background: var(--panel); }
+.doc-sum.warn { border-left-color: var(--yellow); } .doc-sum.bad { border-left-color: var(--red); }
+.doc-sum span { color: var(--muted); font-size: 13px; }
+.doc-group { margin-top: 14px; } .doc-group summary { cursor: pointer; font: 600 14px var(--mono); padding: 6px 0; }
+.doc-group summary small { color: var(--muted); font-weight: 400; }
+.fixcmd { display: block; margin-top: 4px; font-size: 12px; color: var(--acc); white-space: pre-wrap; word-break: break-word; }
+.fxgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 8px; margin-bottom: 12px; }
+.fx { text-align: left; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--r); background: var(--panel); color: var(--ink); cursor: pointer; }
+.fx b { display: block; font: 600 13px var(--mono); } .fx small { display: block; color: var(--muted); font-size: 12px; margin-top: 2px; }
+.fx:hover { border-color: var(--acc); }
+.fx[aria-pressed="true"] { border-color: var(--acc); background: color-mix(in srgb, var(--acc) 16%, var(--panel)); }
+.fxgrid.sounds { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }

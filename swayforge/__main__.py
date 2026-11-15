@@ -94,11 +94,19 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--video", help="GIF or video file for --anim video")
     p = sub.add_parser("mic", help="microphone level: status | up | down | set N | restore | keep")
     p.add_argument("rest", nargs=argparse.REMAINDER)
+    p = sub.add_parser("doctor", help="check everything swayforge needs")
+    p.add_argument("--all", action="store_true", help="also list what is fine")
+    p.add_argument("--fix", action="store_true", help="run the safe fixes (apply, reload, restart portals)")
+    p.add_argument("--online", action="store_true", help="also look for a newer version on GitHub")
+    p = sub.add_parser("backup", help="settings backup now (list: show the backups)")
+    p.add_argument("action", nargs="?", default="now", choices=["now", "list"])
+    sub.add_parser("notifications", help="recent notifications (Rofi)")
     sub.add_parser("undo", help="back to the version before the last apply")
     p = sub.add_parser("history", help="earlier versions: list | restore NUMBER")
     p.add_argument("rest", nargs=argparse.REMAINDER)
     p = sub.add_parser("privacy", help="privacy guard: which app may use camera, mic, network, files …")
-    p.add_argument("rest", nargs=argparse.REMAINDER, help="[--json] | revoke APP PERMISSION")
+    p.add_argument("--json", action="store_true", help="machine-readable")
+    p.add_argument("rest", nargs="*", help="revoke APP PERMISSION")
     p = sub.add_parser("clip", help="clipboard history: (pick) | list [TEXT] | clear [--all] | pause | resume")
     p.add_argument("rest", nargs=argparse.REMAINDER)
     sub.add_parser("session", help="at Sway start: GTK settings, swayidle")
@@ -150,13 +158,31 @@ def main(argv: list[str] | None = None) -> int:
         from . import mic
         return mic.main(a.rest)
 
+    if a.cmd == "doctor":
+        from . import doctor
+        return doctor.main([f"--{k}" for k in ("all", "fix", "online") if getattr(a, k)])
+
+    if a.cmd == "backup":
+        from . import backup
+        if a.action == "list":
+            for b in backup.all_backups():
+                import time as _t
+                print(f"{_t.strftime('%Y-%m-%d %H:%M', _t.localtime(b.stat().st_mtime))}  {b}")
+            return 0
+        print(f"Saved: {backup.make()}\nAfter a reset:  ./install.sh --restore FILE")
+        return 0
+
+    if a.cmd == "notifications":
+        from . import tools
+        return tools.notifications()
+
     if a.cmd in ("undo", "history"):
         from . import history
         return history.main(["undo"] if a.cmd == "undo" else a.rest)
 
     if a.cmd == "privacy":
         from . import privacy
-        return privacy.main(a.rest)
+        return privacy.main(["--json"] if a.json else a.rest)
 
     if a.cmd == "screenshare":
         from . import render

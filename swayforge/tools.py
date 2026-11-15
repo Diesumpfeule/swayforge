@@ -90,6 +90,55 @@ def start() -> None:
     subprocess.Popen(["rofi", "-show", "drun"], start_new_session=True)
 
 
+def parse_mako_history(text: str) -> list[dict]:
+    """`makoctl history` (JSON of old and new mako versions, or plain text) → [{app, summary, body}]."""
+    out: list[dict] = []
+    try:
+        data = json.loads(text)
+    except ValueError:
+        data = None
+    if data is not None:
+        items = data.get("data", data) if isinstance(data, dict) else data
+        if items and isinstance(items[0], list):
+            items = items[0]
+        for n in items or []:
+            if not isinstance(n, dict):
+                continue
+            val = lambda k: (n.get(k, {}).get("data") if isinstance(n.get(k), dict) else n.get(k)) or ""  # noqa: E731
+            out.append({"app": str(val("app-name") or val("app_name")), "summary": str(val("summary")),
+                        "body": str(val("body"))})
+        return out
+    cur: dict | None = None
+    for line in text.splitlines():                       # "Notification 12: Summary" + indented fields
+        if line.startswith("Notification "):
+            cur = {"app": "", "summary": line.split(":", 1)[1].strip() if ":" in line else "", "body": ""}
+            out.append(cur)
+        elif cur is not None and line.strip().startswith("App name:"):
+            cur["app"] = line.split(":", 1)[1].strip()
+        elif cur is not None and line.strip().startswith("Body:"):
+            cur["body"] = line.split(":", 1)[1].strip()
+    return out
+
+
+def notifications() -> int:
+    """Rofi list of the notifications you missed (mako keeps the last ones). Enter copies the text."""
+    if not have("makoctl"):
+        notify("Notifications", "mako is not running")
+        return 1
+    r = run(["makoctl", "history", "-j"])
+    if r.returncode != 0 or not r.stdout.strip():
+        r = run(["makoctl", "history"])
+    items = parse_mako_history(r.stdout)
+    if not items:
+        notify("Notifications", "Nothing in the history yet")
+        return 0
+    rows = [" · ".join(x for x in (n["app"], n["summary"], " ".join(n["body"].split())[:120]) if x) for n in items]
+    choice = rofi_menu(rows, "Notifications", width="820px", lines=min(len(rows), 14), message="Enter copies the text")
+    if choice and have("wl-copy"):
+        subprocess.run(["wl-copy"], input=choice.encode())
+    return 0
+
+
 def keys() -> None:
     s = settings.load()
     rows = []
@@ -209,20 +258,23 @@ EXPORT_FILES = [
     paths.XDG_CONFIG / "waybar/config.jsonc", paths.XDG_CONFIG / "gtk-3.0/gtk.css",
     paths.XDG_CONFIG / "gtk-4.0/gtk.css", paths.HOME / ".zshrc", paths.HOME / ".spaceshiprc.zsh",
     paths.XDG_DATA / "cs2translate", paths.XDG_CONFIG / "cs2translate.json", paths.XDG_CONFIG / "steamtune.json",
-    paths.XDG_CONFIG / "wolfforge",
+    paths.XDG_CONFIG / "wolfforge", paths.XDG_CONFIG / "voiceforge", paths.XDG_DATA / "voiceforge/sounds",
 ]
 
 
-def export(dest: str) -> int:
+def export(dest: str, quiet: bool = False) -> int:
     out = Path(os.path.expanduser(dest))
     if out.is_dir():
         out = out / time.strftime("swayforge-backup-%Y%m%d.tar.gz")
-    with tarfile.open(out, "w:gz") as tar:
+    tmp = out.with_name(out.name + ".part")              # a half-written archive never replaces a good one
+    with tarfile.open(tmp, "w:gz") as tar:
         for p in EXPORT_FILES:
             if p.exists():
                 tar.add(p, arcname=str(p.relative_to(paths.HOME)))
-    print(f"Saved: {out}")
-    print("After a reset:  ./install.sh --restore", out.name)
+    os.replace(tmp, out)
+    if not quiet:
+        print(f"Saved: {out}")
+        print("After a reset:  ./install.sh --restore", out.name)
     return 0
 
 
