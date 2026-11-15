@@ -66,6 +66,9 @@ class AppServer(unittest.TestCase):
         r = self.post("/api/set", {"path": "look.radius", "value": 7})
         self.assertNotIn("error", r)
         self.assertEqual(self.state.s["look"]["radius"], 7)
+        r = self.post("/api/set", {"path": "widgets.scale", "value": 1})       # the browser sends 1 for 1.0
+        self.assertNotIn("error", r)
+        self.assertEqual(self.state.s["widgets"]["scale"], 1.0)
         r = self.post_err("/api/set", {"path": "look.radius", "value": "drop table"})
         self.assertIn("error", r)
         r = self.post_err("/api/set", {"path": "nope.nothing", "value": 1})

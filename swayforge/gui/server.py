@@ -101,6 +101,13 @@ def _coerce(kind: str, value, path: str = ""):
         for o in opts:                          # the option list decides the type
             if str(o) == str(value):
                 return o
+        for o in opts:                          # 1 from the browser is the option 1.0
+            if isinstance(o, (int, float)) and not isinstance(o, bool):
+                try:
+                    if float(value) == float(o):
+                        return o
+                except (TypeError, ValueError):
+                    pass
         raise ValueError("not one of the choices")
     if kind == "bool":
         return bool(value)
