@@ -57,3 +57,33 @@ class Settings(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class Tidy(unittest.TestCase):
+    def test_numbers_are_clamped_and_bad_texts_fall_back(self):
+        home = fresh_home()
+        from swayforge import paths, settings
+        paths.CONFIG_DIR.mkdir(parents=True, exist_ok=True)
+        paths.SETTINGS_FILE.write_text(
+            '[look]\ngaps_inner = 100000\nradius = -3\n[theme]\nfont = "Evil\\"; exec rm -rf ~ #"\n'
+            '[power]\nlocation = "$(id)"\n[input]\nkb_layout = "de; exec x"\n[prompt]\nchar = "$(x)"\n')
+        s = settings.load()
+        d = settings.DEFAULTS
+        self.assertEqual((s["look"]["gaps_inner"], s["look"]["radius"]), (40, 0))
+        self.assertEqual(s["theme"]["font"], d["theme"]["font"])
+        self.assertEqual(s["power"]["location"], d["power"]["location"])
+        self.assertEqual(s["input"]["kb_layout"], d["input"]["kb_layout"])
+        self.assertEqual(s["prompt"]["char"], d["prompt"]["char"])
+        del home
+
+    def test_normal_values_survive(self):
+        fresh_home()
+        from swayforge import settings
+        s = copy.deepcopy(settings.DEFAULTS)
+        s["theme"]["font"] = "Terminess Nerd Font"
+        s["input"].update(kb_layout="ch,us", kb_variant="de_nodeadkeys", kb_options="grp:alt_shift_toggle,caps:escape")
+        s["power"]["location"] = "47.37:8.54"
+        s["bar"]["clock_format"] = "%H:%M:%S"
+        s["widgets"]["weather_city"] = "Zürich"
+        before = copy.deepcopy(s)
+        self.assertEqual(settings.tidy(s), before)

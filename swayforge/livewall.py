@@ -11,7 +11,6 @@ from __future__ import annotations
 import hashlib
 import json
 import os
-import shutil
 import socket
 import subprocess
 import time
@@ -123,18 +122,6 @@ def mpv_options(s: dict) -> str:
     if fps > 0:
         opts.append(f"vf=fps={fps}")               # note: software path (no hwdec) – only if you want a lower rate
     return " ".join(opts)
-
-
-def start_command(s: dict, path: str) -> str:
-    """Shell command for Sway's exec_always: replaces a running player."""
-    mp = shutil.which("mpvpaper") or "mpvpaper"
-    return (f"pkill -x mpvpaper; sleep 0.3; "
-            f"exec {mp} -f -o {shell_quote(mpv_options(s))} ALL {shell_quote(path)}")
-
-
-def shell_quote(x: str) -> str:
-    import shlex
-    return shlex.quote(x)
 
 
 def stop() -> None:

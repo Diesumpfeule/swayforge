@@ -31,6 +31,7 @@ def fresh_home() -> Path:
 def sysinfo(**kw):
     from swayforge import system
     base = dict(distro="Fedora", fedora=43, user="tester", amd_gpu=True, laptop=True, bluetooth=True,
-                swayfx=True, hwmon_cpu="/x", gpu_busy="/y")
+                swayfx=True, hwmon_cpu="/x", gpu_busy="/y",
+                outputs=[{"name": "DP-1", "active": True, "current_mode": {"width": 1920, "height": 1080}}])
     base.update(kw)
     return system.SysInfo(**base)

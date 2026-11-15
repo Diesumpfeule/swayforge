@@ -131,18 +131,22 @@ def flatpak_apps() -> list[dict]:
     if not have("flatpak"):
         return []
     portal = portal_permissions()
-    apps = []
+    rows = []
     for line in _run(["flatpak", "list", "--app", "--columns=application,name"]).splitlines():
         cols = line.split("\t")
-        if not cols or not cols[0].strip() or cols[0] == "Application ID":
-            continue
-        app = cols[0].strip()
+        if cols and cols[0].strip() and cols[0] != "Application ID":
+            rows.append((cols[0].strip(), cols[1].strip() if len(cols) > 1 else ""))
+
+    def one(row: tuple[str, str]) -> dict:
+        app, name = row
         perm = parse_flatpak_permissions(_run(["flatpak", "info", "--show-permissions", app]))
         j = judge_flatpak(perm, portal.get(app, {}))
         overridden = bool(_run(["flatpak", "override", "--user", "--show", app]).strip())
-        apps.append({"id": app, "name": (cols[1].strip() if len(cols) > 1 else "") or app, "kind": "flatpak",
-                     "sandboxed": True, "overridden": overridden, **j})
-    return apps
+        return {"id": app, "name": name or app, "kind": "flatpak", "sandboxed": True, "overridden": overridden, **j}
+
+    from concurrent.futures import ThreadPoolExecutor
+    with ThreadPoolExecutor(max_workers=8) as pool:       # two flatpak calls per app – ask in parallel
+        return list(pool.map(one, rows))
 
 
 # ── RPM / native apps ────────────────────────────────────────────────

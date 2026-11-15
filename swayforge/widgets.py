@@ -409,26 +409,33 @@ def capture_visible() -> None:
 
 
 def thumb_watcher(stop, after=None) -> None:
-    """Thread: picture on every workspace switch (after it settled) and every 20 s."""
+    """Thread: a picture after every workspace switch (once it settled), and while you stay on one,
+    at most every 20 s – and only if a window actually changed. An idle desktop costs nothing."""
     from shutil import which
     if not which("grim"):
         return
-    last = 0.0
     try:
-        p = subprocess.Popen(["swaymsg", "-m", "-t", "subscribe", '["workspace"]'], stdout=subprocess.PIPE, text=True)
+        p = subprocess.Popen(["swaymsg", "-m", "-r", "-t", "subscribe", '["workspace","window"]'],
+                             stdout=subprocess.PIPE, text=True)
     except OSError:
         return
     import select
+    last, dirty = 0.0, True
     while not stop.is_set():
-        r, _, _ = select.select([p.stdout], [], [], 20)
+        r, _, _ = select.select([p.stdout], [], [], 20 if dirty else 600)
+        switched = False
         if r:
             line = p.stdout.readline()
             if not line:
                 break
-            time.sleep(0.45)                     # let the new workspace draw
-        if time.monotonic() - last > 0.4:
+            dirty = True
+            switched = '"current"' in line and '"old"' in line          # a workspace switch
+            if switched:
+                time.sleep(0.45)                 # let the new workspace draw
+        now = time.monotonic()
+        if dirty and (switched or now - last >= 20):
             capture_visible()
-            last = time.monotonic()
+            last, dirty = time.monotonic(), False
             if after:
                 after()
     p.terminate()
@@ -1226,7 +1233,7 @@ def _run(Gdk, GLib, Gtk, GtkLayerShell) -> int:
     def ws_events():
         """Workspace/window changes → redraw the mini map (no polling)."""
         try:
-            p = subprocess.Popen(["swaymsg", "-m", "-t", "subscribe", '["workspace","window"]'],
+            p = subprocess.Popen(["swaymsg", "-m", "-r", "-t", "subscribe", '["workspace","window"]'],
                                  stdout=subprocess.PIPE, text=True)
         except OSError:
             return
@@ -1242,7 +1249,7 @@ def _run(Gdk, GLib, Gtk, GtkLayerShell) -> int:
             subprocess.Popen(["notify-send", "-a", "swayforge", "Focus timer",
                               "Time for a break!" if ended == "work" else "Break over – back to work."],
                              stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        redraw("clock", "clippy", "timer", "network")
+        redraw("clock", "clippy", "timer")
         return True
 
     slow_n = {"n": 0}
@@ -1269,7 +1276,7 @@ def _run(Gdk, GLib, Gtk, GtkLayerShell) -> int:
                 state["notes_m"], state["notes"] = m, notes_text()
         if "weather" in on and slow_n["n"] % 900 == 0:           # every 30 minutes
             threading.Thread(target=load_weather, daemon=True).start()
-        redraw("player", "sysmon", "battery", "disks", "notes")
+        redraw("player", "sysmon", "battery", "disks", "notes", "network")
         # settings changed (theme, positions …)? start again with the new ones
         try:
             m = paths.SETTINGS_FILE.stat().st_mtime

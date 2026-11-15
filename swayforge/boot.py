@@ -20,7 +20,7 @@ from . import ascii as asc
 from . import paths
 
 if TYPE_CHECKING:
-    from .render import Ctx, Writer
+    from .render import Ctx, Writer  # noqa: F401 – only for the annotations
 
 BOOT_DIR = paths.GEN_DIR / "boot"
 

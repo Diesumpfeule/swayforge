@@ -44,6 +44,7 @@ def connect() -> sqlite3.Connection:
     con = sqlite3.connect(p, timeout=5)
     if new:
         os.chmod(p, 0o600)
+    con.execute("PRAGMA secure_delete = ON")       # deleted entries are overwritten right away
     con.execute("""CREATE TABLE IF NOT EXISTS clip (
         id INTEGER PRIMARY KEY AUTOINCREMENT, hash TEXT UNIQUE, mime TEXT, data BLOB, preview TEXT,
         size INTEGER, created REAL, used REAL, pinned INTEGER DEFAULT 0)""")
@@ -111,10 +112,7 @@ def trim(conf: dict | None = None, now: float | None = None) -> int:
         keep = max(1, int(conf.get("max_items", 100) or 100))
         gone += con.execute("""DELETE FROM clip WHERE pinned=0 AND id NOT IN
                                (SELECT id FROM clip WHERE pinned=0 ORDER BY used DESC LIMIT ?)""", (keep,)).rowcount
-    if gone:
-        with closing(connect()) as con:
-            con.execute("VACUUM")             # really gone from the disk, not just marked free
-    return gone
+    return gone        # secure_delete already wiped the content; the file is shrunk by clear()
 
 
 def items(query: str = "", limit: int = 500) -> list[dict]:

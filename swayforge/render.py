@@ -20,7 +20,6 @@ import time
 from dataclasses import dataclass, field
 from pathlib import Path
 
-import jinja2
 
 from .fsutil import atomic_write
 
@@ -264,14 +263,20 @@ def make_ctx(s: dict, si: SysInfo | None = None) -> Ctx:
     return Ctx(s, si, th, th.with_accent(s["theme"].get("accent", "")))
 
 
-_env = jinja2.Environment(
-    loader=jinja2.FileSystemLoader(str(paths.TEMPLATES)),
-    undefined=jinja2.StrictUndefined, trim_blocks=True, lstrip_blocks=True,
-    keep_trailing_newline=True,
-)
+_env = None
 
 
 def tpl(name: str, d: dict) -> str:
+    """Render a template. Jinja is loaded on first use – the many small commands that only need
+    a helper from this module (volume keys, the bar, the clipboard) start noticeably faster."""
+    global _env
+    if _env is None:
+        import jinja2
+        _env = jinja2.Environment(
+            loader=jinja2.FileSystemLoader(str(paths.TEMPLATES)),
+            undefined=jinja2.StrictUndefined, trim_blocks=True, lstrip_blocks=True,
+            keep_trailing_newline=True,
+        )
     return _env.get_template(name).render(**d)
 
 
@@ -884,15 +889,37 @@ def wallpaper(ctx: Ctx, w: Writer) -> None:
     png = paths.WALLPAPER_DIR / f"swayforge-{ctx.theme.id}.png"
     style = ctx.theme.wallpaper_style
     content = tpl(f"wallpaper-{style}.svg.j2", ctx.as_dict())
-    changed = not svg.exists() or svg.read_text() != content or not png.exists()
     if not w.dry:
+        import hashlib
         svg.parent.mkdir(parents=True, exist_ok=True)
-        svg.write_text(content)
+        if not svg.exists() or svg.read_text() != content:
+            svg.write_text(content)
         png.parent.mkdir(parents=True, exist_ok=True)
-        if changed and have("rsvg-convert"):
-            run(["rsvg-convert", "-w", "3840", "-h", "2160", "-o", str(png), str(svg)])
+        # Drawing the picture is the slowest part of a theme switch (soft-glow filters). So: only
+        # as big as your largest screen, and never again while this theme's picture is up to date.
+        width, height = wallpaper_size(ctx.si)
+        want = hashlib.sha1(f"{width}x{height}\n{content}".encode()).hexdigest()
+        stamp = paths.GEN_DIR / "wallpapers" / f"{ctx.theme.id}.sha"
+        fresh = png.exists() and stamp.exists() and stamp.read_text().strip() == want
+        if not fresh and have("rsvg-convert"):
+            r = run(["rsvg-convert", "-w", str(width), "-h", str(height), "-o", str(png), str(svg)], timeout=60)
+            if r.returncode == 0:
+                stamp.parent.mkdir(parents=True, exist_ok=True)
+                stamp.write_text(want)
     ctx.wallpaper_kind = "image"
     ctx.wallpaper_path = str(png if have("rsvg-convert") else svg)
+
+
+def wallpaper_size(si: SysInfo) -> tuple[int, int]:
+    """Pixels the theme wallpaper needs: your largest screen (16:9 around it), 1920×1080 … 3840×2160."""
+    w = h = 0
+    for o in si.outputs or []:
+        mode = o.get("current_mode") or {}
+        w, h = max(w, int(mode.get("width") or 0)), max(h, int(mode.get("height") or 0))
+    if not w or not h:
+        return 3840, 2160                      # screens unknown (installer, tty): the safe size
+    w = max(1920, min(3840, max(w, round(h * 16 / 9))))
+    return w, round(w * 9 / 16)
 
 
 def validate_sway(content: str) -> str | None:
@@ -935,7 +962,7 @@ and the login screen.
 def render_all(s: dict | None = None, dry: bool = False, si: SysInfo | None = None) -> Result:
     from . import boot                      # avoid import cycle
     from .cyberdeck import effective
-    s = effective(s or settings.load())     # cyberdeck mode works on a copy – your settings stay as they are
+    s = effective(settings.tidy(s) if s else settings.load())   # cyberdeck mode works on a copy of yours
     paths.ensure_dirs()
     ctx = make_ctx(s, si)
     w = Writer(dry)
@@ -1126,8 +1153,9 @@ def reload(s: dict | None = None) -> list[str]:
     run(["pkill", "-USR1", "-x", "kitty"])      # kitty reloads its config (Alacritty does it itself)
     if have("fc-cache"):
         subprocess.Popen(["fc-cache"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    session(s)
-    return done
+    if not (done and done[0] == "Sway"):
+        session(s)                 # a reloaded Sway runs `swayforge session` itself (exec_always) –
+    return done                    # doing it here too started swayidle twice
 
 
 def apply_sounds(s: dict, ctx: Ctx) -> None:
@@ -1209,9 +1237,14 @@ def fix_screenshare(force: bool = False) -> None:
             pass
     if not have("flatpak"):
         return
-    r = run(["flatpak", "list", "--app", "--columns=application"], timeout=20)
     for app in ("dev.vencord.Vesktop", "com.discordapp.Discord"):
-        if app in r.stdout.split():
+        # no `flatpak list` on every session start: look at the folders, and only act once
+        installed = any((d / "app" / app).is_dir() for d in (Path("/var/lib/flatpak"), paths.XDG_DATA / "flatpak"))
+        try:
+            done = "pipewire-0" in (paths.XDG_DATA / "flatpak/overrides" / app).read_text()
+        except OSError:
+            done = False
+        if installed and (force or not done):
             run(["flatpak", "override", "--user", "--filesystem=xdg-run/pipewire-0", "--socket=wayland",
                  "--env=ELECTRON_OZONE_PLATFORM_HINT=auto", app], timeout=20)
 
@@ -1348,15 +1381,25 @@ def set_gtk(ctx: "Ctx") -> None:
         return
     iface = "org.gnome.desktop.interface"
     font = f"{ui_font(ctx)} {s['theme']['font_size']}"
-    for k, v in {
+    cmds = [["gsettings", "set", iface, k, v] for k, v in {
         "gtk-theme": gtk_theme(ctx), "icon-theme": icon_theme(ctx),
         "cursor-theme": s["theme"]["cursor_theme"], "cursor-size": str(s["theme"]["cursor_size"]),
         "font-name": font, "document-font-name": font,
         "monospace-font-name": f"{s['theme']['font']} {s['theme']['font_size']}",
         "color-scheme": "prefer-dark" if ctx.theme.dark else "prefer-light",
-    }.items():
-        run(["gsettings", "set", iface, k, v], timeout=5)    # dconf may still be starting at login
-    run(["gsettings", "set", "org.gnome.desktop.wm.preferences", "button-layout", button_layout(ctx)], timeout=5)
+    }.items()]
+    cmds.append(["gsettings", "set", "org.gnome.desktop.wm.preferences", "button-layout", button_layout(ctx)])
+    procs = []                                   # nine settings at once instead of one after another
+    for c in cmds:
+        try:
+            procs.append(subprocess.Popen(c, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL))
+        except OSError:
+            pass
+    for p in procs:
+        try:
+            p.wait(timeout=5)                    # dconf may still be starting at login
+        except subprocess.TimeoutExpired:
+            p.kill()
 
 
 def session(s: dict | None = None) -> None:

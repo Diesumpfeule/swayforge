@@ -317,6 +317,46 @@ def _migrate(data: dict) -> dict:
     return data
 
 
+# Limits for hand-edited values. Numbers are clamped; a text that doesn't fit its pattern falls back
+# to the default – these texts end up in Sway/CSS/shell lines, so quotes, `$(…)`, `;` have no place there.
+RANGES: dict[str, tuple[float, float]] = {
+    "look.ui_opacity": (0.2, 1.0), "look.terminal_opacity": (0.3, 1.0), "look.fx_dim_inactive": (0.0, 0.5),
+    "look.radius": (0, 24), "look.gaps_inner": (0, 40), "look.gaps_outer": (0, 40), "look.border": (0, 8),
+    "theme.font_size": (8, 20), "theme.cursor_size": (12, 96), "bar.height": (20, 60), "sound.volume": (0.0, 1.0),
+    "power.lock_after": (0, 240), "power.screen_off_after": (0, 240), "power.suspend_after": (0, 480),
+    "look.terminal_padding": (0, 40), "input.mouse_speed": (-1.0, 1.0), "input.repeat_rate": (1, 100),
+    "input.repeat_delay": (100, 2000), "power.nightlight_temp": (1500, 6500), "prompt.dir_trunc": (0, 20),
+    "power.saver_speed": (1, 10),
+}
+_NAME = r"[\w][\w .+()\-]{0,59}"
+TEXTS: dict[str, str] = {
+    "theme.font": _NAME, "theme.cursor_theme": _NAME,
+    "bar.clock_format": r"[%\w .:/,\-]{0,40}", "bar.date_format": r"[%\w .:/,\-]{0,40}",
+    "input.kb_layout": r"[A-Za-z0-9_,]{1,40}", "input.kb_variant": r"[A-Za-z0-9_,\-]{0,40}",
+    "input.kb_options": r"[A-Za-z0-9_,:()+\-]{0,120}",
+    "power.location": r"-?\d{1,3}(\.\d+)?:-?\d{1,3}(\.\d+)?",
+    "prompt.char": r"[^\s\"'\\$`;{}]{1,4}",
+    "login.greeting": r"[^\"'\\$`\n\r]{0,80}",
+    "widgets.weather_city": r"[\w .,'\-]{0,60}",
+}
+
+
+def tidy(s: dict) -> dict:
+    """Clamp numbers and drop texts that don't fit (in place; returns s)."""
+    import re
+    for path, (lo, hi) in RANGES.items():
+        sec, key = path.split(".")
+        v = s.get(sec, {}).get(key)
+        if isinstance(v, (int, float)) and not isinstance(v, bool):
+            s[sec][key] = type(v)(min(hi, max(lo, v)))
+    for path, pat in TEXTS.items():
+        sec, key = path.split(".")
+        v = s.get(sec, {}).get(key)
+        if isinstance(v, str) and not re.fullmatch(pat, v):
+            s[sec][key] = DEFAULTS[sec][key]
+    return s
+
+
 LOAD_ERRORS: list[str] = []          # what went wrong reading settings.toml (shown by the apps)
 
 
@@ -344,7 +384,7 @@ def load() -> dict:
             import sys
             print("swayforge: " + msg, file=sys.stderr)
             data = {}
-    return _merge(DEFAULTS, _migrate(data))
+    return tidy(_merge(DEFAULTS, _migrate(data)))
 
 
 def save(s: dict) -> None:

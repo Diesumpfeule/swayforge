@@ -138,6 +138,10 @@ def main(argv: list[str] | None = None) -> int:
 
     a = ap.parse_args(argv)
 
+    if a.cmd == "clip":                       # runs on every copy – keep its imports small
+        from . import clipboard
+        return clipboard.main(a.rest)
+
     if a.cmd == "widgets":
         from . import widgets
         return widgets.main(a.action)
@@ -365,9 +369,6 @@ def main(argv: list[str] | None = None) -> int:
         tools.start()
     elif a.cmd == "keys":
         tools.keys()
-    elif a.cmd == "clip":
-        from . import clipboard
-        return clipboard.main(a.rest)
     elif a.cmd == "shot":
         tools.shot(a.mode)
     elif a.cmd == "osd":

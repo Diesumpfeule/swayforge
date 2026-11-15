@@ -72,16 +72,30 @@ def _load(path: Path, custom: bool) -> Theme | None:
         return None
 
 
+_cache: tuple[tuple, dict[str, "Theme"]] | None = None
+
+
 def all_themes() -> dict[str, Theme]:
-    out: dict[str, Theme] = {}
-    for p in sorted((paths.DATA / "themes").glob("*.toml")):
-        if t := _load(p, False):
-            out[t.id] = t
+    """Bundled themes + yours. Parsed once and kept until a theme file changes (name, time or size)."""
+    global _cache
+    files = [(p, False) for p in sorted((paths.DATA / "themes").glob("*.toml"))]
     if paths.USER_THEMES.is_dir():
-        for p in sorted(paths.USER_THEMES.glob("*.toml")):
-            if t := _load(p, True):
+        files += [(p, True) for p in sorted(paths.USER_THEMES.glob("*.toml"))]
+    sig = []
+    for p, _c in files:
+        try:
+            st = p.stat()
+            sig.append((str(p), st.st_mtime_ns, st.st_size))
+        except OSError:
+            sig.append((str(p), 0, 0))
+    key = tuple(sig)
+    if _cache is None or _cache[0] != key:
+        out: dict[str, Theme] = {}
+        for p, custom in files:
+            if t := _load(p, custom):
                 out[t.id] = t
-    return out
+        _cache = (key, out)
+    return dict(_cache[1])
 
 
 ALIASES = {"onyx": "noir"}          # merged themes: old names keep working

@@ -113,13 +113,6 @@ def art_styles(c: dict[str, str], main: str = "accent", bold: bool = False) -> d
             "glint": f"bold {c['text']}", "hot": f"bold {c['yellow']}"}
 
 
-def hero_text(theme_id: str, accent: str = "", word: str = "swayforge", width: int = 78) -> Text:
-    from ..ascii import best_banner
-    from ..render import mix
-    c = themes.get(theme_id).with_accent(accent)
-    return two_tone(best_banner(word, width), f"bold {c['accent']}", mix(c["accent"], c["base"], 0.5))
-
-
 def swatch(t: themes.Theme, width: int = 3) -> Text:
     txt = Text()
     for k in ("base", "surface", "accent", "accent2", "red", "green", "yellow", "blue", "magenta", "cyan"):

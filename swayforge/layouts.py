@@ -154,16 +154,33 @@ def sanitize(d: dict) -> dict:
     return out
 
 
+_user_cache: tuple[tuple, dict[str, dict]] | None = None
+
+
 def user_layouts() -> dict[str, dict]:
+    """Your layouts, parsed once and kept until a file changes."""
+    global _user_cache
+    import copy
     import tomllib
-    out = {}
     d = user_dir()
-    for f in sorted(d.glob("my-*.toml")) if d.is_dir() else []:
+    files = sorted(d.glob("my-*.toml")) if d.is_dir() else []
+    sig = []
+    for f in files:
         try:
-            out[f.stem] = sanitize(tomllib.loads(f.read_text()))
-        except (OSError, ValueError):
-            continue
-    return out
+            st = f.stat()
+            sig.append((str(f), st.st_mtime_ns, st.st_size))
+        except OSError:
+            sig.append((str(f), 0, 0))
+    key = tuple(sig)
+    if _user_cache is None or _user_cache[0] != key:
+        out = {}
+        for f in files:
+            try:
+                out[f.stem] = sanitize(tomllib.loads(f.read_text()))
+            except (OSError, ValueError):
+                continue
+        _user_cache = (key, out)
+    return copy.deepcopy(_user_cache[1])
 
 
 def custom(name: str) -> dict | None:

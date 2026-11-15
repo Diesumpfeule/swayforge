@@ -66,12 +66,7 @@ def _from_fields() -> None:
 
 _from_fields()
 
-RANGES = {"look.ui_opacity": (0.2, 1.0), "look.terminal_opacity": (0.3, 1.0), "look.fx_dim_inactive": (0.0, 0.5),
-          "look.radius": (0, 24), "look.gaps_inner": (0, 40), "look.gaps_outer": (0, 40), "look.border": (0, 8),
-          "theme.font_size": (8, 20), "bar.height": (20, 60), "sound.volume": (0.0, 1.0),
-          "power.lock_after": (0, 240), "power.screen_off_after": (0, 240), "power.suspend_after": (0, 480),
-          "look.terminal_padding": (0, 40), "input.mouse_speed": (-1.0, 1.0), "input.repeat_rate": (1, 100),
-          "input.repeat_delay": (100, 2000), "power.nightlight_temp": (1500, 6500), "prompt.dir_trunc": (0, 20)}
+RANGES = settings.RANGES
 
 
 PAGE_IDS = {"clipboard", "privacy", "display", "audio", "bluetooth", "network", "power", "boot", "security", "apps", "cleanup",
@@ -374,6 +369,8 @@ def make_handler(state: State, token: str):
                     return self._json({"error": f"“{value}” doesn't fit here"}, 400)
                 if kind == "str" and (len(str(val)) > 200 or "\n" in str(val)):
                     return self._json({"error": "too long"}, 400)
+                if kind == "str" and path in settings.TEXTS and not re.fullmatch(settings.TEXTS[path], str(val)):
+                    return self._json({"error": "that text has characters that don't work here"}, 400)
                 if path in RANGES:
                     lo, hi = RANGES[path]
                     val = type(val)(min(hi, max(lo, val))) if isinstance(val, (int, float)) and not isinstance(val, bool) else val

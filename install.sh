@@ -83,6 +83,8 @@ fi
 
 if [ "$UPDATE" = 1 ]; then
   bold "Applying the new version …"
+  # background helpers keep running across reloads – stop them so the new code starts
+  pkill -f "m [s]wayforge (widgets run|clip watch|mic keep)" 2>/dev/null || true
   "$BIN" apply
   bold "✓ swayforge updated. Restart the settings app (Super+I) to see the new version."
   exit 0

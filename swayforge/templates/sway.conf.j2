@@ -218,12 +218,13 @@ exec blueman-applet
 {% endif %}
 {% if s.clipboard.enabled %}
 # clipboard history (Super+V) – trims itself by count and age, see Settings → Clipboard
-exec_always sh -c 'pkill -f "[w]l-paste --type .* --watch .*(cliphist|swayforge clip)"; pkill -f "m [s]wayforge clip watch"; exec {{ sf }} clip watch'
+# (helpers below only start when they aren't running yet – a reload doesn't restart them)
+exec_always sh -c 'pkill -f "[w]l-paste --type .* --watch .*cliphist"; pgrep -f "m [s]wayforge clip watch" >/dev/null || exec {{ sf }} clip watch'
 {% endif %}
 exec_always {{ sf }} session
 {% if s.audio.keep_mic %}
 # microphone level stays where you set it (Settings → Audio)
-exec_always sh -c 'pkill -f "m [s]wayforge mic keep"; exec {{ sf }} mic keep'
+exec_always sh -c 'pgrep -f "m [s]wayforge mic keep" >/dev/null || exec {{ sf }} mic keep'
 {% else %}
 exec_always pkill -f "m [s]wayforge mic keep"
 {% endif %}
@@ -234,12 +235,12 @@ exec_always sh -c 'pkill -x waybar; pkill -x mako; sleep 1; pgrep -x noctalia >/
 exec_always sh -c 'pkill -x waybar; exec waybar'
 {% endif %}
 {% if s.power.nightlight %}
-exec_always sh -c 'pkill -x gammastep; exec gammastep -l {{ s.power.location }} -t 6500:{{ s.power.nightlight_temp }}'
+exec_always sh -c 'pgrep -af "^gammastep" | grep -qF -- "-l {{ s.power.location }} -t 6500:{{ s.power.nightlight_temp }}" && exit 0; pkill -x gammastep; exec gammastep -l {{ s.power.location }} -t 6500:{{ s.power.nightlight_temp }}'
 {% else %}
 exec_always pkill -x gammastep
 {% endif %}
 {% if s.widgets.enabled %}
-exec_always sh -c 'pkill -f "m [s]wayforge widgets run"; exec {{ sf }} widgets run'
+exec_always sh -c 'pgrep -f "m [s]wayforge widgets run" >/dev/null || exec {{ sf }} widgets run'
 {% else %}
 exec_always pkill -f "m [s]wayforge widgets run"
 {% endif %}

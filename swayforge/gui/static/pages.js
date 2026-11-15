@@ -74,18 +74,6 @@ Studio.page("themes", {
       if (r.changed && r.changed.length) toast(`<b>${esc(S.themes[id].label.split(" (")[0])}</b> brings its own ${r.changed.map(esc).join(", ")}. Your values come back when you switch away.`);
     } catch (e) { toast(esc(e.message), true); }
   },
-  async editor() {
-    const t = theme(), keys = S.fields.color_keys;
-    const res = await dialog(`<h2>Your own theme</h2><p class="lede">Starts from ${esc(t.label)}. Change any colour, name it, save – it then shows up under “Yours”.</p>
-      <div class="colgrid">${keys.map(k => `<label><input type="color" data-k="${k}" value="${t.colors[k]}"><span>${esc(S.fields.color_labels[k] || k)}</span><code>${t.colors[k]}</code></label>`).join("")}</div>
-      <div class="row"><label for="tname">Name</label><input id="tname" type="text" value="${t.custom ? esc(t.label) : ""}" placeholder="e.g. My Retro"></div>
-      <menu><button value="" class="btn ghost">Cancel</button><button value="save" class="btn primary">Save as my theme</button></menu>`,
-      b => b.querySelectorAll("input[type=color]").forEach(i => i.addEventListener("input", () => (i.parentElement.querySelector("code").textContent = i.value))));
-    if (res !== "save") return;
-    const colors = {}; $$("#dlg-body input[type=color]").forEach(i => (colors[i.dataset.k] = i.value));
-    const r = await api.act("theme_save", { label: $("#tname").value, colors });
-    if (r) { await reloadSettings(); toast(`Theme <b>${esc(r.label)}</b> saved and selected`); go("themes"); }
-  },
   async fromWall() {
     const w = S.s.theme.wallpaper;
     if (!w || w === "theme" || w === "solid") { toast("Pick a picture on the Wallpapers page first", true); return; }
