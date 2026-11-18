@@ -492,7 +492,26 @@ class SettingsApp(App):
             Horizontal(Button("Check now", id="doc_check", variant="primary"),
                        Button("Fix what can be fixed", id="doc_fix"),
                        Button("Voice changer (voiceforge)", id="doc_voice"), classes="btnrow"),
-            Static("", id="doc_out"))
+            Static("", id="doc_out"),
+            section("Discord screen sharing"),
+            Static("Discord can only share your screen on Sway when it runs natively on Wayland with the PipeWire "
+                   "capturer. The fix installs the portal packages, routes screen sharing to the wlr portal, exports "
+                   "the session variables, gives Discord/Vesktop launchers with the right flags and restarts the "
+                   "services. Replaced files are backed up first.", classes="hint"),
+            Horizontal(Button("Fix Discord screenshare", id="dshare_fix", variant="primary"),
+                       Button("Check", id="dshare_check"), classes="btnrow"),
+            Static("", id="dshare_out"))
+
+    @work(exclusive=True, thread=True, group="dshare")
+    def dshare_check(self) -> None:
+        from .. import discordshare
+        from rich.markup import escape
+        items = discordshare.check()
+        bad = sum(not i.ok for i in items)
+        lines = [("[green]PASS[/] " if i.ok else "[red]FAIL[/] ") + escape(i.what)
+                 + ("" if i.ok or not i.hint else f"\n      [dim]→ {escape(i.hint)}[/]") for i in items]
+        txt = f"[b]{len(items) - bad} passed, {bad} failed[/]\n\n" + "\n".join(lines)
+        self.call_from_thread(lambda: self.query_one("#dshare_out", Static).update(txt))
 
     @work(exclusive=True, thread=True, group="doctor")
     def doctor_run(self, fix: bool) -> None:
@@ -1005,6 +1024,11 @@ class SettingsApp(App):
         elif bid in ("doc_check", "doc_fix"):
             self.query_one("#doc_out", Static).update("Checking …")
             self.doctor_run(bid == "doc_fix")
+        elif bid == "dshare_fix":                       # a terminal: dnf may need the sudo password
+            self.spawn_term(f"{render.LAUNCHER} discordshare fix; {HOLD}")
+        elif bid == "dshare_check":
+            self.query_one("#dshare_out", Static).update("Checking …")
+            self.dshare_check()
         elif bid == "doc_voice":
             vf = paths.HOME / ".local/bin/voiceforge"
             if vf.exists():

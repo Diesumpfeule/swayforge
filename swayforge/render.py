@@ -742,6 +742,8 @@ def environment(ctx: Ctx, shell: bool) -> str:
         "XCURSOR_THEME": t["cursor_theme"],
         "XCURSOR_SIZE": str(t["cursor_size"]),
     }
+    if shell:          # Sway's own environment file only – environment.d would reach other desktops too
+        env.update({"XDG_CURRENT_DESKTOP": "sway", "XDG_SESSION_TYPE": "wayland"})
     q = (lambda v: f'"{v}"') if shell else (lambda v: v)
     return f"# {MARK}\n" + "".join(f"{k}={q(v)}\n" for k, v in env.items())
 
@@ -993,9 +995,8 @@ def render_all(s: dict | None = None, dry: bool = False, si: SysInfo | None = No
     w.owned(C / "environment.d/90-swayforge.conf", environment(ctx, shell=False))
 
     # Screen sharing (Discord/Vesktop, browsers, OBS): portal routing for Sway
-    w.owned(C / "xdg-desktop-portal/sway-portals.conf",
-            f"# {MARK} – don't edit\n[preferred]\ndefault=gtk\n"
-            "org.freedesktop.impl.portal.ScreenCast=wlr\norg.freedesktop.impl.portal.Screenshot=wlr\n")
+    from .discordshare import PORTALS_CONF
+    w.owned(C / "xdg-desktop-portal/sway-portals.conf", PORTALS_CONF)
     w.owned(C / "xdg-desktop-portal-wlr/config", portal_wlr_config(ctx))
 
     # Waybar: generated base + your config that includes it (your values win)
@@ -1245,8 +1246,8 @@ def fix_screenshare(force: bool = False) -> None:
         except OSError:
             done = False
         if installed and (force or not done):
-            run(["flatpak", "override", "--user", "--filesystem=xdg-run/pipewire-0", "--socket=wayland",
-                 "--env=ELECTRON_OZONE_PLATFORM_HINT=auto", app], timeout=20)
+            from .discordshare import flatpak_override
+            flatpak_override(app)
 
 
 def screenshare_check(fix: bool = True) -> int:

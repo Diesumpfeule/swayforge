@@ -3,6 +3,7 @@
   swayforge                    settings app (TUI)
   swayforge gui                swayforge app – graphical settings with live previews
   swayforge screenshare        check and repair screen sharing (Discord/Vesktop, browsers)
+  swayforge discordshare [fix|check]  Discord screen sharing: set up packages, portals, launchers / pass-fail check
   swayforge widgets [restart|stop]  desktop widgets (clock, player, system monitor, Clippy)
   swayforge install            installer (TUI)
   swayforge install --yes      install the saved profile without questions
@@ -68,6 +69,8 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("action", nargs="?", default="run", choices=["run", "restart", "stop", "overview", "check"])
     p = sub.add_parser("screenshare", help="check and repair screen sharing (Discord/Vesktop, browsers)")
     p.add_argument("--report", action="store_true", help="write everything needed to find the cause into one file")
+    p = sub.add_parser("discordshare", help="Discord screen sharing on Sway: fix (packages, portals, launchers, services) or check")
+    p.add_argument("action", nargs="?", default="check", choices=["fix", "check"])
     p = sub.add_parser("gui", help="swayforge app – graphical settings with live previews")
     p.add_argument("--browser", action="store_true", help="open in a browser instead of a native window")
     p.add_argument("--serve", action="store_true", help="only serve and print the address")
@@ -187,6 +190,10 @@ def main(argv: list[str] | None = None) -> int:
     if a.cmd == "screenshare":
         from . import render
         return render.screenshare_report() if a.report else render.screenshare_check(fix=True)
+
+    if a.cmd == "discordshare":
+        from . import discordshare
+        return discordshare.main([a.action])
 
     if a.cmd == "gui":
         from .gui import main as gui_main

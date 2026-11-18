@@ -203,8 +203,8 @@ for_window [app_id="swayforge-saver"] inhibit_idle none
 {% endif %}
 
 # ── Autostart ────────────────────────────────────────────────────
-exec systemctl --user import-environment DISPLAY WAYLAND_DISPLAY SWAYSOCK XDG_CURRENT_DESKTOP
-exec dbus-update-activation-environment --systemd DISPLAY WAYLAND_DISPLAY SWAYSOCK XDG_CURRENT_DESKTOP=sway
+exec systemctl --user import-environment DISPLAY WAYLAND_DISPLAY SWAYSOCK XDG_CURRENT_DESKTOP XDG_SESSION_TYPE
+exec dbus-update-activation-environment --systemd DISPLAY WAYLAND_DISPLAY SWAYSOCK XDG_CURRENT_DESKTOP=sway XDG_SESSION_TYPE=wayland
 exec lxqt-policykit-agent
 {% if not ext_shell %}
 exec_always sh -c 'pgrep -x mako >/dev/null || exec mako'

@@ -546,6 +546,7 @@ swayforge clip                clipboard history (list, clear, pause, resume)
 swayforge privacy             who may use camera, mic, network, files (revoke APP PERMISSION)
 swayforge widgets overview    every workspace big (Super+O)
 swayforge screenshare         check screen sharing (--report writes one file to send)
+swayforge discordshare        Discord screen sharing: pass/fail check (`fix` sets everything up)
 swayforge version / update    installed versions · update both from GitHub
 swayforge scan [TARGET]       malware scan: downloads | home | drives | PATH
 swayforge audit rootkit|system  rkhunter + chkrootkit / Lynis
@@ -603,6 +604,33 @@ asks which) and starts Flatpak Vesktop/Discord on Wayland. Still nothing happens
 app): it checks every piece, restarts the portals and tells you what is missing.
 `swayforge screenshare --report` writes `~/swayforge-screenshare-report.txt` (versions, portal logs,
 config files – no passwords) when you need help finding the cause.
+
+### Discord: the screen picker is empty or black
+
+Discord is an Electron app. Started under XWayland it can only capture other XWayland windows, never
+your Sway screen. It has to run **natively on Wayland with Chromium's PipeWire capturer**, and behind
+it PipeWire, `xdg-desktop-portal` and `xdg-desktop-portal-wlr` have to be running.
+*Settings → Doctor → Fix Discord screenshare* (or `swayforge discordshare fix`) sets that up:
+
+1. installs `pipewire`, `wireplumber`, `xdg-desktop-portal`, `xdg-desktop-portal-wlr` and
+   `xdg-desktop-portal-gtk` – only the missing ones, asks for the sudo password then;
+2. routes screen sharing to the wlr portal (`~/.config/xdg-desktop-portal/sway-portals.conf`);
+3. exports `XDG_CURRENT_DESKTOP=sway` and `XDG_SESSION_TYPE=wayland` to the session
+   (`dbus-update-activation-environment` in the generated Sway config);
+4. finds Discord and Vesktop (RPM, Flatpak or a downloaded binary) and puts a launcher in
+   `~/.local/share/applications` that starts them with
+   `--enable-features=UseOzonePlatform,WebRTCPipeWireCapturer --ozone-platform=wayland`;
+   Flatpak installs also get `flatpak override --user` (Wayland socket, PipeWire);
+5. enables and restarts the PipeWire and portal user services.
+
+Running it again changes nothing that is already right; every file it replaces is backed up to
+`~/.local/share/swayforge/backups/` first. Nothing outside your home folder is touched apart from the
+packages. *Check* (or `swayforge discordshare`) lists every item with PASS / FAIL. Afterwards quit
+Discord completely (also from the tray) and start it from the app menu – started from a terminal it
+doesn't get the flags. To undo, delete the launcher files from `~/.local/share/applications`.
+
+**Why not xwaylandvideobridge?** It is built for KDE Plasma, is reported not to work on Sway and is no
+longer maintained. Running Discord natively on Wayland solves the problem at the source instead.
 
 ## Screensavers
 
